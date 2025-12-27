@@ -1,0 +1,22 @@
+export const SCREENS = {
+  HOME: 'Home',
+  LOGIN: 'Login',
+  CALENDAR: 'Calendar',
+  PROFILE: 'Profile',
+  TODAY: 'Today',
+  ANALYSIS: 'Analysis',
+  LIFESTYLE_DETAILS: 'LifestyleDetails',
+  LANDING: 'Landing',
+  CHANGE_PASSWORD: 'ChangePassword',
+  DELETE_ACCOUNT: 'DeleteAccount',
+  HOSPITAL_CHECKLIST: 'HospitalChecklist',
+  REMINDERS: 'Reminders',
+  THEME_SETTINGS: 'ThemeSettings',
+  PERIOD_SELECTOR: 'PeriodSelector',
+} as const;
+
+export type RootStackParamList = {
+  [K in (typeof SCREENS)[keyof typeof SCREENS]]: K extends typeof SCREENS.CALENDAR
+    ? { openDiaryModal?: boolean }
+    : undefined;
+};
