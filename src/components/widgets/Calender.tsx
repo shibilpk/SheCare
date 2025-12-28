@@ -11,9 +11,9 @@ import {
   TouchableOpacity,
   StyleSheet,
   FlatList,
-  Dimensions,
 } from 'react-native';
 import { THEME_COLORS } from '../../constants/colors';
+import FontelloIcon from '../../utils/FontelloIcons';
 
 export type CalendarHandle = {
   goToToday: () => void;
@@ -75,6 +75,7 @@ const CalendarWidgetBase = forwardRef<CalendarHandle, Props>(
       startDate: selectedRangeProp?.startDate ?? null,
       endDate: selectedRangeProp?.endDate ?? null,
     });
+    const [containerWidth, setContainerWidth] = useState(0);
     useEffect(() => {
       setCurrentMonth(
         new Date(initialDate.getFullYear(), initialDate.getMonth(), 1),
@@ -157,8 +158,6 @@ const CalendarWidgetBase = forwardRef<CalendarHandle, Props>(
 
       return cells;
     };
-
-    const windowWidth = Dimensions.get('window').width;
 
     const isSameDay = (date1: Date, date2: Date) => {
       return (
@@ -291,52 +290,53 @@ const CalendarWidgetBase = forwardRef<CalendarHandle, Props>(
       );
 
       return (
-        <View style={[calendarStyle.monthWrapper]}>
+        <View style={[styles.fullWidth, calendarStyle.monthWrapper]}>
           {/* Month Navigation */}
           {showMonthNavigation && (
-            <View style={{
-              flexDirection: 'row',
-              justifyContent: 'space-around',
-              alignItems: 'center',
-              paddingHorizontal: 20,
-              paddingBottom: 16,
-              backgroundColor: '#fff',
-            }}>
+            <View style={styles.monthHeader}>
               <TouchableOpacity
-                onPress={() =>
-                  setCurrentMonth(
-                    new Date(
-                      currentMonth.getFullYear(),
-                      currentMonth.getMonth() - 1,
-                      1,
-                    ),
-                  )
-                }
-                style={{ paddingVertical: 8, paddingHorizontal: 15 }}
+                onPress={() => {
+                  const newMonth = new Date(
+                    currentMonth.getFullYear(),
+                    currentMonth.getMonth() - 1,
+                    1,
+                  );
+                  setCurrentMonth(newMonth);
+                  onMonthChange?.(newMonth);
+                }}
+                style={styles.navBtn}
               >
-                <Text style={{ fontSize: 24, color: THEME_COLORS.primary }}>{'<'}</Text>
+                <FontelloIcon
+                  name="left-open-mini"
+                  size={24}
+                  color={THEME_COLORS.primary}
+                />
               </TouchableOpacity>
-              <View style={{ alignItems: 'center' }}>
-                <Text style={{ fontSize: 22, fontWeight: '700', color: '#333' }}>
+              <View style={styles.monthTitleContainer}>
+                <Text style={styles.monthTitle}>
                   {monthNames[currentMonth.getMonth()]}
                 </Text>
-                <Text style={{ fontSize: 14, color: '#999' }}>
+                <Text style={styles.yearSubtitle}>
                   {currentMonth.getFullYear()}
                 </Text>
               </View>
               <TouchableOpacity
-                onPress={() =>
-                  setCurrentMonth(
-                    new Date(
-                      currentMonth.getFullYear(),
-                      currentMonth.getMonth() + 1,
-                      1,
-                    ),
-                  )
-                }
-                style={{ paddingVertical: 8, paddingHorizontal: 15 }}
+                onPress={() => {
+                  const newMonth = new Date(
+                    currentMonth.getFullYear(),
+                    currentMonth.getMonth() + 1,
+                    1,
+                  );
+                  setCurrentMonth(newMonth);
+                  onMonthChange?.(newMonth);
+                }}
+                style={styles.navBtn}
               >
-                <Text style={{ fontSize: 24, color: THEME_COLORS.primary }}>{'>'}</Text>
+                <FontelloIcon
+                  name="right-open-mini"
+                  size={24}
+                  color={THEME_COLORS.primary}
+                />
               </TouchableOpacity>
             </View>
           )}
@@ -449,14 +449,14 @@ const CalendarWidgetBase = forwardRef<CalendarHandle, Props>(
         showsHorizontalScrollIndicator: false,
         initialScrollIndex: 1,
         getItemLayout: (_: any, i: number) => ({
-          length: windowWidth,
-          offset: windowWidth * i,
+          length: containerWidth,
+          offset: containerWidth * i,
           index: i,
         }),
-        snapToInterval: windowWidth,
+        snapToInterval: containerWidth,
         decelerationRate: 'fast' as const,
         onMomentumScrollEnd: (e: any) => {
-          const idx = Math.round(e.nativeEvent.contentOffset.x / windowWidth);
+          const idx = Math.round(e.nativeEvent.contentOffset.x / containerWidth);
           let newMonth = currentMonth;
           if (idx === 0) newMonth = getMonthDate(currentMonth, -1);
           else if (idx === 2) newMonth = getMonthDate(currentMonth, 1);
@@ -466,19 +466,29 @@ const CalendarWidgetBase = forwardRef<CalendarHandle, Props>(
             onMonthChange?.(newMonth);
           }
         },
-        style: { width: windowWidth },
-        contentContainerStyle: { flexGrow: 1 },
       };
       return (
-        <FlatList
-          ref={flatListRef}
-          data={months}
-          keyExtractor={(_, i) => i.toString()}
-          renderItem={({ item }) => (
-            <View style={{ width: windowWidth }}>{renderMonth(item)}</View>
+        <View
+          style={styles.fullWidth}
+          onLayout={(e) => {
+            const width = e.nativeEvent.layout.width;
+            if (width > 0 && width !== containerWidth) {
+              setContainerWidth(width);
+            }
+          }}
+        >
+          {containerWidth > 0 && (
+            <FlatList
+              ref={flatListRef}
+              data={months}
+              keyExtractor={(_, i) => i.toString()}
+              renderItem={({ item }) => (
+                <View style={{ width: containerWidth }}>{renderMonth(item)}</View>
+              )}
+              {...flatListProps}
+            />
           )}
-          {...flatListProps}
-        />
+        </View>
       );
     } else {
       return renderMonth(currentMonth);
@@ -487,6 +497,33 @@ const CalendarWidgetBase = forwardRef<CalendarHandle, Props>(
 );
 
 const styles = StyleSheet.create({
+  fullWidth: {
+    flex: 1,
+  },
+  monthHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    backgroundColor: '#fff',
+  },
+  navBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+  },
+  monthTitleContainer: {
+    alignItems: 'center',
+  },
+  monthTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#333',
+  },
+  yearSubtitle: {
+    fontSize: 14,
+    color: '#999',
+  },
   columnsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',

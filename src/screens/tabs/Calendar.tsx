@@ -24,6 +24,7 @@ import ModalTopIcon from '../../components/common/ModalTopIcon';
 import { RootStackParamList } from '../../constants/navigation';
 import { ScrollView } from 'react-native-gesture-handler';
 import { monthNames } from '../../constants/common';
+import { Background } from '@react-navigation/elements';
 
 const CalendarScreen: React.FC = () => {
   const today = new Date();
@@ -369,134 +370,73 @@ const CalendarScreen: React.FC = () => {
             overScrollMode="always"
           >
             <View style={{ flex: 1 }}>
-              <View
-                style={{
-                  flex: 1,
-                  backgroundColor: '#fff',
-                  borderRadius: 20,
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.08,
-                  shadowRadius: 8,
-                  elevation: 3,
-                }}
-              >
-                {/* Month Navigation */}
-                <View style={styles.monthHeader}>
-                  <TouchableOpacity
-                    onPress={() =>
-                      setCurrentDate(
-                        new Date(
-                          currentDate.getFullYear(),
-                          currentDate.getMonth() - 1,
-                          1,
-                        ),
-                      )
-                    }
-                    style={styles.navBtn}
-                  >
-                    <FontelloIcon
-                      name="left-open-mini"
-                      size={24}
-                      color={THEME_COLORS.primary}
-                    />
-                  </TouchableOpacity>
-                  <View style={styles.monthTitleContainer}>
-                    <Text style={styles.monthTitle}>
-                      {monthNames[currentDate.getMonth()]}
-                    </Text>
-                    <Text style={styles.yearSubtitle}>
-                      {currentDate.getFullYear()}
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    onPress={() =>
-                      setCurrentDate(
-                        new Date(
-                          currentDate.getFullYear(),
-                          currentDate.getMonth() + 1,
-                          1,
-                        ),
-                      )
-                    }
-                    style={styles.navBtn}
-                  >
-                    <FontelloIcon
-                      name="right-open-mini"
-                      size={24}
-                      color={THEME_COLORS.primary}
-                    />
-                  </TouchableOpacity>
-                </View>
-                <View>
-                  {/* Calendar Widget */}
-                  <View style={styles.calendarContainer}>
-                    <CalendarWidget
-                      scrollable
-                      selectionMode="single"
-                      markedDates={[
-                        {
-                          date: new Date(2025, 9, 3),
-                          icon: getMarkedIcon('settings'),
-                        },
-                        {
-                          date: new Date(2025, 9, 4),
-                          icon: getMarkedIcon('love'),
-                        },
-                        {
-                          date: new Date(2025, 9, 5),
-                          icon: getMarkedIcon('ovulation'),
-                        },
-                        {
-                          date: new Date(2025, 9, 6),
-                          icon: getMarkedIcon('period'),
-                        },
-                        {
-                          date: new Date(2025, 9, 7),
-                          icon: getMarkedIcon('future-period'),
-                        },
-                        {
-                          date: new Date(2025, 9, 8),
-                          icon: getMarkedIcon('fertile'),
-                        },
-                        {
-                          date: new Date(2025, 9, 9),
-                          icon: getMarkedIcon('medication'),
-                        },
-                        {
-                          date: new Date(2025, 9, 10),
-                          icon: getMarkedIcon('dairy'),
-                        },
-                        {
-                          date: new Date(2025, 9, 11),
-                          icon: getMarkedIcon('pregnant'),
-                        },
-                        {
-                          date: new Date(2025, 9, 12),
-                          // Example: mark with background and text color only (no icon)
-                          backgroundColor: 'red',
-                          textColor: 'white',
-                        },
-                        {
-                          date: new Date(2025, 9, 13),
-                          icon: getMarkedIcon('pregnant'),
-                          backgroundColor: 'red',
-                          textColor: 'white',
-                        },
-                      ]}
-                      initialDate={currentDate}
-                      selectedDate={currentDate}
-                      onDayPress={handleDayPress}
-                      calendarStyle={{
-                        dayText: { fontSize: 16 },
-                        monthWrapper: {
-                          marginHorizontal: 16,
-                        },
-                      }}
-                      onMonthChange={date => setCurrentDate(date)}
-                    />
-                  </View>
-                </View>
+              {/* Calendar Widget */}
+              <View style={styles.calendarContainer}>
+                <CalendarWidget
+                  scrollable
+                  selectionMode="single"
+                  showMonthNavigation={true}
+                  markedDates={[
+                    {
+                      date: new Date(2025, 9, 3),
+                      icon: getMarkedIcon('settings'),
+                    },
+                    {
+                      date: new Date(2025, 9, 4),
+                      icon: getMarkedIcon('love'),
+                    },
+                    {
+                      date: new Date(2025, 9, 5),
+                      icon: getMarkedIcon('ovulation'),
+                    },
+                    {
+                      date: new Date(2025, 9, 6),
+                      icon: getMarkedIcon('period'),
+                    },
+                    {
+                      date: new Date(2025, 9, 7),
+                      icon: getMarkedIcon('future-period'),
+                    },
+                    {
+                      date: new Date(2025, 9, 8),
+                      icon: getMarkedIcon('fertile'),
+                    },
+                    {
+                      date: new Date(2025, 9, 9),
+                      icon: getMarkedIcon('medication'),
+                    },
+                    {
+                      date: new Date(2025, 9, 10),
+                      icon: getMarkedIcon('dairy'),
+                    },
+                    {
+                      date: new Date(2025, 9, 11),
+                      icon: getMarkedIcon('pregnant'),
+                    },
+                    {
+                      date: new Date(2025, 9, 12),
+                      // Example: mark with background and text color only (no icon)
+                      backgroundColor: 'red',
+                      textColor: 'white',
+                    },
+                    {
+                      date: new Date(2025, 9, 13),
+                      icon: getMarkedIcon('pregnant'),
+                      backgroundColor: 'red',
+                      textColor: 'white',
+                    },
+                  ]}
+                  initialDate={currentDate}
+                  selectedDate={currentDate}
+                  onDayPress={handleDayPress}
+                  calendarStyle={{
+                    dayText: { fontSize: 16 },
+                    monthWrapper: {
+                      // backgroundColor: 'red',
+                    },
+                  }}
+                  onMonthChange={date => setCurrentDate(date)}
+                />
               </View>
               {/* Pregnancy Chance Card */}
               <View style={styles.pregnancyCard}>
@@ -771,31 +711,20 @@ const styles = StyleSheet.create({
     color: THEME_COLORS.text,
     textAlign: 'center',
   },
-  monthHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 16,
+  calendarContainer: {
     backgroundColor: '#fff',
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    marginHorizontal: 16,
+    marginTop: 16,
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    overflow: 'hidden',
   },
-  navBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-  },
-  monthTitleContainer: {
-    alignItems: 'center',
-  },
-  monthTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#333',
-  },
-  yearSubtitle: {
-    fontSize: 14,
-    color: '#999',
-  },
-  calendarContainer: {},
   pregnancyCard: {
     backgroundColor: '#fff',
     marginHorizontal: 16,
