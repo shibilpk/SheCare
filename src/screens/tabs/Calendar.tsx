@@ -24,7 +24,29 @@ import ModalTopIcon from '../../components/common/ModalTopIcon';
 import { RootStackParamList } from '../../constants/navigation';
 import { ScrollView } from 'react-native-gesture-handler';
 import { monthNames } from '../../constants/common';
-import { Background } from '@react-navigation/elements';
+
+// Memoized MonthCard component for better performance in year view
+const MonthCard = React.memo<{
+  monthIdx: number;
+  selectedYear: number;
+  isEven: boolean;
+  onDayPress: (date: Date | DateRange) => void;
+}>(({ monthIdx, selectedYear, isEven, onDayPress }) => {
+  return (
+    <View style={[styles.monthCard, isEven && styles.monthCardAlt]}>
+      <Text style={styles.monthCardTitle}>{monthNames[monthIdx]}</Text>
+      <CalendarWidget
+        initialDate={new Date(selectedYear, monthIdx, 1)}
+        onDayPress={onDayPress}
+        calendarStyle={{
+          dayText: { fontSize: 10 },
+          cell: { paddingVertical: 2, paddingHorizontal: 2 },
+        }}
+        hideWeekDays
+      />
+    </View>
+  );
+});
 
 const CalendarScreen: React.FC = () => {
   const today = new Date();
@@ -32,11 +54,28 @@ const CalendarScreen: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(today);
   const [selectedYear, setSelectedYear] = useState(today.getFullYear());
   const [showDiaryModal, setShowDiaryModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   // Removed full screen activity animation logic
   const [diaryText, setDiaryText] = useState('');
   const [diaryDate, setDiaryDate] = useState(today);
   const [showDiaryDatePicker, setShowDiaryDatePicker] = useState(false);
   const insets = useSafeAreaInsets();
+
+  // Calendar marking toggles
+  const [markingToggles, setMarkingToggles] = useState({
+    ovulation: true,
+    fertile: true,
+    period: true,
+    futurePeriod: true,
+    pregnant: true,
+    medication: true,
+    love: true,
+    diary: true,
+  });
+
+  const toggleMarking = (key: keyof typeof markingToggles) => {
+    setMarkingToggles(prev => ({ ...prev, [key]: !prev[key] }));
+  };
 
   const handleDayPress = useCallback((value: Date | DateRange) => {
     if (value instanceof Date) {
@@ -89,6 +128,15 @@ const CalendarScreen: React.FC = () => {
   const handleYearChange = (offset: number) => {
     setSelectedYear(selectedYear + offset);
   };
+
+  // Memoized callback for month day press in year view
+  const handleMonthDayPress = useCallback(
+    (date: Date | DateRange) => {
+      handleDayPress(date);
+      setView('month');
+    },
+    [handleDayPress],
+  );
 
   const activityData = [
     {
@@ -305,9 +353,119 @@ const CalendarScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+      {/* Settings Modal */}
+      <Modal
+        visible={showSettingsModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowSettingsModal(false)}
+      >
+        <View style={[styles.settingsModalContent, { paddingTop: insets.top }]}>
+          <View style={styles.settingsModalHeader}>
+            <Text style={styles.settingsModalTitle}>Calendar Settings</Text>
+            <ModalTopIcon
+              onPress={() => setShowSettingsModal(false)}
+              iconName="cancel"
+            />
+          </View>
+
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <Text style={styles.settingsModalSubtitle}>Show Markers</Text>
+
+            {[
+              {
+                key: 'ovulation',
+                label: 'Ovulation',
+                icon: 'cog',
+                color: 'orange',
+              },
+              {
+                key: 'fertile',
+                label: 'Fertile Window',
+                icon: 'star',
+                color: 'purple',
+              },
+              {
+                key: 'period',
+                label: 'Period',
+                icon: 'droplet',
+                color: 'blue',
+              },
+              {
+                key: 'futurePeriod',
+                label: 'Future Period',
+                icon: 'droplet',
+                color: '#888',
+              },
+              {
+                key: 'pregnant',
+                label: 'Pregnancy',
+                icon: 'emo-laugh',
+                color: 'green',
+              },
+              {
+                key: 'medication',
+                label: 'Medication',
+                icon: 'med-kit',
+                color: '#b5651d',
+              },
+              { key: 'love', label: 'Intimacy', icon: 'heart', color: 'red' },
+              {
+                key: 'diary',
+                label: 'Diary Entry',
+                icon: 'book',
+                color: '#555',
+              },
+            ].map(item => (
+              <TouchableOpacity
+                key={item.key}
+                style={styles.settingsToggleRow}
+                onPress={() =>
+                  toggleMarking(item.key as keyof typeof markingToggles)
+                }
+              >
+                <View style={styles.settingsToggleLeft}>
+                  <View
+                    style={[
+                      styles.settingsToggleIcon,
+                      { backgroundColor: item.color + '20' },
+                    ]}
+                  >
+                    <FontelloIcon
+                      name={item.icon}
+                      size={20}
+                      color={item.color}
+                    />
+                  </View>
+                  <Text style={styles.settingsToggleLabel}>{item.label}</Text>
+                </View>
+                <View
+                  style={[
+                    styles.settingsToggleSwitch,
+                    markingToggles[item.key as keyof typeof markingToggles] &&
+                      styles.settingsToggleSwitchActive,
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.settingsToggleThumb,
+                      markingToggles[item.key as keyof typeof markingToggles] &&
+                        styles.settingsToggleThumbActive,
+                    ]}
+                  />
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </Modal>
+
       {/* Top Navigation Bar */}
       <View style={styles.topBar}>
-        <TouchableOpacity style={styles.settingsBtn}>
+        <TouchableOpacity
+          style={styles.settingsBtn}
+          onPress={() => setShowSettingsModal(true)}
+        >
           <FontelloIcon name="cog-b" size={24} color={THEME_COLORS.text} />
         </TouchableOpacity>
 
@@ -377,51 +535,79 @@ const CalendarScreen: React.FC = () => {
                   selectionMode="single"
                   showMonthNavigation={true}
                   markedDates={[
+                    ...(markingToggles.ovulation
+                      ? [
+                          {
+                            date: new Date('2025-12-05'),
+                            icon: getMarkedIcon('ovulation'),
+                          },
+                        ]
+                      : []),
+                    ...(markingToggles.love
+                      ? [
+                          {
+                            date: new Date('2025-12-04'),
+                            icon: getMarkedIcon('love'),
+                          },
+                        ]
+                      : []),
+                    ...(markingToggles.period
+                      ? [
+                          {
+                            date: new Date('2025-12-06'),
+                            icon: getMarkedIcon('period'),
+                          },
+                        ]
+                      : []),
+                    ...(markingToggles.futurePeriod
+                      ? [
+                          {
+                            date: new Date('2025-12-07'),
+                            icon: getMarkedIcon('future-period'),
+                          },
+                        ]
+                      : []),
+                    ...(markingToggles.fertile
+                      ? [
+                          {
+                            date: new Date('2025-12-08'),
+                            icon: getMarkedIcon('fertile'),
+                          },
+                        ]
+                      : []),
+                    ...(markingToggles.medication
+                      ? [
+                          {
+                            date: new Date('2025-12-09'),
+                            icon: getMarkedIcon('medication'),
+                          },
+                        ]
+                      : []),
+                    ...(markingToggles.diary
+                      ? [
+                          {
+                            date: new Date('2025-12-10'),
+                            icon: getMarkedIcon('dairy'),
+                          },
+                        ]
+                      : []),
+                    ...(markingToggles.pregnant
+                      ? [
+                          {
+                            date: new Date('2025-12-11'),
+                            icon: getMarkedIcon('pregnant'),
+                          },
+                          {
+                            date: new Date('2025-12-13'),
+                            icon: getMarkedIcon('pregnant'),
+                            backgroundColor: 'red',
+                            textColor: 'white',
+                          },
+                        ]
+                      : []),
                     {
-                      date: new Date(2025, 9, 3),
-                      icon: getMarkedIcon('settings'),
-                    },
-                    {
-                      date: new Date(2025, 9, 4),
-                      icon: getMarkedIcon('love'),
-                    },
-                    {
-                      date: new Date(2025, 9, 5),
-                      icon: getMarkedIcon('ovulation'),
-                    },
-                    {
-                      date: new Date(2025, 9, 6),
-                      icon: getMarkedIcon('period'),
-                    },
-                    {
-                      date: new Date(2025, 9, 7),
-                      icon: getMarkedIcon('future-period'),
-                    },
-                    {
-                      date: new Date(2025, 9, 8),
-                      icon: getMarkedIcon('fertile'),
-                    },
-                    {
-                      date: new Date(2025, 9, 9),
-                      icon: getMarkedIcon('medication'),
-                    },
-                    {
-                      date: new Date(2025, 9, 10),
-                      icon: getMarkedIcon('dairy'),
-                    },
-                    {
-                      date: new Date(2025, 9, 11),
-                      icon: getMarkedIcon('pregnant'),
-                    },
-                    {
-                      date: new Date(2025, 9, 12),
+                      date: new Date('2025-12-12'),
                       // Example: mark with background and text color only (no icon)
-                      backgroundColor: 'red',
-                      textColor: 'white',
-                    },
-                    {
-                      date: new Date(2025, 9, 13),
-                      icon: getMarkedIcon('pregnant'),
                       backgroundColor: 'red',
                       textColor: 'white',
                     },
@@ -587,23 +773,23 @@ const CalendarScreen: React.FC = () => {
             <TouchableOpacity
               onPress={() => handleYearChange(-1)}
               style={styles.yearNavBtn}
+              activeOpacity={0.7}
             >
-              <FontelloIcon
-                name="left-open-mini"
-                size={28}
-                color={THEME_COLORS.primary}
-              />
+              <View style={styles.yearNavBtnInner}>
+                <FontelloIcon name="left-open-mini" size={24} color="#fff" />
+              </View>
             </TouchableOpacity>
-            <Text style={styles.yearTitle}>{selectedYear}</Text>
+            <View style={styles.yearTitleContainer}>
+              <Text style={styles.yearTitle}>{selectedYear}</Text>
+            </View>
             <TouchableOpacity
               onPress={() => handleYearChange(1)}
               style={styles.yearNavBtn}
+              activeOpacity={0.7}
             >
-              <FontelloIcon
-                name="right-open-mini"
-                size={28}
-                color={THEME_COLORS.primary}
-              />
+              <View style={styles.yearNavBtnInner}>
+                <FontelloIcon name="right-open-mini" size={24} color="#fff" />
+              </View>
             </TouchableOpacity>
           </View>
 
@@ -612,6 +798,15 @@ const CalendarScreen: React.FC = () => {
             keyExtractor={(_, idx) => `${selectedYear}-${idx}`}
             numColumns={2}
             contentContainerStyle={styles.yearGrid}
+            initialNumToRender={4}
+            maxToRenderPerBatch={4}
+            windowSize={5}
+            removeClippedSubviews={true}
+            getItemLayout={(_, index) => ({
+              length: 200,
+              offset: 200 * Math.floor(index / 2),
+              index,
+            })}
             renderItem={({ index: monthIdx }) => {
               const row = Math.floor(monthIdx / 2);
               const col = monthIdx % 2;
@@ -619,23 +814,12 @@ const CalendarScreen: React.FC = () => {
                 (row % 2 === 0 && col === 0) || (row % 2 === 1 && col === 1);
 
               return (
-                <View style={[styles.monthCard, isEven && styles.monthCardAlt]}>
-                  <Text style={styles.monthCardTitle}>
-                    {monthNames[monthIdx]}
-                  </Text>
-                  <CalendarWidget
-                    initialDate={new Date(selectedYear, monthIdx, 1)}
-                    onDayPress={date => {
-                      handleDayPress(date);
-                      setView('month');
-                    }}
-                    calendarStyle={{
-                      dayText: { fontSize: 10 },
-                      cell: { paddingVertical: 2, paddingHorizontal: 2 },
-                    }}
-                    hideWeekDays
-                  />
-                </View>
+                <MonthCard
+                  monthIdx={monthIdx}
+                  selectedYear={selectedYear}
+                  isEven={isEven}
+                  onDayPress={handleMonthDayPress}
+                />
               );
             }}
           />
@@ -897,18 +1081,41 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingBottom: 20,
-    backgroundColor: '#fff',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    marginTop: 12,
+    marginHorizontal: 16,
   },
   yearNavBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 15,
+    padding: 2,
+  },
+  yearNavBtnInner: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: THEME_COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: THEME_COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  yearTitleContainer: {
+    backgroundColor: 'transparent',
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    borderRadius: 16,
+    marginHorizontal: 10,
+    borderWidth: 1.5,
+    borderColor: THEME_COLORS.primary,
   },
   yearTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: THEME_COLORS.primary,
-    marginHorizontal: 24,
+    letterSpacing: 0.5,
   },
   yearGrid: {
     paddingHorizontal: 12,
@@ -936,6 +1143,93 @@ const styles = StyleSheet.create({
     color: THEME_COLORS.primary,
     textAlign: 'center',
     marginBottom: 8,
+  },
+  settingsModalContent: {
+    backgroundColor: THEME_COLORS.textLight,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 40,
+    maxHeight: '100%',
+    height: '100%',
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    borderRadius: 0,
+  },
+  settingsModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  settingsModalTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: THEME_COLORS.text,
+  },
+  settingsModalSubtitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: THEME_COLORS.text,
+    marginBottom: 16,
+    marginTop: 8,
+  },
+  settingsToggleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  settingsToggleLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  settingsToggleIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  settingsToggleLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: THEME_COLORS.text,
+  },
+  settingsToggleSwitch: {
+    width: 50,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#e0e0e0',
+    padding: 2,
+    justifyContent: 'center',
+  },
+  settingsToggleSwitchActive: {
+    backgroundColor: THEME_COLORS.primary,
+  },
+  settingsToggleThumb: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  settingsToggleThumbActive: {
+    alignSelf: 'flex-end',
   },
 });
 
