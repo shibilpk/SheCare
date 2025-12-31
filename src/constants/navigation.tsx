@@ -13,6 +13,12 @@ export const SCREENS = {
   REMINDERS: 'Reminders',
   THEME_SETTINGS: 'ThemeSettings',
   PERIOD_SELECTOR: 'PeriodSelector',
+  MEDICATIONS: 'Medications',
+  HYDRATION: 'Hydration',
+  NUTRITION: 'Nutrition',
+  EXERCISE: 'Exercise',
+  SLEEP_LOG: 'SleepLog',
+  WEIGHT_TRACK: 'WeightTrack',
 } as const;
 
 export type RootStackParamList = {

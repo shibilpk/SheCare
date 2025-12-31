@@ -27,6 +27,7 @@ import { useNavigation } from '@react-navigation/native';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
 import { RootStackParamList, SCREENS } from '../../constants/navigation';
 import { monthNamesShort } from '../../constants/common';
+import QuickActions from '../../components/common/QuickActions';
 
 export default function HomeScreen() {
   const navigation = useNavigation<DrawerNavigationProp<RootStackParamList>>();
@@ -350,17 +351,8 @@ export default function HomeScreen() {
         </View>
 
         {/* Quick Actions */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-        </View>
-
-        <View
-          style={[
-            styles.actionsGrid,
-            { justifyContent: 'flex-start', flexWrap: 'wrap' },
-          ]}
-        >
-          {[
+        <QuickActions
+          actions={[
             {
               icon: 'bell-alt',
               label: 'Reminders',
@@ -393,34 +385,13 @@ export default function HomeScreen() {
               bg: '#FDE68A',
             },
             {
-              icon: "calendar",
+              icon: 'calendar',
               label: 'Calendar',
               color: '#EF4444',
               bg: '#FEE2E2',
             },
-          ].map((action, idx) => (
-            <TouchableOpacity
-              key={idx}
-              style={styles.actionGridItem}
-              onPress={action?.onPress}
-            >
-              <View style={[styles.actionIcon, { backgroundColor: action.bg }]}>
-                <FontelloIcon
-                  name={action.icon}
-                  size={24}
-                  color={action.color}
-                />
-              </View>
-              <Text
-                style={styles.actionLabel}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
-                {action.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+          ]}
+        />
       </ScrollView>
     </SafeAreaView>
   );
@@ -727,33 +698,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: THEME_COLORS.primary,
     marginRight: 4,
-  },
-  actionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'flex-start',
-    paddingHorizontal: 20,
-    gap: 12,
-  },
-  actionGridItem: {
-    width: '22%', // 4 items per row with gap
-    minWidth: 70,
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-
-  actionIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  actionLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: THEME_COLORS.text,
   },
   modalContent: {
     backgroundColor: THEME_COLORS.textLight,

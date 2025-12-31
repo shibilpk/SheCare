@@ -449,6 +449,18 @@ export default function RootNavigation() {
                 name={SCREENS.PERIOD_SELECTOR}
                 component={Screens.PeriodSelector}
               />
+              <Stack.Screen
+                name={SCREENS.MEDICATIONS}
+                component={Screens.Medications}
+              />
+              <Stack.Screen
+                name={SCREENS.HYDRATION}
+                component={Screens.Hydration}
+              />
+              <Stack.Screen
+                name={SCREENS.WEIGHT_TRACK}
+                component={Screens.WeightTrack}
+              />
             </Stack.Navigator>
             <Modal
               visible={modalVisible}

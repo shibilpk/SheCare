@@ -9,7 +9,6 @@ import {
   StyleSheet,
   Dimensions,
   ScrollView,
-  Image,
 } from 'react-native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { LineChart } from 'react-native-chart-kit';
@@ -27,21 +26,18 @@ const LifestyleDetailsScreen = () => {
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [editField, setEditField] = useState(null);
 
-  const [waterGlasses, setWaterGlasses] = useState(0);
-  const [waterMl, setWaterMl] = useState(0);
-  const [glassSize, setGlassSize] = useState(250);
-  const [waterModalVisible, setWaterModalVisible] = useState(false);
-
   const [chartData, setChartData] = useState({
     labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-    datasets: [{
-      data: [70, 68, 67, 66, 65, 64],
-      color: () => THEME_COLORS.primary,
-      strokeWidth: 3,
-    }],
+    datasets: [
+      {
+        data: [70, 68, 67, 66, 65, 64],
+        color: () => THEME_COLORS.primary,
+        strokeWidth: 3,
+      },
+    ],
   });
 
-  const handleConfirm = (date) => {
+  const handleConfirm = date => {
     setSelectedDate(date);
     setDatePickerVisible(false);
   };
@@ -52,24 +48,30 @@ const LifestyleDetailsScreen = () => {
       if (!isNaN(newWeight)) {
         setChartData(prev => ({
           ...prev,
-          datasets: [{
-            ...prev.datasets[0],
-            data: [...prev.datasets[0].data.slice(1), newWeight],
-          }],
+          datasets: [
+            {
+              ...prev.datasets[0],
+              data: [...prev.datasets[0].data.slice(1), newWeight],
+            },
+          ],
         }));
       }
     }
     setEditField(null);
   };
 
-  const currentWeight = chartData.datasets[0].data[chartData.datasets[0].data.length - 1];
+  const currentWeight =
+    chartData.datasets[0].data[chartData.datasets[0].data.length - 1];
   const weightChange = currentWeight - chartData.datasets[0].data[0];
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => navigation.goBack()}
+        >
           <FontelloIcon name="left-open-mini" size={28} color="#333" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Lifestyle Details</Text>
@@ -89,7 +91,8 @@ const LifestyleDetailsScreen = () => {
             </View>
             <View style={styles.progressBadge}>
               <Text style={styles.progressBadgeText}>
-                {weightChange > 0 ? '+' : ''}{weightChange.toFixed(1)} kg
+                {weightChange > 0 ? '+' : ''}
+                {weightChange.toFixed(1)} kg
               </Text>
             </View>
           </View>
@@ -172,82 +175,6 @@ const LifestyleDetailsScreen = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Water Tracker Card */}
-        <View style={styles.waterCard}>
-          <View style={styles.waterHeader}>
-            <View style={styles.waterTitleRow}>
-              <View style={styles.waterIconBox}>
-                <FontelloIcon name="glass" size={20} color="#fff" />
-              </View>
-              <View>
-                <Text style={styles.waterTitle}>Water Tracker</Text>
-                <Text style={styles.waterSubtitle}>Stay hydrated today</Text>
-              </View>
-            </View>
-            <TouchableOpacity
-              style={styles.waterSettingsBtn}
-              onPress={() => setWaterModalVisible(true)}
-            >
-              <FontelloIcon name="cog-b" size={20} color="#3B82F6" />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.waterProgressBox}>
-            <View style={styles.waterStats}>
-              <Text style={styles.waterAmount}>
-                {((waterGlasses * glassSize + waterMl) / 1000).toFixed(2)} L
-              </Text>
-              <Text style={styles.waterTarget}>of 2.0 L goal</Text>
-            </View>
-            <View style={styles.waterProgressBar}>
-              <View
-                style={[
-                  styles.waterProgressFill,
-                  { width: `${Math.min(((waterGlasses * glassSize + waterMl) / 2000) * 100, 100)}%` }
-                ]}
-              />
-            </View>
-          </View>
-
-          <View style={styles.waterControls}>
-            <TouchableOpacity
-              onPress={() => setWaterGlasses(Math.max(0, waterGlasses - 1))}
-              style={styles.waterControlBtn}
-            >
-              <FontelloIcon name="minus" size={20} color="#fff" />
-            </TouchableOpacity>
-
-            <View style={styles.glassesDisplay}>
-              <Text style={styles.glassesCount}>{waterGlasses}</Text>
-              <Text style={styles.glassesLabel}>glasses</Text>
-            </View>
-
-            <TouchableOpacity
-              onPress={() => setWaterGlasses(waterGlasses + 1)}
-              style={styles.waterControlBtn}
-            >
-              <FontelloIcon name="plus" size={20} color="#fff" />
-            </TouchableOpacity>
-          </View>
-
-          {/* Glass Images */}
-          {waterGlasses > 0 && (
-            <View style={styles.glassesRow}>
-              {Array.from({ length: Math.min(waterGlasses, 8) }).map((_, idx) => (
-                <Image
-                  key={idx}
-                  source={require('../../assets/images/glass-of-water.png')}
-                  style={styles.glassImage}
-                  resizeMode="contain"
-                />
-              ))}
-              {waterGlasses > 8 && (
-                <Text style={styles.glassesMore}>+{waterGlasses - 8}</Text>
-              )}
-            </View>
-          )}
-        </View>
-
         {/* Health Tips Card */}
         <View style={styles.tipsCard}>
           <View style={styles.tipsHeader}>
@@ -259,7 +186,9 @@ const LifestyleDetailsScreen = () => {
           <View style={styles.tipsList}>
             <View style={styles.tipRow}>
               <View style={styles.tipBullet} />
-              <Text style={styles.tipText}>Stay hydrated and eat a balanced diet</Text>
+              <Text style={styles.tipText}>
+                Stay hydrated and eat a balanced diet
+              </Text>
             </View>
             <View style={styles.tipRow}>
               <View style={styles.tipBullet} />
@@ -267,11 +196,15 @@ const LifestyleDetailsScreen = () => {
             </View>
             <View style={styles.tipRow}>
               <View style={styles.tipBullet} />
-              <Text style={styles.tipText}>Set realistic and achievable goals</Text>
+              <Text style={styles.tipText}>
+                Set realistic and achievable goals
+              </Text>
             </View>
             <View style={styles.tipRow}>
               <View style={styles.tipBullet} />
-              <Text style={styles.tipText}>Consult healthcare professionals for advice</Text>
+              <Text style={styles.tipText}>
+                Consult healthcare professionals for advice
+              </Text>
             </View>
           </View>
         </View>
@@ -283,7 +216,9 @@ const LifestyleDetailsScreen = () => {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                Edit {editField && editField.charAt(0).toUpperCase() + editField.slice(1)}
+                Edit{' '}
+                {editField &&
+                  editField.charAt(0).toUpperCase() + editField.slice(1)}
               </Text>
               <TouchableOpacity onPress={() => setEditField(null)}>
                 <FontelloIcon name="cancel" size={24} color="#999" />
@@ -308,17 +243,33 @@ const LifestyleDetailsScreen = () => {
                   <View style={styles.unitRow}>
                     <TouchableOpacity
                       onPress={() => setUnit('kg')}
-                      style={[styles.unitBtn, unit === 'kg' && styles.unitBtnActive]}
+                      style={[
+                        styles.unitBtn,
+                        unit === 'kg' && styles.unitBtnActive,
+                      ]}
                     >
-                      <Text style={[styles.unitText, unit === 'kg' && styles.unitTextActive]}>
+                      <Text
+                        style={[
+                          styles.unitText,
+                          unit === 'kg' && styles.unitTextActive,
+                        ]}
+                      >
                         kg
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => setUnit('lb')}
-                      style={[styles.unitBtn, unit === 'lb' && styles.unitBtnActive]}
+                      style={[
+                        styles.unitBtn,
+                        unit === 'lb' && styles.unitBtnActive,
+                      ]}
                     >
-                      <Text style={[styles.unitText, unit === 'lb' && styles.unitTextActive]}>
+                      <Text
+                        style={[
+                          styles.unitText,
+                          unit === 'lb' && styles.unitTextActive,
+                        ]}
+                      >
                         lb
                       </Text>
                     </TouchableOpacity>
@@ -331,7 +282,9 @@ const LifestyleDetailsScreen = () => {
                     onPress={() => setDatePickerVisible(true)}
                     style={styles.dateBtn}
                   >
-                    <Text style={styles.dateText}>{selectedDate.toLocaleDateString()}</Text>
+                    <Text style={styles.dateText}>
+                      {selectedDate.toLocaleDateString()}
+                    </Text>
                     <FontelloIcon name="calendar" size={20} color="#999" />
                   </TouchableOpacity>
                   <DateTimePickerModal
@@ -383,61 +336,6 @@ const LifestyleDetailsScreen = () => {
                 onPress={handleSave}
               >
                 <Text style={styles.modalSaveText}>Save</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Water Modal */}
-      <Modal visible={waterModalVisible} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Water Settings</Text>
-              <TouchableOpacity onPress={() => setWaterModalVisible(false)}>
-                <FontelloIcon name="cancel" size={24} color="#999" />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Add Water (ml)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter amount in ml"
-                keyboardType="numeric"
-                value={waterMl ? String(waterMl) : ''}
-                onChangeText={v => setWaterMl(Number(v) || 0)}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Glass Size (ml)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Default: 250ml"
-                keyboardType="numeric"
-                value={glassSize ? String(glassSize) : ''}
-                onChangeText={v => setGlassSize(Number(v) || 250)}
-              />
-            </View>
-
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.modalCancelBtn}
-                onPress={() => setWaterModalVisible(false)}
-              >
-                <Text style={styles.modalCancelText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalSaveBtn}
-                onPress={() => {
-                  setWaterGlasses(waterGlasses + Math.floor(waterMl / glassSize));
-                  setWaterMl(waterMl % glassSize);
-                  setWaterModalVisible(false);
-                }}
-              >
-                <Text style={styles.modalSaveText}>Add</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -574,124 +472,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f0f0',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  waterCard: {
-    backgroundColor: '#EFF6FF',
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 20,
-    borderLeftWidth: 4,
-    borderLeftColor: '#3B82F6',
-  },
-  waterHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  waterTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  waterIconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: '#3B82F6',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  waterTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#333',
-  },
-  waterSubtitle: {
-    fontSize: 12,
-    color: '#999',
-  },
-  waterSettingsBtn: {
-    padding: 8,
-  },
-  waterProgressBox: {
-    marginBottom: 16,
-  },
-  waterStats: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginBottom: 8,
-    gap: 8,
-  },
-  waterAmount: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#3B82F6',
-  },
-  waterTarget: {
-    fontSize: 14,
-    color: '#999',
-  },
-  waterProgressBar: {
-    height: 8,
-    backgroundColor: '#DBEAFE',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  waterProgressFill: {
-    height: 8,
-    backgroundColor: '#3B82F6',
-    borderRadius: 4,
-  },
-  waterControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 24,
-    marginBottom: 16,
-  },
-  waterControlBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#3B82F6',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#3B82F6',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  glassesDisplay: {
-    alignItems: 'center',
-  },
-  glassesCount: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#3B82F6',
-  },
-  glassesLabel: {
-    fontSize: 12,
-    color: '#999',
-  },
-  glassesRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 8,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#DBEAFE',
-  },
-  glassImage: {
-    width: 32,
-    height: 44,
-  },
-  glassesMore: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#3B82F6',
   },
   tipsCard: {
     backgroundColor: '#FFF9F0',

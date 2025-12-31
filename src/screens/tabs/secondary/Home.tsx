@@ -17,6 +17,7 @@ import Animated, {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import FontelloIcon from '../../../utils/FontelloIcons';
 import ModalTopIcon from '../../../components/common/ModalTopIcon';
+import QuickActions from '../../../components/common/QuickActions';
 import { THEME_COLORS, HOME_CARD_PASTEL } from '../../../constants/colors';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
@@ -394,27 +395,49 @@ export default function PregnancyScreen() {
         </LinearGradient>
 
         {/* Pregnancy Essentials */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Pregnancy Essentials</Text>
-        </View>
-
-        <View style={styles.essentialsGrid}>
-          {[
-            { icon: 'pharmacy', label: 'Medications', color: '#EC4899', bg: '#FCE7F3' },
-            { icon: 'glass', label: 'Hydration', color: '#3B82F6', bg: '#DBEAFE' },
-            { icon: 'pitch', label: 'Nutrition', color: '#10B981', bg: '#D1FAE5' },
-            { icon: 'heart', label: 'Exercise', color: '#F59E0B', bg: '#FEF3C7' },
-            { icon: 'moon', label: 'Sleep Log', color: '#8B5CF6', bg: '#EDE9FE' },
-            { icon: 'chart-line', label: 'Weight Track', color: '#EF4444', bg: '#FEE2E2' },
-          ].map((item, idx) => (
-            <TouchableOpacity key={idx} style={styles.essentialItem}>
-              <View style={[styles.essentialIcon, { backgroundColor: item.bg }]}>
-                <FontelloIcon name={item.icon} size={24} color={item.color} />
-              </View>
-              <Text style={styles.essentialLabel}>{item.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <QuickActions
+          actions={[
+            {
+              icon: 'pharmacy',
+              label: 'Medications',
+              color: '#EC4899',
+              bg: '#FCE7F3',
+              onPress: () => navigation.navigate(SCREENS.MEDICATIONS),
+            },
+            {
+              icon: 'glass',
+              label: 'Hydration',
+              color: '#3B82F6',
+              bg: '#DBEAFE',
+              onPress: () => navigation.navigate(SCREENS.HYDRATION),
+            },
+            {
+              icon: 'pitch',
+              label: 'Nutrition',
+              color: '#10B981',
+              bg: '#D1FAE5',
+            },
+            {
+              icon: 'heart',
+              label: 'Exercise',
+              color: '#F59E0B',
+              bg: '#FEF3C7',
+            },
+            {
+              icon: 'moon',
+              label: 'Sleep Log',
+              color: '#8B5CF6',
+              bg: '#EDE9FE',
+            },
+            {
+              icon: 'chart-line',
+              label: 'Baby Weight',
+              color: '#EF4444',
+              bg: '#FEE2E2',
+              onPress: () => navigation.navigate(SCREENS.WEIGHT_TRACK),
+            },
+          ]}
+        />
 
         {/* Hospital Bag Checklist */}
         <View style={styles.checklistCard}>
@@ -866,32 +889,6 @@ const styles = StyleSheet.create({
   kickCounterSubtext: {
     fontSize: 13,
     color: '#666',
-  },
-  essentialsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: 20,
-    gap: 12,
-    marginBottom: 24,
-  },
-  essentialItem: {
-    width: '22%',
-    minWidth: 70,
-    alignItems: 'center',
-  },
-  essentialIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  essentialLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: THEME_COLORS.text,
-    textAlign: 'center',
   },
   checklistCard: {
     backgroundColor: '#F3E8FF',
