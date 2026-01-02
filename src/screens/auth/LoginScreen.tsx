@@ -12,10 +12,17 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Input, Button } from '../../components';
 import { TouchableOpacity } from 'react-native';
+import apiClient, { APIError } from '../../utils/ApiClient';
 import { THEME_COLORS } from '../../constants/colors';
 import useStore from '../../hooks/useStore';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList, SCREENS } from '../../constants/navigation';
+import { AUTH_URLS } from '../../constants/apis';
 
 const LoginScreen: React.FC = () => {
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -24,7 +31,7 @@ const LoginScreen: React.FC = () => {
   );
   const safeAreaInsets = useSafeAreaInsets();
 
-  const setToken = useStore((state) => state.setToken);
+  const setToken = useStore(state => state.setToken);
 
   const resetForm = () => {
     setEmail('');
@@ -54,10 +61,47 @@ const LoginScreen: React.FC = () => {
   const handleLogin = async () => {
     if (validateForm()) {
       setLoading(true);
-      // Simulate login and save token/refreshToken
-      setToken('dummy_token_123', 'dummy_refresh_456');
-      setLoading(false);
-      resetForm();
+      try {
+        const response = await apiClient.post(
+          AUTH_URLS.LOGIN,
+          {
+            email: email.trim(),
+            password: password,
+          },
+          { is_auth: false }, // No auth needed for login
+        );
+
+        if (response.state === 1 && response.access && response.refresh) {
+          // Store tokens and user data
+          setToken(response.access, response.refresh);
+
+          // Optionally store user data if needed
+          // await AsyncStorage.setItem('user_data', JSON.stringify(response.user));
+
+          resetForm();
+          Alert.alert('Success', 'Login successful!');
+        } else {
+          Alert.alert('Error', 'Invalid response from server');
+        }
+      } catch (error) {
+        let errorMessage = 'An error occurred during login';
+
+        if (error instanceof APIError) {
+          if (error.type === 'network') {
+            errorMessage = 'Network error. Please check your connection.';
+          } else if (error.statusCode === 401) {
+            errorMessage = 'Invalid email or password';
+          } else if (error.data?.message) {
+            errorMessage = error.data.message;
+          } else {
+            errorMessage = error.message;
+          }
+        }
+
+        Alert.alert('Login Failed', errorMessage);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -110,7 +154,7 @@ const LoginScreen: React.FC = () => {
               />
               <Button
                 title="Create Account"
-                onPress={() => Alert.alert('Navigate', 'Go to sign up screen')}
+                onPress={() => navigation.replace(SCREENS.REGISTER)}
                 variant="secondary"
               />
             </View>
@@ -162,15 +206,15 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'hidden',
   },
-//   absoluteBg: {
-//     position: 'absolute',
-//     top: 0,
-//     left: 0,
-//     width: '100%',
-//     height: '100%',
-//     zIndex: -1,
-// 	opacity: .7,
-//   },
+  //   absoluteBg: {
+  //     position: 'absolute',
+  //     top: 0,
+  //     left: 0,
+  //     width: '100%',
+  //     height: '100%',
+  //     zIndex: -1,
+  // 	opacity: .7,
+  //   },
   container: {
     flex: 1,
     backgroundColor: THEME_COLORS.background,

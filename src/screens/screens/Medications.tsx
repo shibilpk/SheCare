@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Modal,
   TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,6 +12,7 @@ import FontelloIcon from '../../utils/FontelloIcons';
 import { THEME_COLORS } from '../../constants/colors';
 import { useNavigation } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
+import { KeyboardAvoidingModal } from '../../components';
 
 interface DoseSchedule {
   time: string;
@@ -335,141 +335,128 @@ export default function MedicationsScreen() {
       </ScrollView>
 
       {/* Add Medication Modal */}
-      <Modal
+      <KeyboardAvoidingModal
         visible={showAddModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowAddModal(false)}
+        onClose={() => setShowAddModal(false)}
+        title="Add Medication"
+        showScrollView={true}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Add Medication</Text>
-              <TouchableOpacity onPress={() => setShowAddModal(false)}>
-                <FontelloIcon name="cancel" size={24} color="#999" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Medication Name</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="e.g., Prenatal Vitamin"
-                  value={newMedName}
-                  onChangeText={setNewMedName}
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Dosage</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="e.g., 1 tablet, 400mcg"
-                  value={newDosage}
-                  onChangeText={setNewDosage}
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Period</Text>
-                <View style={styles.periodRow}>
-                  {['once', 'daily', 'weekly', 'monthly', 'yearly'].map(period => (
-                    <TouchableOpacity
-                      key={period}
-                      onPress={() => {
-                        setFrequencyPeriod(period);
-                        if (period === 'once') {
-                          handleTimesChange(1);
-                        }
-                      }}
-                      style={[
-                        styles.periodBtn,
-                        frequencyPeriod === period && styles.periodBtnActive,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.periodText,
-                          frequencyPeriod === period && styles.periodTextActive,
-                        ]}
-                      >
-                        {period.charAt(0).toUpperCase() + period.slice(1)}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+        <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Medication Name</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="e.g., Prenatal Vitamin"
+                    value={newMedName}
+                    onChangeText={setNewMedName}
+                  />
                 </View>
-              </View>
 
-              {frequencyPeriod !== 'once' && (
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>How many times per {frequencyPeriod}?</Text>
-                  <View style={styles.timesRow}>
-                    {[1, 2, 3, 4, 5, 6].map(num => (
+                  <Text style={styles.inputLabel}>Dosage</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="e.g., 1 tablet, 400mcg"
+                    value={newDosage}
+                    onChangeText={setNewDosage}
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Period</Text>
+                  <View style={styles.periodRow}>
+                    {['once', 'daily', 'weekly', 'monthly', 'yearly'].map(period => (
                       <TouchableOpacity
-                        key={num}
-                        onPress={() => handleTimesChange(num)}
+                        key={period}
+                        onPress={() => {
+                          setFrequencyPeriod(period);
+                          if (period === 'once') {
+                            handleTimesChange(1);
+                          }
+                        }}
                         style={[
-                          styles.timesBtn,
-                          timesPerPeriod === num && styles.timesBtnActive,
+                          styles.periodBtn,
+                          frequencyPeriod === period && styles.periodBtnActive,
                         ]}
                       >
                         <Text
                           style={[
-                            styles.timesText,
-                            timesPerPeriod === num && styles.timesTextActive,
+                            styles.periodText,
+                            frequencyPeriod === period && styles.periodTextActive,
                           ]}
                         >
-                          {num}
+                          {period.charAt(0).toUpperCase() + period.slice(1)}
                         </Text>
                       </TouchableOpacity>
                     ))}
                   </View>
                 </View>
-              )}
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Color</Text>
-                <View style={styles.colorRow}>
-                  {colorOptions.map(color => (
-                    <TouchableOpacity
-                      key={color}
-                      onPress={() => setSelectedColor(color)}
-                      style={[
-                        styles.colorBtn,
-                        { backgroundColor: color },
-                        selectedColor === color && styles.colorBtnActive,
-                      ]}
-                    >
-                      {selectedColor === color && (
-                        <FontelloIcon name="ok" size={16} color="#FFF" />
-                      )}
-                    </TouchableOpacity>
-                  ))}
+                {frequencyPeriod !== 'once' && (
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>How many times per {frequencyPeriod}?</Text>
+                    <View style={styles.timesRow}>
+                      {[1, 2, 3, 4, 5, 6].map(num => (
+                        <TouchableOpacity
+                          key={num}
+                          onPress={() => handleTimesChange(num)}
+                          style={[
+                            styles.timesBtn,
+                            timesPerPeriod === num && styles.timesBtnActive,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.timesText,
+                              timesPerPeriod === num && styles.timesTextActive,
+                            ]}
+                          >
+                            {num}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                )}
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Color</Text>
+                  <View style={styles.colorRow}>
+                    {colorOptions.map(color => (
+                      <TouchableOpacity
+                        key={color}
+                        onPress={() => setSelectedColor(color)}
+                        style={[
+                          styles.colorBtn,
+                          { backgroundColor: color },
+                          selectedColor === color && styles.colorBtnActive,
+                        ]}
+                      >
+                        {selectedColor === color && (
+                          <FontelloIcon name="ok" size={16} color="#FFF" />
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </View>
                 </View>
-              </View>
-            </ScrollView>
 
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.modalCancelBtn}
-                onPress={() => {
-                  resetForm();
-                  setShowAddModal(false);
-                }}
-              >
-                <Text style={styles.modalCancelText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalSaveBtn}
-                onPress={handleSaveMedication}
-              >
-                <Text style={styles.modalSaveBtnText}>Save</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+        <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={styles.modalCancelBtn}
+                  onPress={() => {
+                    resetForm();
+                    setShowAddModal(false);
+                  }}
+                >
+                  <Text style={styles.modalCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.modalSaveBtn}
+                  onPress={handleSaveMedication}
+                >
+                  <Text style={styles.modalSaveBtnText}>Save</Text>
+                </TouchableOpacity>
         </View>
-      </Modal>
+      </KeyboardAvoidingModal>
     </SafeAreaView>
   );
 }
@@ -677,31 +664,6 @@ const styles = StyleSheet.create({
     color: '#666',
     lineHeight: 22,
     marginBottom: 4,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: THEME_COLORS.textLight,
-    borderRadius: 20,
-    padding: 24,
-    width: '90%',
-    maxWidth: 400,
-    maxHeight: '85%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: THEME_COLORS.text,
   },
   inputGroup: {
     marginBottom: 16,

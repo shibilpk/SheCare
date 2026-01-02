@@ -6,21 +6,12 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
-  FlatList,
-  Modal,
 } from 'react-native';
 import {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  Easing,
-} from 'react-native-reanimated';
-import {
   SafeAreaView,
-  useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import FontelloIcon from '../../utils/FontelloIcons';
-import ModalTopIcon from '../../components/common/ModalTopIcon';
+import NotificationsModal from '../../components/common/NotificationsModal';
 import { THEME_COLORS, HOME_CARD_PASTEL } from '../../constants/colors';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
@@ -32,8 +23,6 @@ import QuickActions from '../../components/common/QuickActions';
 export default function HomeScreen() {
   const navigation = useNavigation<DrawerNavigationProp<RootStackParamList>>();
   const [showNotifications, setShowNotifications] = useState(false);
-  const modalAnim = useSharedValue(0);
-  const insets = useSafeAreaInsets();
   const dummyNotifications = [
     {
       id: 1,
@@ -79,33 +68,13 @@ export default function HomeScreen() {
 
   const openModal = () => {
     setShowNotifications(true);
-    setTimeout(() => {
-      modalAnim.value = withTiming(1, {
-        duration: 350,
-        easing: Easing.out(Easing.exp),
-      });
-    }, 10);
   };
 
   const closeModal = () => {
-    modalAnim.value = withTiming(0, {
-      duration: 300,
-      easing: Easing.in(Easing.exp),
-    });
-    setTimeout(() => setShowNotifications(false), 300);
+    setShowNotifications(false);
   };
 
-  const animatedModalStyle = useAnimatedStyle(() => ({
-    transform: [
-      {
-        translateY:
-          modalAnim.value === 1
-            ? withTiming(0, { duration: 0 })
-            : withTiming(400 * (1 - modalAnim.value), { duration: 0 }),
-      },
-    ],
-  }));
-
+  
   const quickStats = [
     { id: 1, label: 'CYCLE DAY', value: '20', bgColor: ['#E9D5FF', '#C084FC'] },
     { id: 2, label: 'Mood', emoji: '😊', bgColor: ['#FED7AA', '#FB923C'] },
@@ -158,47 +127,11 @@ export default function HomeScreen() {
       </View>
 
       {/* Notifications Modal */}
-      <Modal
-        visible={showNotifications}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={closeModal}
-      >
-        <View style={[styles.modalContent, { paddingTop: insets.top }]}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Notifications</Text>
-            <ModalTopIcon onPress={closeModal} iconName="cancel" />
-          </View>
-          <FlatList
-            data={dummyNotifications}
-            keyExtractor={item => item.id.toString()}
-            renderItem={({ item }) => (
-              <View style={styles.notificationCard}>
-                <View
-                  style={[
-                    styles.notificationIcon,
-                    { backgroundColor: item.color },
-                  ]}
-                >
-                  <FontelloIcon
-                    name={item.icon}
-                    size={18}
-                    color={THEME_COLORS.textLight}
-                  />
-                </View>
-                <View style={styles.notificationContent}>
-                  <View style={styles.notificationTop}>
-                    <Text style={styles.notificationTitle}>{item.title}</Text>
-                    <Text style={styles.notificationTime}>{item.time}</Text>
-                  </View>
-                  <Text style={styles.notificationMessage}>{item.message}</Text>
-                </View>
-              </View>
-            )}
-            showsVerticalScrollIndicator={false}
-          />
-        </View>
-      </Modal>
+      <NotificationsModal
+      visible={showNotifications}
+      items={dummyNotifications}
+      onClose={closeModal}
+      />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -371,12 +304,14 @@ export default function HomeScreen() {
               label: 'Hydration',
               color: '#3B82F6',
               bg: '#DBEAFE',
+              onPress: () => navigation.navigate(SCREENS.HYDRATION),
             },
             {
               icon: 'pitch',
               label: 'Nutrition',
               color: '#10B981',
               bg: '#D1FAE5',
+              onPress: () => navigation.navigate(SCREENS.NUTRITION),
             },
             {
               icon: 'pharmacy',

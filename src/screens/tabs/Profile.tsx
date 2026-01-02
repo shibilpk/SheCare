@@ -26,22 +26,16 @@ import {
   Asset,
 } from 'react-native-image-picker';
 import useStore from '../../hooks/useStore';
+import apiClient, { APIError } from '../../utils/ApiClient';
+import { AUTH_URLS } from '../../constants/apis';
 
 export default function Profile() {
   const clearToken = useStore(state => state.clearToken);
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
-  const [user] = useState({
-    name: 'Jane Doe',
-    email: 'jane.doe@email.com',
-    avatar: require('../../assets/images/calendar-woman2.png'),
-    age: 28,
-    height: 165,
-    weight: 58,
-    cycleLength: 28,
-    periodLength: 5,
-  });
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
@@ -53,14 +47,44 @@ export default function Profile() {
     setHeaderHeight(event.nativeEvent.layout.height);
   };
 
+  // Fetch profile data
+  const fetchProfile = async () => {
+    try {
+      setLoading(true);
+      const response = await apiClient.get(AUTH_URLS.PROFILE);
+
+      if (response.state === 1 && response.profile) {
+        setProfile(response.profile);
+      } else {
+        Alert.alert('Error', 'Failed to load profile data');
+      }
+    } catch (error) {
+      let errorMessage = 'Failed to load profile';
+
+      if (error instanceof APIError) {
+        if (error.type === 'network') {
+          errorMessage = 'Network error. Please check your connection.';
+        } else if (error.data?.message) {
+          errorMessage = error.data.message;
+        }
+      }
+
+      Alert.alert('Error', errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
   // Pull-to-refresh state and handler
   const [refreshing, setRefreshing] = useState(false);
-  const onRefresh = () => {
+  const onRefresh = async () => {
     setRefreshing(true);
-    // Simulate refresh, replace with your own logic
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1200);
+    await fetchProfile();
+    setRefreshing(false);
   };
 
   const pickImage = () => {
@@ -116,16 +140,15 @@ export default function Profile() {
         showsVerticalScrollIndicator={false}
         onScroll={handleScroll}
         scrollEventThrottle={16}
-          // overScrollMode="always" // enables overscroll glow on Android
-
-        // refreshControl={
-        //   <RefreshControl
-        //     refreshing={refreshing}
-        //     onRefresh={onRefresh}
-        //     colors={[THEME_COLORS.primary]}
-        //     tintColor={THEME_COLORS.primary}
-        //   />
-        // }
+        overScrollMode='always'
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[THEME_COLORS.primary]}
+            tintColor={THEME_COLORS.primary}
+          />
+        }
       >
         {/* Header Profile Section */}
         <View style={styles.headerGradient} onLayout={handleHeaderLayout}>
@@ -135,7 +158,13 @@ export default function Profile() {
               style={styles.avatarContainer}
             >
               <Image
-                source={avatarUri ? { uri: avatarUri } : user.avatar}
+                source={
+                  avatarUri
+                    ? { uri: avatarUri }
+                    : profile?.photo
+                    ? { uri: profile.photo }
+                    : require('../../assets/images/calendar-woman2.png')
+                }
                 style={styles.avatar}
               />
               <View style={styles.cameraBadge}>
@@ -143,8 +172,12 @@ export default function Profile() {
               </View>
             </TouchableOpacity>
 
-            <Text style={styles.userName}>{user.name}</Text>
-            <Text style={styles.userEmail}>{user.email}</Text>
+            <Text style={styles.userName}>
+              {profile
+                ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'User'
+                : 'Loading...'}
+            </Text>
+            <Text style={styles.userEmail}>{profile?.email || ''}</Text>
 
             <TouchableOpacity style={styles.editProfileBtn}>
               <FontelloIcon name="pencil" size={16} color="#fff" />
@@ -163,7 +196,7 @@ export default function Profile() {
                 color={THEME_COLORS.primary}
               />
             </View>
-            <Text style={styles.statValue}>{user.age}</Text>
+            <Text style={styles.statValue}>{profile?.age || '--'}</Text>
             <Text style={styles.statLabel}>Age (years)</Text>
           </View>
 
@@ -175,7 +208,7 @@ export default function Profile() {
                 color={THEME_COLORS.primary}
               />
             </View>
-            <Text style={styles.statValue}>{user.weight}</Text>
+            <Text style={styles.statValue}>{profile?.weight || '--'}</Text>
             <Text style={styles.statLabel}>Weight (kg)</Text>
           </View>
 
@@ -187,7 +220,7 @@ export default function Profile() {
                 color={THEME_COLORS.primary}
               />
             </View>
-            <Text style={styles.statValue}>{user.height}</Text>
+            <Text style={styles.statValue}>{profile?.height || '--'}</Text>
             <Text style={styles.statLabel}>Height (cm)</Text>
           </View>
         </View>
@@ -207,7 +240,7 @@ export default function Profile() {
               <View style={styles.cycleInfoText}>
                 <Text style={styles.cycleInfoLabel}>Cycle Length</Text>
                 <Text style={styles.cycleInfoValue}>
-                  {user.cycleLength} days
+                  {profile?.cycleLength || profile?.cycle_length || '--'} days
                 </Text>
               </View>
             </View>
@@ -219,7 +252,7 @@ export default function Profile() {
               <View style={styles.cycleInfoText}>
                 <Text style={styles.cycleInfoLabel}>Period Length</Text>
                 <Text style={styles.cycleInfoValue}>
-                  {user.periodLength} days
+                  {profile?.periodLength || profile?.period_length || '--'} days
                 </Text>
               </View>
             </View>

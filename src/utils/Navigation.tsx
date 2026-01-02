@@ -1,3 +1,4 @@
+import React, { useContext, useState } from 'react';
 import {
   View,
   Text,
@@ -7,7 +8,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Modal, StatusBar } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import {
@@ -16,21 +17,26 @@ import {
 } from '@react-navigation/drawer';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import GlobalModalContext from '../../utils/GlobalContext';
-import { SCREENS, type RootStackParamList } from '../../constants/navigation';
-import * as Screens from '../../screens';
-import { tabOptions, todayTabBarIcon } from '../../components/widgets/TabIcon';
-import useStore from '../../hooks/useStore';
-import { useIsDarkMode } from '../../utils/theme';
-import { THEME_COLORS } from '../../constants/colors';
-import AboutHomeModal from './AboutHomeModal';
-import FontelloIcon from '../../utils/FontelloIcons';
-import ModalTopIcon from '../../components/common/ModalTopIcon';
-import { useContext, useState } from 'react';
+import GlobalModalContext from './GlobalContext';
+import { SCREENS, type RootStackParamList } from '../constants/navigation';
+import * as Screens from '../screens';
+import { tabOptions, todayTabBarIcon } from '../components/widgets/TabIcon';
+import useStore from '../hooks/useStore';
+import { useIsDarkMode } from './theme';
+import { THEME_COLORS } from '../constants/colors';
+import AboutHomeModal from '../screens/tabs/AboutHomeModal';
+import FontelloIcon from './FontelloIcons';
+import ModalTopIcon from '../components/common/ModalTopIcon';
+import { UpdateProvider, useUpdate } from './UpdateManager';
+
+// Create navigation ref for accessing navigation outside React components
+export const navigationRef = createNavigationContainerRef<RootStackParamList>();
+
 // Navigators
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Drawer = createDrawerNavigator();
+const EmptyScreen = () => null;
 
 /* ---------------------- Tabs ---------------------- */
 function TabNavigator() {
@@ -56,10 +62,10 @@ function TabNavigator() {
       />
       <Tab.Screen
         name={SCREENS.TODAY}
-        component={Screens.TodayScreen}
+        component={EmptyScreen}
         options={{
           tabBarLabel: '',
-          tabBarIcon: () => todayTabBarIcon({ onPress: modal.open }),
+          tabBarButton: (props: any) => todayTabBarIcon({ onPress: modal.open }),
         }}
       />
       <Tab.Screen
@@ -99,10 +105,10 @@ function SecondaryTabNavigator() {
       />
       <Tab.Screen
         name={SCREENS.TODAY}
-        component={Screens.TodayScreen}
+        component={EmptyScreen}
         options={{
           tabBarLabel: '',
-          tabBarIcon: () => todayTabBarIcon({ onPress: modal.open }),
+          tabBarButton: (props: any) => todayTabBarIcon({ onPress: modal.open }),
         }}
       />
       <Tab.Screen
@@ -122,6 +128,7 @@ function SecondaryTabNavigator() {
 /* ---------------------- Custom Drawer Content ---------------------- */
 function CustomDrawerContent(props: any) {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const { showUpdate } = useUpdate();
   const isPregnant = useStore(state => state.isPregnant ?? false);
   const setIsPregnant = useStore(state => state.setIsPregnant ?? (() => {}));
   const clearToken = useStore(state => state.clearToken);
@@ -282,6 +289,13 @@ function CustomDrawerContent(props: any) {
       {/* App Version */}
       <View style={styles.versionContainer}>
         <Text style={styles.versionText}>FemCare v1.0.0</Text>
+        <TouchableOpacity
+          style={styles.infoButton}
+          onPress={() => showUpdate(false)}
+          activeOpacity={0.7}
+        >
+          <FontelloIcon name="info-circled" size={24} color={THEME_COLORS.primary} />
+        </TouchableOpacity>
       </View>
     </DrawerContentScrollView>
   );
@@ -372,10 +386,16 @@ const styles = StyleSheet.create({
   versionContainer: {
     alignItems: 'center',
     paddingVertical: 16,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 12,
   },
   versionText: {
     fontSize: 12,
     color: '#999',
+  },
+  infoButton: {
+    padding: 4,
   },
 });
 
@@ -411,10 +431,11 @@ export default function RootNavigation() {
   const close = () => setModalVisible(false);
 
   return (
-    <SafeAreaProvider>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <NavigationContainer>
-        {isLoggedIn ? (
+    <UpdateProvider>
+      <SafeAreaProvider>
+        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+        <NavigationContainer ref={navigationRef}>
+          {isLoggedIn ? (
           <GlobalModalContext.Provider value={{ open, close }}>
             <Stack.Navigator screenOptions={{ headerShown: false }}>
               <Stack.Screen
@@ -458,8 +479,24 @@ export default function RootNavigation() {
                 component={Screens.Hydration}
               />
               <Stack.Screen
+                name={SCREENS.NUTRITION}
+                component={Screens.Nutrition}
+              />
+              <Stack.Screen
                 name={SCREENS.WEIGHT_TRACK}
                 component={Screens.WeightTrack}
+              />
+              <Stack.Screen
+                name={SCREENS.EXERCISE}
+                component={Screens.Exercise}
+              />
+              <Stack.Screen
+                name={SCREENS.APPOINTMENTS}
+                component={Screens.Appointments}
+              />
+              <Stack.Screen
+                name={SCREENS.SLEEP_LOG}
+                component={Screens.SleepLog}
               />
             </Stack.Navigator>
             <Modal
@@ -477,9 +514,14 @@ export default function RootNavigation() {
               name={SCREENS.LOGIN}
               component={Screens.LoginScreen}
             />
+            <Stack.Screen
+              name={SCREENS.REGISTER}
+              component={Screens.RegisterScreen}
+            />
           </Stack.Navigator>
         )}
-      </NavigationContainer>
-    </SafeAreaProvider>
+        </NavigationContainer>
+      </SafeAreaProvider>
+    </UpdateProvider>
   );
 }

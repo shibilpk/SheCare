@@ -6,19 +6,12 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
-  FlatList,
 } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  Easing,
-} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import FontelloIcon from '../../../utils/FontelloIcons';
-import ModalTopIcon from '../../../components/common/ModalTopIcon';
 import QuickActions from '../../../components/common/QuickActions';
-import { THEME_COLORS, HOME_CARD_PASTEL } from '../../../constants/colors';
+import NotificationsModal from '../../../components/common/NotificationsModal';
+import { THEME_COLORS } from '../../../constants/colors';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
@@ -27,77 +20,13 @@ import { RootStackParamList, SCREENS } from '../../../constants/navigation';
 export default function PregnancyScreen() {
   const navigation = useNavigation<DrawerNavigationProp<RootStackParamList>>();
 
-  const [showAppointments, setShowAppointments] = useState(false);
-  const modalAnim = useSharedValue(0);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   // Dummy pregnancy data
   const currentWeek = 24;
   const currentTrimester = 2;
   const dueDate = 'March 15, 2026';
   const daysRemaining = 112;
-
-  const appointments = [
-    {
-      id: 1,
-      title: 'Ultrasound Scan',
-      date: 'Oct 10, 2025',
-      time: '10:00 AM',
-      doctor: 'Dr. Sarah Johnson',
-      icon: 'stethoscope',
-      color: '#8B5CF6',
-    },
-    {
-      id: 2,
-      title: 'Prenatal Check-up',
-      date: 'Oct 17, 2025',
-      time: '2:30 PM',
-      doctor: 'Dr. Sarah Johnson',
-      icon: 'heart',
-      color: '#EC4899',
-    },
-    {
-      id: 3,
-      title: 'Blood Test',
-      date: 'Oct 24, 2025',
-      time: '9:00 AM',
-      doctor: 'Lab Technician',
-      icon: 'droplet',
-      color: '#EF4444',
-    },
-  ];
-
-  const openModal = () => {
-    setShowAppointments(true);
-    setTimeout(() => {
-      modalAnim.value = withTiming(1, {
-        duration: 350,
-        easing: Easing.out(Easing.exp),
-      });
-    }, 10);
-  };
-
-  const closeModal = () => {
-    modalAnim.value = withTiming(0, {
-      duration: 300,
-      easing: Easing.in(Easing.exp),
-    });
-    setTimeout(() => setShowAppointments(false), 300);
-  };
-
-  const animatedModalStyle = useAnimatedStyle(() => {
-    return {
-      transform: [
-        {
-          translateY: withTiming(modalAnim.value === 1 ? 0 : 600, {
-            duration: 350,
-            easing: Easing.out(Easing.exp),
-          }),
-        },
-      ],
-      width: '100%',
-      alignSelf: 'center',
-    };
-  });
 
   const quickStats = [
     { id: 1, label: 'Weight', value: '+8kg', bgColor: ['#E9D5FF', '#C084FC'] },
@@ -170,52 +99,52 @@ export default function PregnancyScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>My Pregnancy</Text>
-          <Text style={styles.headerDate}>Week {currentWeek} • Trimester {currentTrimester}</Text>
+          <Text style={styles.headerDate}>
+            Week {currentWeek} • Trimester {currentTrimester}
+          </Text>
         </View>
-        <TouchableOpacity onPress={openModal} style={styles.headerBtn}>
+        <TouchableOpacity
+          onPress={() => setShowNotifications(true)}
+          style={styles.headerBtn}
+        >
           <View style={styles.appointmentBadge}>
             <Text style={styles.appointmentBadgeText}>3</Text>
           </View>
-          <FontelloIcon name="calendar" size={26} color="#333" />
+          <FontelloIcon name="bell-alt" size={26} color="#333" />
         </TouchableOpacity>
       </View>
 
-      {/* Appointments Modal */}
-      {showAppointments && (
-        <View style={styles.modalOverlay}>
-          <Animated.View style={[styles.modalContent, animatedModalStyle]}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Upcoming Appointments</Text>
-              <ModalTopIcon onPress={closeModal} iconName="cancel" />
-            </View>
-            <FlatList
-              data={appointments}
-              keyExtractor={item => item.id.toString()}
-              renderItem={({ item }) => (
-                <View style={styles.appointmentCard}>
-                  <View
-                    style={[
-                      styles.appointmentIcon,
-                      { backgroundColor: item.color },
-                    ]}
-                  >
-                    <FontelloIcon name={item.icon} size={20} color={THEME_COLORS.textLight} />
-                  </View>
-                  <View style={styles.appointmentContent}>
-                    <Text style={styles.appointmentTitle}>{item.title}</Text>
-                    <Text style={styles.appointmentDoctor}>{item.doctor}</Text>
-                    <View style={styles.appointmentBottom}>
-                      <Text style={styles.appointmentDate}>{item.date}</Text>
-                      <Text style={styles.appointmentTime}>{item.time}</Text>
-                    </View>
-                  </View>
-                </View>
-              )}
-              showsVerticalScrollIndicator={false}
-            />
-          </Animated.View>
-        </View>
-      )}
+      {/* Notifications Modal (common) */}
+      <NotificationsModal
+        visible={showNotifications}
+        items={[
+          {
+            id: 1,
+            title: 'Kick Counter',
+            message: 'You logged 12 kicks today',
+            time: '2h ago',
+            icon: 'heart',
+            color: '#F59E0B',
+          },
+          {
+            id: 2,
+            title: 'Hydration',
+            message: '6/8 glasses completed',
+            time: '4h ago',
+            icon: 'glass',
+            color: '#3B82F6',
+          },
+          {
+            id: 3,
+            title: 'Appointment',
+            message: 'Ultrasound in 2 days',
+            time: '1d ago',
+            icon: 'calendar',
+            color: '#8B5CF6',
+          },
+        ]}
+        onClose={() => setShowNotifications(false)}
+      />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -235,9 +164,16 @@ export default function PregnancyScreen() {
 
             <View style={styles.progressBarContainer}>
               <View style={styles.progressBar}>
-                <View style={[styles.progressFill, { width: `${(currentWeek / 40) * 100}%` }]} />
+                <View
+                  style={[
+                    styles.progressFill,
+                    { width: `${(currentWeek / 40) * 100}%` },
+                  ]}
+                />
               </View>
-              <Text style={styles.progressText}>{Math.round((currentWeek / 40) * 100)}% Complete</Text>
+              <Text style={styles.progressText}>
+                {Math.round((currentWeek / 40) * 100)}% Complete
+              </Text>
             </View>
 
             <Image
@@ -254,7 +190,6 @@ export default function PregnancyScreen() {
             colors={['#FCE7F3', '#FBCFE8']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={styles.babyGrowthGradient}
           >
             <View style={styles.babyGrowthContent}>
               <View style={styles.babyGrowthLeft}>
@@ -270,32 +205,6 @@ export default function PregnancyScreen() {
           </LinearGradient>
         </View>
 
-        {/* Quick Stats */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.statsScroll}
-        >
-          {quickStats.map(stat => (
-            <LinearGradient
-              key={stat.id}
-              colors={stat.bgColor}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.statContainer}
-            >
-              <View style={styles.statContainerInner}>
-                <Text style={styles.statTitle}>{stat.label}</Text>
-                {stat.value ? (
-                  <Text style={styles.statValue}>{stat.value}</Text>
-                ) : (
-                  <Text style={styles.statEmoji}>{stat.emoji}</Text>
-                )}
-              </View>
-            </LinearGradient>
-          ))}
-        </ScrollView>
-
         {/* Daily Check-in */}
         <View style={styles.checkInCard}>
           <View style={styles.checkInLeft}>
@@ -303,7 +212,11 @@ export default function PregnancyScreen() {
             <Text style={styles.checkInSubtitle}>Track symptoms and mood</Text>
           </View>
           <TouchableOpacity style={styles.checkInBtn}>
-            <FontelloIcon name="plus" size={24} color={THEME_COLORS.textLight} />
+            <FontelloIcon
+              name="plus"
+              size={24}
+              color={THEME_COLORS.textLight}
+            />
           </TouchableOpacity>
         </View>
 
@@ -320,10 +233,15 @@ export default function PregnancyScreen() {
             <View key={symptom.id} style={styles.symptomChip}>
               <FontelloIcon name={symptom.icon} size={14} color="#666" />
               <Text style={styles.symptomName}>{symptom.name}</Text>
-              <View style={[
-                styles.severityDot,
-                { backgroundColor: symptom.severity === 'Moderate' ? '#F59E0B' : '#10B981' }
-              ]} />
+              <View
+                style={[
+                  styles.severityDot,
+                  {
+                    backgroundColor:
+                      symptom.severity === 'Moderate' ? '#F59E0B' : '#10B981',
+                  },
+                ]}
+              />
             </View>
           ))}
         </View>
@@ -336,7 +254,10 @@ export default function PregnancyScreen() {
         {weeklyMilestones.map(milestone => (
           <View key={milestone.id} style={styles.milestoneCard}>
             <View
-              style={[styles.milestoneIcon, { backgroundColor: milestone.bgColor }]}
+              style={[
+                styles.milestoneIcon,
+                { backgroundColor: milestone.bgColor },
+              ]}
             >
               <FontelloIcon
                 name={milestone.icon}
@@ -366,8 +287,14 @@ export default function PregnancyScreen() {
         >
           {dailyTips.map(tip => (
             <View key={tip.id} style={styles.tipCard}>
-              <View style={[styles.tipIconCircle, { backgroundColor: tip.color }]}>
-                <FontelloIcon name={tip.icon} size={20} color={THEME_COLORS.textLight} />
+              <View
+                style={[styles.tipIconCircle, { backgroundColor: tip.color }]}
+              >
+                <FontelloIcon
+                  name={tip.icon}
+                  size={20}
+                  color={THEME_COLORS.textLight}
+                />
               </View>
               <Text style={styles.tipCategory}>{tip.category}</Text>
               <Text style={styles.tipText}>{tip.tip}</Text>
@@ -382,21 +309,32 @@ export default function PregnancyScreen() {
           end={{ x: 1, y: 1 }}
           style={styles.kickCounterCard}
         >
-          <View style={styles.kickCounterHeader}>
-            <View style={styles.kickCounterLeft}>
-              <Text style={styles.kickCounterTitle}>Baby Kicks Today</Text>
-              <Text style={styles.kickCounterCount}>12 kicks</Text>
+          <View style={styles.kickCounterCardWrapper}>
+            <View style={styles.kickCounterHeader}>
+              <View style={styles.kickCounterLeft}>
+                <Text style={styles.kickCounterTitle}>Baby Kicks Today</Text>
+                <Text style={styles.kickCounterCount}>12 kicks</Text>
+              </View>
+              <TouchableOpacity style={styles.kickBtn}>
+                <FontelloIcon name="plus" size={28} color="#3B82F6" />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity style={styles.kickBtn}>
-              <FontelloIcon name="plus" size={28} color="#3B82F6" />
-            </TouchableOpacity>
+            <Text style={styles.kickCounterSubtext}>
+              Tap + when you feel baby move
+            </Text>
           </View>
-          <Text style={styles.kickCounterSubtext}>Tap + when you feel baby move</Text>
         </LinearGradient>
 
         {/* Pregnancy Essentials */}
         <QuickActions
           actions={[
+            {
+              icon: 'calendar',
+              label: 'Appointments',
+              color: '#8B5CF6',
+              bg: '#EDE9FE',
+              onPress: () => navigation.navigate(SCREENS.APPOINTMENTS),
+            },
             {
               icon: 'pharmacy',
               label: 'Medications',
@@ -416,18 +354,21 @@ export default function PregnancyScreen() {
               label: 'Nutrition',
               color: '#10B981',
               bg: '#D1FAE5',
+              onPress: () => navigation.navigate(SCREENS.NUTRITION),
             },
             {
               icon: 'heart',
               label: 'Exercise',
               color: '#F59E0B',
               bg: '#FEF3C7',
+              onPress: () => navigation.navigate(SCREENS.EXERCISE),
             },
             {
               icon: 'moon',
               label: 'Sleep Log',
               color: '#8B5CF6',
               bg: '#EDE9FE',
+              onPress: () => navigation.navigate(SCREENS.SLEEP_LOG),
             },
             {
               icon: 'chart-line',
@@ -449,7 +390,10 @@ export default function PregnancyScreen() {
           <View style={styles.checklistProgress}>
             <View style={[styles.checklistProgressFill, { width: '25%' }]} />
           </View>
-          <TouchableOpacity style={styles.checklistBtn} onPress={() => navigation.navigate(SCREENS.HOSPITAL_CHECKLIST)}>
+          <TouchableOpacity
+            style={styles.checklistBtn}
+            onPress={() => navigation.navigate(SCREENS.HOSPITAL_CHECKLIST)}
+          >
             <Text style={styles.checklistBtnText}>View Checklist</Text>
             <FontelloIcon name="right-open-mini" size={16} color="#8B5CF6" />
           </TouchableOpacity>
@@ -461,7 +405,9 @@ export default function PregnancyScreen() {
             <Text style={styles.partnerEmoji}>👫</Text>
             <View style={styles.partnerTextContainer}>
               <Text style={styles.partnerTitle}>Partner's Corner</Text>
-              <Text style={styles.partnerSubtext}>Tips for your partner this week</Text>
+              <Text style={styles.partnerSubtext}>
+                Tips for your partner this week
+              </Text>
             </View>
           </View>
           <Text style={styles.partnerContent}>
@@ -605,13 +551,11 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
-  babyGrowthGradient: {
-    padding: 20,
-  },
   babyGrowthContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    padding: 20,
   },
   babyGrowthLeft: {
     flex: 1,
@@ -644,37 +588,6 @@ const styles = StyleSheet.create({
   babyEmoji: {
     fontSize: 48,
   },
-  statsScroll: {
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    gap: 12,
-  },
-  statContainer: {
-    borderRadius: 16,
-    marginRight: 15,
-    alignItems: 'center',
-    minWidth: 110,
-    overflow: 'hidden',
-  },
-  statContainerInner: {
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-  },
-  statTitle: {
-    color: THEME_COLORS.text,
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  statValue: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: THEME_COLORS.text,
-  },
-  statEmoji: {
-    fontSize: 36,
-  },
   checkInCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -684,6 +597,7 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 16,
     marginBottom: 24,
+    marginTop: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
@@ -844,7 +758,6 @@ const styles = StyleSheet.create({
   },
   kickCounterCard: {
     marginHorizontal: 20,
-    padding: 20,
     borderRadius: 20,
     marginBottom: 24,
     shadowColor: '#000',
@@ -852,6 +765,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
+  },
+  kickCounterCardWrapper: {
+    padding: 20,
   },
   kickCounterHeader: {
     flexDirection: 'row',
@@ -985,82 +901,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: THEME_COLORS.textLight,
-  },
-  modalOverlay: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    top: 0,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end',
-    zIndex: 100,
-  },
-  modalContent: {
-    backgroundColor: THEME_COLORS.textLight,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 40,
-    maxHeight: '80%',
-    width: '100%',
-    alignSelf: 'center',
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: THEME_COLORS.text,
-  },
-  appointmentCard: {
-    flexDirection: 'row',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  appointmentIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-  },
-  appointmentContent: {
-    flex: 1,
-  },
-  appointmentTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: THEME_COLORS.text,
-    marginBottom: 4,
-  },
-  appointmentDoctor: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 6,
-  },
-  appointmentBottom: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  appointmentDate: {
-    fontSize: 13,
-    color: '#999',
-  },
-  appointmentTime: {
-    fontSize: 13,
-    color: THEME_COLORS.primary,
-    fontWeight: '600',
   },
 });

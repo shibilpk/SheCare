@@ -1,6 +1,7 @@
 export const SCREENS = {
   HOME: 'Home',
   LOGIN: 'Login',
+  REGISTER: 'Register',
   CALENDAR: 'Calendar',
   PROFILE: 'Profile',
   TODAY: 'Today',
@@ -19,6 +20,7 @@ export const SCREENS = {
   EXERCISE: 'Exercise',
   SLEEP_LOG: 'SleepLog',
   WEIGHT_TRACK: 'WeightTrack',
+  APPOINTMENTS: 'Appointments',
 } as const;
 
 export type RootStackParamList = {

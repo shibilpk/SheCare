@@ -1,12 +1,10 @@
 export { default as LoginScreen } from './auth/LoginScreen';
+export { default as RegisterScreen } from './auth/RegisterScreen';
 
 export { default as CalendarScreen } from './tabs/Calendar';
 export { default as HomeScreen } from './tabs/Home';
 export { default as Profile } from './tabs/Profile';
-export { default as TodayScreen } from './tabs/Today';
 export { default as AnalysisScreen } from './tabs/Analysis';
-
-export { default as RootNavigation } from './widgets/Navigation';
 
 export { default as LifestyleDetailsScreen } from './screens/LifestyleDetails';
 export { default as ChangePasswordScreen } from './screens/ChangePassword';
@@ -22,4 +20,9 @@ export { default as PeriodSelector } from './screens/PeriodSelector';
 
 export { default as Medications } from './screens/Medications';
 export { default as Hydration } from './screens/Hydration';
+export { default as Nutrition } from './screens/Nutrition';
+export { default as Exercise } from './screens/Exercise';
 export { default as WeightTrack } from './screens/WeightTrack';
+export { default as Appointments } from './screens/Appointments';
+export { default as SleepLog } from './screens/SleepLog';
+export { default as UpdateScreen } from './screens/UpdateScreen';
