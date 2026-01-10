@@ -1,3 +1,4 @@
+import { AUTH_V1_URLS } from '../constants/apis';
 import useStore from '../hooks/useStore';
 
 // Custom API Error class
@@ -10,7 +11,7 @@ export class APIError extends Error {
     message: string,
     type: 'network' | 'server' | 'cancelled',
     statusCode?: number,
-    data?: unknown
+    data?: unknown,
   ) {
     super(message);
     this.name = 'APIError';
@@ -23,8 +24,10 @@ export class APIError extends Error {
 // Request/Response Interceptor types
 type RequestInterceptor = (
   url: string,
-  options: RequestInit
-) => Promise<{ url: string; options: RequestInit }> | { url: string; options: RequestInit };
+  options: RequestInit,
+) =>
+  | Promise<{ url: string; options: RequestInit }>
+  | { url: string; options: RequestInit };
 
 type ResponseInterceptor = (response: Response) => Promise<Response> | Response;
 
@@ -97,7 +100,7 @@ class ApiClient {
   // Authentication interceptor - attaches Bearer token if is_auth is true
   private async authInterceptor(
     url: string,
-    options: ExtendedRequestInit
+    options: ExtendedRequestInit,
   ): Promise<{ url: string; options: RequestInit }> {
     const { is_auth = true, ...restOptions } = options;
 
@@ -122,7 +125,7 @@ class ApiClient {
   // Apply all request interceptors
   private async applyRequestInterceptors(
     url: string,
-    options: RequestInit
+    options: RequestInit,
   ): Promise<{ url: string; options: RequestInit }> {
     let modifiedUrl = url;
     let modifiedOptions = options;
@@ -137,7 +140,9 @@ class ApiClient {
   }
 
   // Apply all response interceptors
-  private async applyResponseInterceptors(response: Response): Promise<Response> {
+  private async applyResponseInterceptors(
+    response: Response,
+  ): Promise<Response> {
     let modifiedResponse = response;
 
     for (const interceptor of this.responseInterceptors) {
@@ -156,7 +161,7 @@ class ApiClient {
         throw new Error('No refresh token available');
       }
 
-      const response = await fetch(`${this.baseURL}/api/v1/customers/auth/refresh`, {
+      const response = await fetch(`${this.baseURL}${AUTH_V1_URLS.REFRESH}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -173,7 +178,8 @@ class ApiClient {
 
       // Update tokens in Zustand store
       const newAccessToken = data.access || data.access_token;
-      const newRefreshToken = data.refresh || data.refresh_token || refreshToken;
+      const newRefreshToken =
+        data.refresh || data.refresh_token || refreshToken;
 
       if (!newAccessToken) {
         throw new Error('No access token in refresh response');
@@ -213,7 +219,10 @@ class ApiClient {
         request.reject(error);
       } else {
         try {
-          const result = await this.executeRequest(request.endpoint, request.options);
+          const result = await this.executeRequest(
+            request.endpoint,
+            request.options,
+          );
           request.resolve(result);
         } catch (err) {
           request.reject(err);
@@ -225,7 +234,7 @@ class ApiClient {
   // Execute the actual fetch request
   private async executeRequest<T = unknown>(
     endpoint: string,
-    options: ApiOptions
+    options: ApiOptions,
   ): Promise<T> {
     const {
       method = 'GET',
@@ -235,7 +244,9 @@ class ApiClient {
       headers = {},
     } = options;
 
-    const url = endpoint.startsWith('http') ? endpoint : `${this.baseURL}${endpoint}`;
+    const url = endpoint.startsWith('http')
+      ? endpoint
+      : `${this.baseURL}${endpoint}`;
 
     console.log('API Request URL:', url);
 
@@ -267,11 +278,22 @@ class ApiClient {
 
       // Add body for methods that support it
       if (data && ['POST', 'PUT', 'PATCH'].includes(method)) {
-        requestOptions.body = JSON.stringify(data);
+        console.log(data, 'data');
+        if (data && ['POST', 'PUT', 'PATCH'].includes(method)) {
+          if (data instanceof FormData) {
+            requestOptions.body = data;
+            delete (requestOptions.headers as any)['Content-Type'];
+          } else {
+            requestOptions.body = JSON.stringify(data);
+          }
+        }
       }
 
       // Apply request interceptors
-      const intercepted = await this.applyRequestInterceptors(url, requestOptions);
+      const intercepted = await this.applyRequestInterceptors(
+        url,
+        requestOptions,
+      );
 
       // Execute fetch
       let response = await fetch(intercepted.url, intercepted.options);
@@ -331,12 +353,12 @@ class ApiClient {
       // Handle other error status codes
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new APIError(
-          errorData.message || `Server error: ${response.status}`,
-          'server',
-          response.status,
-          errorData
-        );
+        const errorMessage =
+          errorData.detail ||
+          errorData.message ||
+          errorData.error ||
+          `Server error: ${response.status}`;
+        throw new APIError(errorMessage, 'server', response.status, errorData);
       }
 
       // Parse and return response
@@ -345,12 +367,16 @@ class ApiClient {
     } catch (error: unknown) {
       // Handle AbortError
       if (error instanceof Error && error.name === 'AbortError') {
-        throw new APIError('Request was cancelled', 'cancelled');
+        throw new APIError('Request was cancelled', 'cancelled', 0);
       }
 
       // Handle network errors
       if (error instanceof TypeError) {
-        throw new APIError('Network error: Unable to connect to server', 'network');
+        throw new APIError(
+          'Network error: Unable to connect to server',
+          'network',
+          0,
+        );
       }
 
       // Re-throw APIError
@@ -359,8 +385,9 @@ class ApiClient {
       }
 
       // Handle unknown errors
-      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-      throw new APIError(errorMessage, 'network');
+      const errorMessage =
+        error instanceof Error ? error.message : 'An unexpected error occurred';
+      throw new APIError(errorMessage, 'network', 0);
     } finally {
       // Clean up abort controller
       if (abortPrevious) {
@@ -372,7 +399,7 @@ class ApiClient {
   // Main callApi method with generic type support
   public async callApi<T = unknown>(
     endpoint: string,
-    options: ApiOptions = {}
+    options: ApiOptions = {},
   ): Promise<T> {
     return this.executeRequest<T>(endpoint, options);
   }
@@ -380,7 +407,7 @@ class ApiClient {
   // Convenience method: GET
   public async get<T = unknown>(
     endpoint: string,
-    options: Omit<ApiOptions, 'method'> = {}
+    options: Omit<ApiOptions, 'method'> = {},
   ): Promise<T> {
     return this.callApi<T>(endpoint, { ...options, method: 'GET' });
   }
@@ -389,7 +416,7 @@ class ApiClient {
   public async post<T = unknown>(
     endpoint: string,
     data?: unknown,
-    options: Omit<ApiOptions, 'method' | 'data'> = {}
+    options: Omit<ApiOptions, 'method' | 'data'> = {},
   ): Promise<T> {
     return this.callApi<T>(endpoint, { ...options, method: 'POST', data });
   }
@@ -398,7 +425,7 @@ class ApiClient {
   public async put<T = unknown>(
     endpoint: string,
     data?: unknown,
-    options: Omit<ApiOptions, 'method' | 'data'> = {}
+    options: Omit<ApiOptions, 'method' | 'data'> = {},
   ): Promise<T> {
     return this.callApi<T>(endpoint, { ...options, method: 'PUT', data });
   }
@@ -406,7 +433,7 @@ class ApiClient {
   // Convenience method: DELETE
   public async delete<T = unknown>(
     endpoint: string,
-    options: Omit<ApiOptions, 'method'> = {}
+    options: Omit<ApiOptions, 'method'> = {},
   ): Promise<T> {
     return this.callApi<T>(endpoint, { ...options, method: 'DELETE' });
   }
@@ -415,7 +442,7 @@ class ApiClient {
   public async patch<T = unknown>(
     endpoint: string,
     data?: unknown,
-    options: Omit<ApiOptions, 'method' | 'data'> = {}
+    options: Omit<ApiOptions, 'method' | 'data'> = {},
   ): Promise<T> {
     return this.callApi<T>(endpoint, { ...options, method: 'PATCH', data });
   }
@@ -432,7 +459,7 @@ class ApiClient {
 
   // Cancel all in-flight requests
   public cancelAllRequests(): void {
-    this.abortControllers.forEach((controller) => controller.abort());
+    this.abortControllers.forEach(controller => controller.abort());
     this.abortControllers.clear();
   }
 

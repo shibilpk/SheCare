@@ -74,7 +74,7 @@ export default function HomeScreen() {
     setShowNotifications(false);
   };
 
-  
+
   const quickStats = [
     { id: 1, label: 'CYCLE DAY', value: '20', bgColor: ['#E9D5FF', '#C084FC'] },
     { id: 2, label: 'Mood', emoji: '😊', bgColor: ['#FED7AA', '#FB923C'] },
@@ -86,7 +86,7 @@ export default function HomeScreen() {
   const healthInsights = [
     {
       id: 1,
-      icon: 'chart-line',
+      icon: 'loop',
       title: 'Cycle Pattern',
       description: 'Your cycle has been regular for the past 3 months',
       color: '#8B5CF6',

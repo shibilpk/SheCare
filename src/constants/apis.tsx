@@ -1,7 +1,7 @@
-const AUTH_URLS = {
-  LOGIN: '/api/v1/customers/auth/login',
-  REFRESH : '/api/v1/customers/auth/refresh',
-  REGISTER: '/api/v1/customers/auth/register',
-  PROFILE: '/api/v1/customers/customer/profile',
+const AUTH_V1_URLS = {
+  LOGIN: '/api/v1/auth/login/',
+  REFRESH: '/api/v1/auth/refresh/',
+  REGISTER: '/api/v1/customer/register/',
+  PROFILE: '/api/v1/customer/profile/',
 };
-export { AUTH_URLS };
+export { AUTH_V1_URLS };

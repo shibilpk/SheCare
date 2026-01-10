@@ -1,5 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, Dimensions, ScrollView, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Dimensions,
+  ScrollView,
+  TouchableOpacity,
+} from 'react-native';
 import { LineChart, BarChart, ProgressChart } from 'react-native-chart-kit';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { THEME_COLORS } from '../../constants/colors';
@@ -11,13 +18,14 @@ const bmiAnalysis = {
   height: 1.65,
   bmi: 24.9,
   category: 'Normal',
-  advice: 'Great job! Your BMI is within the normal range. Maintain your healthy lifestyle with regular exercise and a balanced diet.'
+  advice:
+    'Great job! Your BMI is within the normal range. Maintain your healthy lifestyle with regular exercise and a balanced diet.',
 };
 
 const healthMetrics = {
   hydration: 0.75,
   sleep: 0.65,
-  exercise: 0.80,
+  exercise: 0.8,
 };
 
 const AnalysisScreen = () => {
@@ -39,29 +47,35 @@ const AnalysisScreen = () => {
 
   const cycleTrendData = {
     labels: ['D1', 'D5', 'D10', 'D15', 'D20', 'D25'],
-    datasets: [{
-      data: [2, 4, 3, 5, 4, 6],
-      color: (opacity = 1) => `rgba(134, 65, 244, ${opacity})`,
-      strokeWidth: 3,
-    }],
+    datasets: [
+      {
+        data: [2, 4, 3, 5, 4, 6],
+        color: (opacity = 1) => `rgba(134, 65, 244, ${opacity})`,
+        strokeWidth: 3,
+      },
+    ],
   };
 
   const moodData = {
     labels: ['D1', 'D5', 'D10', 'D15', 'D20', 'D25'],
-    datasets: [{
-      data: [3, 2, 4, 5, 3, 4],
-      color: (opacity = 1) => `rgba(255, 99, 132, ${opacity})`,
-      strokeWidth: 3,
-    }],
+    datasets: [
+      {
+        data: [3, 2, 4, 5, 3, 4],
+        color: (opacity = 1) => `rgba(255, 99, 132, ${opacity})`,
+        strokeWidth: 3,
+      },
+    ],
   };
 
   const symptomData = {
     labels: ['D1', 'D5', 'D10', 'D15', 'D20', 'D25'],
-    datasets: [{
-      data: [1, 3, 2, 4, 3, 2],
-      color: (opacity = 1) => `rgba(65, 184, 131, ${opacity})`,
-      strokeWidth: 3,
-    }],
+    datasets: [
+      {
+        data: [1, 3, 2, 4, 3, 2],
+        color: (opacity = 1) => `rgba(65, 184, 131, ${opacity})`,
+        strokeWidth: 3,
+      },
+    ],
   };
 
   const weeklyActivityData = {
@@ -71,7 +85,11 @@ const AnalysisScreen = () => {
 
   const progressData = {
     labels: ['Hydration', 'Sleep', 'Exercise'],
-    data: [healthMetrics.hydration, healthMetrics.sleep, healthMetrics.exercise],
+    data: [
+      healthMetrics.hydration,
+      healthMetrics.sleep,
+      healthMetrics.exercise,
+    ],
   };
 
   const progressChartConfig = {
@@ -81,6 +99,24 @@ const AnalysisScreen = () => {
     strokeWidth: 2,
     barPercentage: 0.5,
   };
+
+  // Weight progress data
+  const weightProgressData = {
+    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+    datasets: [
+      {
+        data: [70, 68, 67, 66, 65, 64],
+        color: (opacity = 1) => `rgba(134, 65, 244, ${opacity})`,
+        strokeWidth: 3,
+      },
+    ],
+  };
+
+  const currentWeight =
+    weightProgressData.datasets[0].data[
+      weightProgressData.datasets[0].data.length - 1
+    ];
+  const weightChange = currentWeight - weightProgressData.datasets[0].data[0];
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -163,16 +199,28 @@ const AnalysisScreen = () => {
           </View>
           <View style={styles.metricsLegend}>
             <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#8641F4' }]} />
-              <Text style={styles.legendText}>Hydration: {(healthMetrics.hydration * 100).toFixed(0)}%</Text>
+              <View
+                style={[styles.legendDot, { backgroundColor: '#8641F4' }]}
+              />
+              <Text style={styles.legendText}>
+                Hydration: {(healthMetrics.hydration * 100).toFixed(0)}%
+              </Text>
             </View>
             <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#8641F4' }]} />
-              <Text style={styles.legendText}>Sleep: {(healthMetrics.sleep * 100).toFixed(0)}%</Text>
+              <View
+                style={[styles.legendDot, { backgroundColor: '#8641F4' }]}
+              />
+              <Text style={styles.legendText}>
+                Sleep: {(healthMetrics.sleep * 100).toFixed(0)}%
+              </Text>
             </View>
             <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#8641F4' }]} />
-              <Text style={styles.legendText}>Exercise: {(healthMetrics.exercise * 100).toFixed(0)}%</Text>
+              <View
+                style={[styles.legendDot, { backgroundColor: '#8641F4' }]}
+              />
+              <Text style={styles.legendText}>
+                Exercise: {(healthMetrics.exercise * 100).toFixed(0)}%
+              </Text>
             </View>
           </View>
         </View>
@@ -209,6 +257,76 @@ const AnalysisScreen = () => {
               <View style={styles.insightBullet} />
               <Text style={styles.insightText}>
                 Stay hydrated and maintain good sleep
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Weight Progress Chart */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View>
+              <Text style={styles.cardTitle}>⚖️ Weight Progress</Text>
+              <Text style={styles.cardSubtitle}>Last 6 months</Text>
+            </View>
+            <View style={styles.progressBadge}>
+              <Text style={styles.progressBadgeText}>
+                {weightChange > 0 ? '+' : ''}
+                {weightChange.toFixed(1)} kg
+              </Text>
+            </View>
+          </View>
+          <LineChart
+            data={weightProgressData}
+            width={screenWidth - 68}
+            height={220}
+            chartConfig={{
+              ...baseChartConfig,
+              fillShadowGradientOpacity: 0.3,
+              propsForDots: {
+                r: '6',
+                strokeWidth: '2',
+                stroke: '#8641F4',
+                fill: '#ffffff',
+              },
+            }}
+            bezier
+            style={styles.chart}
+          />
+          <Text style={styles.chartDescription}>
+            Track your weight changes over time for better health management.
+          </Text>
+        </View>
+
+        {/* Health Tips Card */}
+        <View style={styles.tipsCard}>
+          <View style={styles.tipsHeader}>
+            <View style={styles.tipsIconBox}>
+              <Text style={styles.tipsEmoji}>💡</Text>
+            </View>
+            <Text style={styles.tipsTitle}>Health Tips</Text>
+          </View>
+          <View style={styles.tipsList}>
+            <View style={styles.tipRow}>
+              <View style={styles.tipBullet} />
+              <Text style={styles.tipText}>
+                Stay hydrated and eat a balanced diet
+              </Text>
+            </View>
+            <View style={styles.tipRow}>
+              <View style={styles.tipBullet} />
+              <Text style={styles.tipText}>Track your progress regularly</Text>
+            </View>
+            <View style={styles.tipRow}>
+              <View style={styles.tipBullet} />
+              <Text style={styles.tipText}>
+                Set realistic and achievable goals
+              </Text>
+            </View>
+            <View style={styles.tipRow}>
+              <View style={styles.tipBullet} />
+              <Text style={styles.tipText}>
+                Consult healthcare professionals for advice
               </Text>
             </View>
           </View>
@@ -325,6 +443,8 @@ const AnalysisScreen = () => {
           </Text>
         </View>
 
+
+
         {/* Action Button */}
         <TouchableOpacity style={styles.actionButton}>
           <Text style={styles.actionButtonText}>Export Health Report</Text>
@@ -424,6 +544,17 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 12,
     fontWeight: '600',
+  },
+  progressBadge: {
+    backgroundColor: '#F0E6FF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  progressBadgeText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: THEME_COLORS.primary,
   },
   bmiMetricsGrid: {
     flexDirection: 'row',
@@ -560,6 +691,57 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: 40,
+  },
+  tipsCard: {
+    marginBottom: 16,
+    backgroundColor: '#FFF9F0',
+    borderRadius: 20,
+    padding: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: '#F59E0B',
+  },
+  tipsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 12,
+  },
+  tipsIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#FEF3C7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tipsEmoji: {
+    fontSize: 24,
+  },
+  tipsTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#333',
+  },
+  tipsList: {
+    gap: 12,
+  },
+  tipRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  tipBullet: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#F59E0B',
+    marginTop: 6,
+  },
+  tipText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
   },
 });
 

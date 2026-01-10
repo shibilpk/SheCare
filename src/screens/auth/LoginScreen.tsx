@@ -18,13 +18,12 @@ import useStore from '../../hooks/useStore';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList, SCREENS } from '../../constants/navigation';
-import { AUTH_URLS } from '../../constants/apis';
+import { AUTH_V1_URLS } from '../../constants/apis';
 
 const LoginScreen: React.FC = () => {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [formData, setFormData] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>(
     {},
@@ -34,23 +33,22 @@ const LoginScreen: React.FC = () => {
   const setToken = useStore(state => state.setToken);
 
   const resetForm = () => {
-    setEmail('');
-    setPassword('');
+    setFormData({ email: '', password: '' });
     setErrors({});
   };
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
 
-    if (!email) {
+    if (!formData.email) {
       newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Email is invalid';
     }
 
-    if (!password) {
+    if (!formData.password) {
       newErrors.password = 'Password is required';
-    } else if (password.length < 6) {
+    } else if (formData.password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters';
     }
 
@@ -62,12 +60,9 @@ const LoginScreen: React.FC = () => {
     if (validateForm()) {
       setLoading(true);
       try {
-        const response = await apiClient.post(
-          AUTH_URLS.LOGIN,
-          {
-            email: email.trim(),
-            password: password,
-          },
+        const response = await apiClient.post<any>(
+          AUTH_V1_URLS.LOGIN,
+          formData,
           { is_auth: false }, // No auth needed for login
         );
 
@@ -84,20 +79,12 @@ const LoginScreen: React.FC = () => {
           Alert.alert('Error', 'Invalid response from server');
         }
       } catch (error) {
-        let errorMessage = 'An error occurred during login';
+        const apiError = error as APIError;
+        let errorMessage = apiError.message;
 
-        if (error instanceof APIError) {
-          if (error.type === 'network') {
-            errorMessage = 'Network error. Please check your connection.';
-          } else if (error.statusCode === 401) {
-            errorMessage = 'Invalid email or password';
-          } else if (error.data?.message) {
-            errorMessage = error.data.message;
-          } else {
-            errorMessage = error.message;
-          }
+        if (apiError.statusCode === 401) {
+          errorMessage = 'Invalid email or password';
         }
-
         Alert.alert('Login Failed', errorMessage);
       } finally {
         setLoading(false);
@@ -132,16 +119,16 @@ const LoginScreen: React.FC = () => {
             <View style={styles.form}>
               <Input
                 label="Email"
-                value={email}
-                onChangeText={setEmail}
+                value={formData.email}
+                onChangeText={text => setFormData({ ...formData, email: text })}
                 placeholder="Enter your email"
                 keyboardType="email-address"
                 error={errors.email}
               />
               <Input
                 label="Password"
-                value={password}
-                onChangeText={setPassword}
+                value={formData.password}
+                onChangeText={text => setFormData({ ...formData, password: text })}
                 placeholder="Enter your password"
                 secureTextEntry
                 error={errors.password}
@@ -232,11 +219,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 10,
     textAlign: 'center',
-    color: THEME_COLORS.dark,
   },
   subtitle: {
     fontSize: 16,
-    color: THEME_COLORS.gray,
     marginBottom: 30,
     textAlign: 'center',
   },
@@ -249,7 +234,6 @@ const styles = StyleSheet.create({
   },
   socialLoginText: {
     fontSize: 14,
-    color: THEME_COLORS.gray,
     marginBottom: 12,
   },
   socialIconsRow: {

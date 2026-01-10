@@ -175,39 +175,7 @@ const LifestyleDetailsScreen = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Health Tips Card */}
-        <View style={styles.tipsCard}>
-          <View style={styles.tipsHeader}>
-            <View style={styles.tipsIconBox}>
-              <Text style={styles.tipsEmoji}>💡</Text>
-            </View>
-            <Text style={styles.tipsTitle}>Health Tips</Text>
-          </View>
-          <View style={styles.tipsList}>
-            <View style={styles.tipRow}>
-              <View style={styles.tipBullet} />
-              <Text style={styles.tipText}>
-                Stay hydrated and eat a balanced diet
-              </Text>
-            </View>
-            <View style={styles.tipRow}>
-              <View style={styles.tipBullet} />
-              <Text style={styles.tipText}>Track your progress regularly</Text>
-            </View>
-            <View style={styles.tipRow}>
-              <View style={styles.tipBullet} />
-              <Text style={styles.tipText}>
-                Set realistic and achievable goals
-              </Text>
-            </View>
-            <View style={styles.tipRow}>
-              <View style={styles.tipBullet} />
-              <Text style={styles.tipText}>
-                Consult healthcare professionals for advice
-              </Text>
-            </View>
-          </View>
-        </View>
+
       </ScrollView>
 
       {/* Edit Modal */}
@@ -473,56 +441,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tipsCard: {
-    backgroundColor: '#FFF9F0',
-    borderRadius: 20,
-    padding: 20,
-    borderLeftWidth: 4,
-    borderLeftColor: '#F59E0B',
-  },
-  tipsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-    gap: 12,
-  },
-  tipsIconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: '#FEF3C7',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tipsEmoji: {
-    fontSize: 24,
-  },
-  tipsTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#333',
-  },
-  tipsList: {
-    gap: 12,
-  },
-  tipRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-  },
-  tipBullet: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#F59E0B',
-    marginTop: 6,
-  },
-  tipText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
-  },
+
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.4)',

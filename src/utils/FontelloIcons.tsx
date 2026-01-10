@@ -21,9 +21,9 @@ const glyphMap = {
   'location': 0xe812,
   'glass': 0xe813,
   'pencil': 0xe814,
-  'trash-empty': 0xe815,
+  'trash-empty': 0xe82f,
   'cog-b': 0xe816,
-  'plus': 0xe817,
+  'plus': 0xe82c,
   'logout': 0xe818,
   'login': 0xe819,
   'resize-full': 0xe81a,
@@ -50,6 +50,12 @@ const glyphMap = {
   'user-o': 0xf2c0,
   'snowflake-o': 0xf2dc,
   'lock': 0xf512,
+  'minus': 0xe82b,
+  'camera-outline': 0xe828,
+  'block': 0xe817,
+  'bag': 0xe82e,
+  'adjust': 0xe82d,
+  'loop': 0xe815
 };
 
 const FontelloIcon = createIconSet(glyphMap, 'fontello', 'fontello.ttf');
