@@ -14,10 +14,10 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
-import { THEME_COLORS } from '../../constants/colors';
-import FontelloIcon from '../../utils/FontelloIcons';
-import ModalTopIcon from '../../components/common/ModalTopIcon';
-import BackButton from '../../components/common/BackButton';
+import { THEME_COLORS } from '../../../constants/colors';
+import FontelloIcon from '../../../utils/FontelloIcons';
+import ModalTopIcon from '../../../components/common/ModalTopIcon';
+import BackButton from '../../../components/widgets/BackButton';
 
 type ReminderFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
 type ReminderType = 'repeat' | 'one-time' | 'repeat_from' | 'specific';

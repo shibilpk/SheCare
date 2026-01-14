@@ -12,6 +12,10 @@ import DaysScroller from '../../components/widgets/DaysScroller';
 import ModalTopIcon from '../../components/common/ModalTopIcon';
 import FontelloIcon from '../../utils/FontelloIcons';
 import { THEME_COLORS } from '../../constants/colors';
+import { useNavigation } from '@react-navigation/native';
+import { RootStackParamList } from '../../constants/navigation';
+import { StackNavigationProp } from '@react-navigation/stack';
+import DiaryModal from '../common/dairy/DiaryModal';
 
 const moods = [
   { name: 'Happy', emoji: '😊', color: '#FFE0B2' },
@@ -73,14 +77,12 @@ export default function AboutHomeModal() {
     });
   };
 
-
-
   const today = new Date();
   const daysScrollerRef = useRef<{ goToToday: () => void } | null>(null);
   const modal = useContext(GlobalModalContext);
   const insets = useSafeAreaInsets();
 
-  const [monthYear, setMonthYear] = useState<{month: number; year: number}>({
+  const [monthYear, setMonthYear] = useState<{ month: number; year: number }>({
     month: today.getMonth(),
     year: today.getFullYear(),
   });
@@ -88,8 +90,11 @@ export default function AboutHomeModal() {
   const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
   const [selectedFlow, setSelectedFlow] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'tracking' | 'ratings'>('tracking');
-
+  const [activeTab, setActiveTab] = useState<'tracking' | 'ratings'>(
+    'tracking',
+  );
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+  const [showDiaryModal, setShowDiaryModal] = useState(false);
 
   const toggleMood = (mood: string) => {
     setSelectedMoods(prev =>
@@ -104,8 +109,6 @@ export default function AboutHomeModal() {
         : [...prev, symptom],
     );
   };
-
-
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -364,12 +367,26 @@ export default function AboutHomeModal() {
                 />
                 <Text style={styles.sectionTitle}>Notes</Text>
               </View>
-              <TouchableOpacity style={styles.notesCard}>
+              <TouchableOpacity
+                style={styles.notesCard}
+                onPress={() => {
+                  setShowDiaryModal(true);
+                }}
+              >
                 <FontelloIcon name="plus-circled" size={24} color="#999" />
                 <Text style={styles.notesPlaceholder}>
                   Add notes about your day...
                 </Text>
               </TouchableOpacity>
+              <DiaryModal
+                visible={showDiaryModal}
+                onClose={() => setShowDiaryModal(false)}
+                initialDate={new Date()}
+                onSave={(date, text) => {
+                  // Handle save logic here
+                  console.log('Diary saved:', { date, text });
+                }}
+              />
             </View>
           </>
         ) : (
@@ -408,19 +425,30 @@ export default function AboutHomeModal() {
                   {section.heading}
                 </Text>
                 <View style={styles.ratingItems}>
-                  {section.items.map((item) => (
+                  {section.items.map(item => (
                     <View key={item.id} style={styles.ratingItemContainer}>
                       <View style={styles.ratingItem}>
                         <Text style={styles.ratingItemEmoji}>{item.emoji}</Text>
                         <Text style={styles.ratingItemTitle}>{item.title}</Text>
                       </View>
                       <View style={styles.ratingStars}>
-                        {[1,2,3,4,5].map(star => (
-                          <TouchableOpacity key={star} onPress={() => setItemRating(item.id, star)}>
+                        {[1, 2, 3, 4, 5].map(star => (
+                          <TouchableOpacity
+                            key={star}
+                            onPress={() => setItemRating(item.id, star)}
+                          >
                             <FontelloIcon
-                              name={star <= (itemRatings[item.id] || 0) ? 'star' : 'star-empty'}
+                              name={
+                                star <= (itemRatings[item.id] || 0)
+                                  ? 'star'
+                                  : 'star-empty'
+                              }
                               size={24}
-                              color={star <= (itemRatings[item.id] || 0) ? '#FFD700' : '#d7d5cc'}
+                              color={
+                                star <= (itemRatings[item.id] || 0)
+                                  ? '#FFD700'
+                                  : '#d7d5cc'
+                              }
                             />
                           </TouchableOpacity>
                         ))}
@@ -799,5 +827,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
-  }
+  },
 });

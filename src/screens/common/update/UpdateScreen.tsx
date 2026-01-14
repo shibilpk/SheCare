@@ -9,8 +9,8 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import FontelloIcon from '../../utils/FontelloIcons';
-import { THEME_COLORS } from '../../constants/colors';
+import FontelloIcon from '../../../utils/FontelloIcons';
+import { THEME_COLORS } from '../../../constants/colors';
 import LinearGradient from 'react-native-linear-gradient';
 
 interface UpdateScreenProps {

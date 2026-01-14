@@ -7,13 +7,13 @@ import {
   useColorScheme,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import FontelloIcon from '../../utils/FontelloIcons';
+import FontelloIcon from '../../../utils/FontelloIcons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../constants/navigation';
-import { THEME_COLORS } from '../../constants/colors';
-import useStore from '../../hooks/useStore';
-import { useIsDarkMode, isUserSetTheme } from '../../utils/theme';
+import { RootStackParamList } from '../../../constants/navigation';
+import { THEME_COLORS } from '../../../constants/colors';
+import useStore from '../../../hooks/useStore';
+import { useIsDarkMode, isUserSetTheme } from '../../../utils/theme';
 
 type ThemeMode = 'light' | 'dark' | 'system';
 

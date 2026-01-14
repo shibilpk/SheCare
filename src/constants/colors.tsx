@@ -14,6 +14,7 @@ export const THEME_COLORS = {
   text: '#333333',
   textLight: '#ffffff',
   textMint: '#b7e4c7',
+  textGray: '#666',
 
   LightBg: '#fec2ce',
   MelonBg: '#fcbcb9',

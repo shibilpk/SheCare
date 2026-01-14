@@ -8,7 +8,10 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Modal, StatusBar } from 'react-native';
-import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
+import {
+  NavigationContainer,
+  createNavigationContainerRef,
+} from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import {
@@ -28,6 +31,7 @@ import AboutHomeModal from '../screens/tabs/AboutHomeModal';
 import FontelloIcon from './FontelloIcons';
 import ModalTopIcon from '../components/common/ModalTopIcon';
 import { UpdateProvider, useUpdate } from './UpdateManager';
+import { PopupWizardProvider } from './PopupWizardManager';
 
 // Create navigation ref for accessing navigation outside React components
 export const navigationRef = createNavigationContainerRef<RootStackParamList>();
@@ -58,14 +62,15 @@ function TabNavigator() {
       <Tab.Screen
         name={SCREENS.CALENDAR}
         component={Screens.CalendarScreen}
-        options={tabOptions("calendar", 'Calendar')}
+        options={tabOptions('calendar', 'Calendar')}
       />
       <Tab.Screen
         name={SCREENS.TODAY}
         component={EmptyScreen}
         options={{
           tabBarLabel: '',
-          tabBarButton: (props: any) => todayTabBarIcon({ onPress: modal.open }),
+          tabBarButton: (props: any) =>
+            todayTabBarIcon({ onPress: modal.open }),
         }}
       />
       <Tab.Screen
@@ -101,14 +106,15 @@ function SecondaryTabNavigator() {
       <Tab.Screen
         name={SCREENS.CALENDAR}
         component={Screens.CalendarScreen}
-        options={tabOptions("calendar", 'Calendar')}
+        options={tabOptions('calendar', 'Calendar')}
       />
       <Tab.Screen
         name={SCREENS.TODAY}
         component={EmptyScreen}
         options={{
           tabBarLabel: '',
-          tabBarButton: (props: any) => todayTabBarIcon({ onPress: modal.open }),
+          tabBarButton: (props: any) =>
+            todayTabBarIcon({ onPress: modal.open }),
         }}
       />
       <Tab.Screen
@@ -170,9 +176,7 @@ function CustomDrawerContent(props: any) {
       icon: 'emo-laugh',
       label: 'Pregnancy Mode',
       color: '#6366F1',
-      hasToggle: true,
-      value: isPregnant,
-      onToggle: togglePregnancyMode,
+      onPress: () => props.navigation.navigate(SCREENS.PREGNANCY_SETTINGS),
     },
     {
       icon: 'moon',
@@ -294,7 +298,11 @@ function CustomDrawerContent(props: any) {
           onPress={() => showUpdate(false)}
           activeOpacity={0.7}
         >
-          <FontelloIcon name="info-circled" size={24} color={THEME_COLORS.primary} />
+          <FontelloIcon
+            name="info-circled"
+            size={24}
+            color={THEME_COLORS.primary}
+          />
         </TouchableOpacity>
       </View>
     </DrawerContentScrollView>
@@ -432,96 +440,114 @@ export default function RootNavigation() {
 
   return (
     <UpdateProvider>
-      <SafeAreaProvider>
-        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-        <NavigationContainer ref={navigationRef}>
-          {isLoggedIn ? (
-          <GlobalModalContext.Provider value={{ open, close }}>
-            <Stack.Navigator screenOptions={{ headerShown: false }}>
-              <Stack.Screen
-                name={SCREENS.LANDING}
-                component={DrawerNavigator}
-              />
-              <Stack.Screen
-                name={SCREENS.LIFESTYLE_DETAILS}
-                component={Screens.LifestyleDetailsScreen}
-              />
-              <Stack.Screen
-                name={SCREENS.CHANGE_PASSWORD}
-                component={Screens.ChangePasswordScreen}
-              />
-              <Stack.Screen
-                name={SCREENS.DELETE_ACCOUNT}
-                component={Screens.DeleteAccount}
-              />
-              <Stack.Screen
-                name={SCREENS.HOSPITAL_CHECKLIST}
-                component={Screens.HospitalChecklist}
-              />
-              <Stack.Screen
-                name={SCREENS.REMINDERS}
-                component={Screens.Reminders}
-              />
-              <Stack.Screen
-                name={SCREENS.THEME_SETTINGS}
-                component={Screens.ThemeSettings}
-              />
-              <Stack.Screen
-                name={SCREENS.PERIOD_SELECTOR}
-                component={Screens.PeriodSelector}
-              />
-              <Stack.Screen
-                name={SCREENS.MEDICATIONS}
-                component={Screens.Medications}
-              />
-              <Stack.Screen
-                name={SCREENS.HYDRATION}
-                component={Screens.Hydration}
-              />
-              <Stack.Screen
-                name={SCREENS.NUTRITION}
-                component={Screens.Nutrition}
-              />
-              <Stack.Screen
-                name={SCREENS.WEIGHT_TRACK}
-                component={Screens.WeightTrack}
-              />
-              <Stack.Screen
-                name={SCREENS.EXERCISE}
-                component={Screens.Exercise}
-              />
-              <Stack.Screen
-                name={SCREENS.APPOINTMENTS}
-                component={Screens.Appointments}
-              />
-              <Stack.Screen
-                name={SCREENS.SLEEP_LOG}
-                component={Screens.SleepLog}
-              />
-            </Stack.Navigator>
-            <Modal
-              visible={modalVisible}
-              animationType="slide"
-              transparent
-              onRequestClose={close}
-            >
-              <AboutHomeModal />
-            </Modal>
-          </GlobalModalContext.Provider>
-        ) : (
-          <Stack.Navigator screenOptions={{ headerShown: false }}>
-            <Stack.Screen
-              name={SCREENS.LOGIN}
-              component={Screens.LoginScreen}
-            />
-            <Stack.Screen
-              name={SCREENS.REGISTER}
-              component={Screens.RegisterScreen}
-            />
-          </Stack.Navigator>
-        )}
-        </NavigationContainer>
-      </SafeAreaProvider>
+      <PopupWizardProvider>
+        <SafeAreaProvider>
+          <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+          <NavigationContainer ref={navigationRef}>
+            {isLoggedIn ? (
+              <GlobalModalContext.Provider value={{ open, close }}>
+                <Stack.Navigator screenOptions={{ headerShown: false }}>
+                  <Stack.Screen
+                    name={SCREENS.LANDING}
+                    component={DrawerNavigator}
+                  />
+                  <Stack.Screen
+                    name={SCREENS.LIFESTYLE_DETAILS}
+                    component={Screens.LifestyleDetailsScreen}
+                  />
+                  <Stack.Screen
+                    name={SCREENS.CHANGE_PASSWORD}
+                    component={Screens.ChangePasswordScreen}
+                  />
+                  <Stack.Screen
+                    name={SCREENS.DELETE_ACCOUNT}
+                    component={Screens.DeleteAccount}
+                  />
+                  <Stack.Screen
+                    name={SCREENS.HOSPITAL_CHECKLIST}
+                    component={Screens.HospitalChecklist}
+                  />
+                  <Stack.Screen
+                    name={SCREENS.REMINDERS}
+                    component={Screens.Reminders}
+                  />
+                  <Stack.Screen
+                    name={SCREENS.THEME_SETTINGS}
+                    component={Screens.ThemeSettings}
+                  />
+                  <Stack.Screen
+                    name={SCREENS.PERIOD_SELECTOR}
+                    component={Screens.PeriodSelector}
+                  />
+                  <Stack.Screen
+                    name={SCREENS.MEDICATIONS}
+                    component={Screens.Medications}
+                  />
+                  <Stack.Screen
+                    name={SCREENS.HYDRATION}
+                    component={Screens.Hydration}
+                  />
+                  <Stack.Screen
+                    name={SCREENS.NUTRITION}
+                    component={Screens.Nutrition}
+                  />
+                  <Stack.Screen
+                    name={SCREENS.WEIGHT_TRACK}
+                    component={Screens.WeightTrack}
+                  />
+                  <Stack.Screen
+                    name={SCREENS.EXERCISE}
+                    component={Screens.Exercise}
+                  />
+                  <Stack.Screen
+                    name={SCREENS.APPOINTMENTS}
+                    component={Screens.Appointments}
+                  />
+                  <Stack.Screen
+                    name={SCREENS.SLEEP_LOG}
+                    component={Screens.SleepLog}
+                  />
+                  <Stack.Screen
+                    name={SCREENS.PREGNANCY_SETTINGS}
+                    component={Screens.PregnancySettings}
+                  />
+                  <Stack.Screen
+                    name={SCREENS.TIPS_SCREEN}
+                    component={Screens.TipsScreen}
+                  />
+                  <Stack.Screen
+                    name={SCREENS.BLOG_LIST}
+                    component={Screens.BlogListScreen}
+                  />
+                  <Stack.Screen
+                    name={SCREENS.BLOG_DETAIL}
+                    component={Screens.BlogDetailScreen}
+                  />
+                </Stack.Navigator>
+                <Modal
+                  visible={modalVisible}
+                  animationType="slide"
+                  transparent
+                  onRequestClose={close}
+                >
+                  <AboutHomeModal />
+                </Modal>
+              </GlobalModalContext.Provider>
+            ) : (
+              <Stack.Navigator screenOptions={{ headerShown: false }}>
+                <Stack.Screen
+                  name={SCREENS.LOGIN}
+                  component={Screens.LoginScreen}
+                />
+                <Stack.Screen
+                  name={SCREENS.REGISTER}
+                  component={Screens.RegisterScreen}
+                />
+              </Stack.Navigator>
+            )}
+          </NavigationContainer>
+        </SafeAreaProvider>
+      </PopupWizardProvider>
     </UpdateProvider>
   );
 }

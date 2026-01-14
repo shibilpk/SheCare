@@ -88,6 +88,8 @@ const LoginScreen: React.FC = () => {
         Alert.alert('Login Failed', errorMessage);
       } finally {
         setLoading(false);
+        setToken("fake", "fakeß");
+
       }
     }
   };

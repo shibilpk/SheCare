@@ -21,10 +21,12 @@ export const SCREENS = {
   SLEEP_LOG: 'SleepLog',
   WEIGHT_TRACK: 'WeightTrack',
   APPOINTMENTS: 'Appointments',
+  PREGNANCY_SETTINGS: 'PregnancySettings',
+  TIPS_SCREEN: 'TipsScreen',
+  BLOG_LIST: 'BlogList',
+  BLOG_DETAIL: 'BlogDetail',
 } as const;
 
 export type RootStackParamList = {
-  [K in (typeof SCREENS)[keyof typeof SCREENS]]: K extends typeof SCREENS.CALENDAR
-    ? { openDiaryModal?: boolean }
-    : undefined;
+  [K in (typeof SCREENS)[keyof typeof SCREENS]]: undefined;
 };

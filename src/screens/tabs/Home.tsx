@@ -7,9 +7,7 @@ import {
   ScrollView,
   Image,
 } from 'react-native';
-import {
-  SafeAreaView,
-} from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import FontelloIcon from '../../utils/FontelloIcons';
 import NotificationsModal from '../../components/common/NotificationsModal';
 import { THEME_COLORS, HOME_CARD_PASTEL } from '../../constants/colors';
@@ -19,10 +17,14 @@ import { DrawerNavigationProp } from '@react-navigation/drawer';
 import { RootStackParamList, SCREENS } from '../../constants/navigation';
 import { monthNamesShort } from '../../constants/common';
 import QuickActions from '../../components/common/QuickActions';
+import DiaryModal from '../common/dairy/DiaryModal';
+import { blogPosts } from '../blog/BlogListScreen';
 
 export default function HomeScreen() {
   const navigation = useNavigation<DrawerNavigationProp<RootStackParamList>>();
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showDiaryModal, setShowDiaryModal] = useState(false);
+
   const dummyNotifications = [
     {
       id: 1,
@@ -37,7 +39,7 @@ export default function HomeScreen() {
       title: 'Cycle Reminder',
       message: 'Your next period is in 12 days.',
       time: '5 min ago',
-      icon: "calendar",
+      icon: 'calendar',
       color: '#8B5CF6',
     },
     {
@@ -66,6 +68,76 @@ export default function HomeScreen() {
     },
   ];
 
+  const quickStats = [
+    {
+      id: 1,
+      label: 'Cycle Day',
+      value: '20',
+      icon: 'calendar',
+      iconColor: '#9333EA',
+      bgColor: ['#E9D5FF', '#C084FC'],
+      contentType: 'value',
+    },
+    {
+      id: 2,
+      label: 'Pregnancy',
+      value: 'Low',
+      icon: 'heart',
+      iconColor: '#DC2626',
+      levelIcon: 'down-open',
+      levelColor: '#DC2626',
+      bgColor: ['#FECACA', '#F87171'],
+      contentType: 'value',
+    },
+    {
+      id: 3,
+      label: 'Ovulation',
+      emoji: '🎯',
+      icon: 'target',
+      iconColor: '#0284C7',
+      bgColor: ['#BAE6FD', '#38BDF8'],
+      contentType: 'emoji',
+    },
+    {
+      id: 4,
+      label: 'Mood',
+      emoji: '😊',
+      icon: 'heart',
+      iconColor: '#EA580C',
+      bgColor: ['#FED7AA', '#FB923C'],
+      contentType: 'emoji',
+    },
+    {
+      id: 5,
+      label: 'Energy',
+      value: '85%',
+      icon: 'flash',
+      iconColor: '#0284C7',
+      levelIcon: 'up-open',
+      levelColor: '#10B981',
+      bgColor: ['#DBEAFE', '#60A5FA'],
+      contentType: 'value',
+    },
+    {
+      id: 6,
+      label: 'Symptoms',
+      value: '2',
+      icon: 'attention',
+      iconColor: '#CA8A04',
+      bgColor: ['#FDE68A', '#FBBF24'],
+      contentType: 'value',
+    },
+    {
+      id: 7,
+      label: 'Sleep',
+      emoji: '😴',
+      icon: 'moon',
+      iconColor: '#7C3AED',
+      bgColor: ['#DDD6FE', '#A78BFA'],
+      contentType: 'emoji',
+    },
+  ];
+
   const openModal = () => {
     setShowNotifications(true);
   };
@@ -74,14 +146,7 @@ export default function HomeScreen() {
     setShowNotifications(false);
   };
 
-
-  const quickStats = [
-    { id: 1, label: 'CYCLE DAY', value: '20', bgColor: ['#E9D5FF', '#C084FC'] },
-    { id: 2, label: 'Mood', emoji: '😊', bgColor: ['#FED7AA', '#FB923C'] },
-    { id: 3, label: 'Energy', emoji: '⚡', bgColor: ['#BAE6FD', '#38BDF8'] },
-    { id: 4, label: 'Symptoms', emoji: '🤒', bgColor: ['#FECACA', '#F87171'] },
-    { id: 5, label: 'Sleep', emoji: '😴', bgColor: ['#DDD6FE', '#A78BFA'] },
-  ];
+  const latestBlogs = blogPosts.slice(0, 5);
 
   const healthInsights = [
     {
@@ -128,9 +193,9 @@ export default function HomeScreen() {
 
       {/* Notifications Modal */}
       <NotificationsModal
-      visible={showNotifications}
-      items={dummyNotifications}
-      onClose={closeModal}
+        visible={showNotifications}
+        items={dummyNotifications}
+        onClose={closeModal}
       />
 
       <ScrollView
@@ -152,10 +217,15 @@ export default function HomeScreen() {
             <Text style={styles.mainCardLabel}>Next Period</Text>
             <Text style={styles.mainCardValue}>12 Days Left</Text>
             <Text style={styles.mainCardSubtitle}>
-              Next ovulation: 29 days left
+              Expected date: Jan 26, 2026
             </Text>
 
-            <TouchableOpacity style={styles.periodBtn} onPress={() => {navigation.navigate(SCREENS.PERIOD_SELECTOR)}}>
+            <TouchableOpacity
+              style={styles.periodBtn}
+              onPress={() => {
+                navigation.navigate(SCREENS.PERIOD_SELECTOR);
+              }}
+            >
               <Text style={styles.periodBtnText}>Period Starts</Text>
             </TouchableOpacity>
 
@@ -166,50 +236,55 @@ export default function HomeScreen() {
             />
           </View>
         </LinearGradient>
-        {/* Fertility Status Banner */}
-        <LinearGradient
-          colors={[THEME_COLORS.secondary, '#FECACA']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.fertilityBanner}
-        >
-          <View style={styles.fertilityBannerContent}>
-            <View style={styles.fertilityIconBox}>
-              <FontelloIcon
-                name="heart"
-                size={28}
-                color={THEME_COLORS.textLight}
-              />
-            </View>
-            <Text style={styles.fertilityText}>
-              Medium chance of getting pregnant
-            </Text>
-          </View>
-        </LinearGradient>
 
-        {/* Quick Stats */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.statsScroll}
         >
           {quickStats.map(stat => (
-            <LinearGradient
-              key={stat.id}
-              colors={stat.bgColor}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.statContainer}
-            >
-              <View style={styles.statContainerInner}>
-                <Text style={styles.statTitle}>{stat.label}</Text>
-                {stat.value ? (
-                  <Text style={styles.statValue}>{stat.value}</Text>
-                ) : (
-                  <Text style={styles.statEmoji}>{stat.emoji}</Text>
-                )}
-              </View>
-            </LinearGradient>
+            <TouchableOpacity key={stat.id} activeOpacity={0.7}>
+              <LinearGradient
+                colors={stat.bgColor}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.statCard}
+              >
+                <View style={styles.statCardContent}>
+                  {/* Icon at top */}
+                  {stat.icon && (
+                    <View style={styles.statIconContainer}>
+                      <FontelloIcon
+                        name={stat.icon}
+                        size={18}
+                        color={stat.iconColor}
+                      />
+                    </View>
+                  )}
+
+                  {/* Label */}
+                  <Text style={styles.statLabel}>{stat.label}</Text>
+
+                  {/* Content - Value or Emoji */}
+                  {stat.contentType === 'value' && (
+                    <View style={styles.statValueContainer}>
+                      <Text style={styles.statValue}>{stat.value}</Text>
+                      {stat.levelIcon && (
+                        <FontelloIcon
+                          name={stat.levelIcon}
+                          size={12}
+                          color={stat.levelColor}
+                          style={styles.levelIndicator}
+                        />
+                      )}
+                    </View>
+                  )}
+                  {stat.contentType === 'emoji' && (
+                    <Text style={styles.statEmoji}>{stat.emoji}</Text>
+                  )}
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
           ))}
         </ScrollView>
 
@@ -221,9 +296,7 @@ export default function HomeScreen() {
           </View>
           <TouchableOpacity
             style={styles.checkInBtn}
-            onPress={() =>
-              navigation.navigate(SCREENS.CALENDAR, { openDiaryModal: true })
-            }
+            onPress={() => setShowDiaryModal(true)}
           >
             <FontelloIcon
               name="plus"
@@ -273,7 +346,10 @@ export default function HomeScreen() {
             Stay hydrated and get 7-8 hours of sleep for optimal health. Regular
             exercise can help regulate your cycle and improve mood.
           </Text>
-          <TouchableOpacity style={styles.tipsBtn}>
+          <TouchableOpacity
+            style={styles.tipsBtn}
+            onPress={() => navigation.navigate(SCREENS.TIPS_SCREEN)}
+          >
             <Text style={styles.tipsBtnText}>Learn More</Text>
             <FontelloIcon
               name="right-open-mini"
@@ -327,7 +403,55 @@ export default function HomeScreen() {
             },
           ]}
         />
+
+        {/* Latest Blogs */}
+        <View style={styles.blogsHeader}>
+          <Text style={styles.blogsTitle}>Latest Articles</Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate(SCREENS.BLOG_LIST)}
+          >
+            <Text style={styles.seeAllText}>See All</Text>
+          </TouchableOpacity>
+        </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.blogsScroll}
+        >
+          {latestBlogs.map(blog => (
+            <TouchableOpacity
+              key={blog.id}
+              style={styles.blogCard}
+              onPress={() =>
+                navigation.navigate(SCREENS.BLOG_DETAIL, { blog } as any)
+              }
+              activeOpacity={0.8}
+            >
+              <Image source={blog.image} style={styles.blogCardImage} />
+              <View style={styles.blogCardContent}>
+                <View style={styles.blogCardBadge}>
+                  <Text style={styles.blogCardBadgeText}>{blog.category}</Text>
+                </View>
+                <Text style={styles.blogCardTitle} numberOfLines={2}>
+                  {blog.title}
+                </Text>
+                <View style={styles.blogCardFooter}>
+                  <Text style={styles.blogCardReadTime}>{blog.readTime}</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </ScrollView>
+      <DiaryModal
+        visible={showDiaryModal}
+        onClose={() => setShowDiaryModal(false)}
+        initialDate={new Date()}
+        onSave={(date, text) => {
+          // Handle save logic here
+          console.log('Diary saved:', { date, text });
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -387,47 +511,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 40,
   },
-  fertilityBannerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-  },
-  fertilityBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 18,
-    marginHorizontal: 20,
-    marginTop: 16,
-    marginBottom: 8,
-    shadowColor: THEME_COLORS.secondary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 6,
-    gap: 14,
-  },
-  fertilityIconBox: {
-    width: 35,
-    height: 35,
-    borderRadius: 20,
-    backgroundColor: THEME_COLORS.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-    shadowColor: THEME_COLORS.secondary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  fertilityText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: THEME_COLORS.textLight,
-    textShadowColor: 'rgba(0,0,0,0.08)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
   mainCard: {
     marginHorizontal: 20,
     marginTop: 20,
@@ -485,18 +568,70 @@ const styles = StyleSheet.create({
     height: 90,
     opacity: 0.7,
   },
-  statsScroll: {
+  blogsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 20,
-    gap: 12,
+    marginTop: 8,
+    marginBottom: 12,
   },
-  statValue: {
-    fontSize: 36,
-    fontWeight: '800',
+  blogsTitle: {
+    fontSize: 20,
+    fontWeight: '700',
     color: THEME_COLORS.text,
   },
-  statEmoji: {
-    fontSize: 40,
+  blogsScroll: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    gap: 12,
+  },
+  blogCard: {
+    width: 280,
+    backgroundColor: THEME_COLORS.textLight,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  blogCardImage: {
+    width: '100%',
+    height: 140,
+    backgroundColor: '#E5E7EB',
+  },
+  blogCardContent: {
+    padding: 12,
+  },
+  blogCardBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: THEME_COLORS.primary + '20',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  blogCardBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: THEME_COLORS.primary,
+  },
+  blogCardTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: THEME_COLORS.text,
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  blogCardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  blogCardReadTime: {
+    fontSize: 12,
+    color: '#999',
   },
   checkInCard: {
     flexDirection: 'row',
@@ -634,77 +769,61 @@ const styles = StyleSheet.create({
     color: THEME_COLORS.primary,
     marginRight: 4,
   },
-  modalContent: {
-    backgroundColor: THEME_COLORS.textLight,
+  statsScroll: {
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 40,
-    maxHeight: '100%',
-    height: '100%',
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
-    borderRadius: 0,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: THEME_COLORS.text,
-  },
-  notificationCard: {
-    flexDirection: 'row',
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    gap: 10,
   },
-  notificationIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+  statCard: {
+    width: 100,
+    // height: 115,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  statCardContent: {
+    padding: 14,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  statIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.75)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginBottom: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  notificationContent: {
-    flex: 1,
+  statLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: THEME_COLORS.text,
+    opacity: 0.85,
+    textAlign: 'center',
   },
-  notificationTop: {
+  statValueContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    gap: 4,
   },
-  notificationTitle: {
-    fontSize: 15,
-    fontWeight: '600',
+  statValue: {
+    fontSize: 25,
+    fontWeight: '800',
     color: THEME_COLORS.text,
   },
-  notificationTime: {
-    fontSize: 12,
-    color: '#999',
+  levelIndicator: {
+    marginTop: 2,
   },
-  notificationMessage: {
-    fontSize: 14,
-    color: '#666',
+  statEmoji: {
+    fontSize: 25,
   },
-  statContainer: {
-    borderRadius: 16,
-    marginRight: 15,
-    alignItems: 'center',
-    minWidth: 110,
-    overflow: 'hidden',
-  },
-  statContainerInner: {
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    overflow: 'hidden',
-  },
-
-  statTitle: { color: THEME_COLORS.text, fontSize: 14, textAlign: 'center' },
 });

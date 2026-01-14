@@ -12,9 +12,9 @@ import { THEME_COLORS } from '../../constants/colors';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../constants/navigation';
-import Input from '../../components/common/Input';
+import Input from '../../components/widgets/Input';
 import FontelloIcon from '../../utils/FontelloIcons';
-import BackButton from '../../components/common/BackButton';
+import BackButton from '../../components/widgets/BackButton';
 
 export default function ChangePasswordScreen() {
   const navigation =

@@ -1,0 +1,14 @@
+ const calendarRoute = useRoute<RouteProp<RootStackParamList, 'Calendar'>>();
+
+  useEffect(() => {
+    if (calendarRoute.params?.openDiaryModal) {
+      setShowDiaryModal(true);
+    }
+  }, [calendarRoute.params]);
+
+
+export type RootStackParamList = {
+  [K in (typeof SCREENS)[keyof typeof SCREENS]]: K extends typeof SCREENS.CALENDAR
+    ? { openDiaryModal?: boolean }
+    : undefined;
+};

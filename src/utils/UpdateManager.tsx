@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import UpdateScreen from '../screens/screens/UpdateScreen';
+import UpdateScreen from '../screens/common/update/UpdateScreen';
 
 interface UpdateContextType {
   showUpdate: (isRequired?: boolean) => void;

@@ -1,29 +1,23 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
+import React, { useCallback, useState } from 'react';
 import {
   FlatList,
   Modal,
-  TextInput,
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
-import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import { THEME_COLORS } from '../../constants/colors';
 import FontelloIcon from '../../utils/FontelloIcons';
-import { RouteProp, useRoute } from '@react-navigation/native';
 import { CalendarWidget, DateRange } from '../../components/widgets/Calender';
 import ModalTopIcon from '../../components/common/ModalTopIcon';
-import { RootStackParamList } from '../../constants/navigation';
 import { ScrollView } from 'react-native-gesture-handler';
 import { monthNames } from '../../constants/common';
+import DiaryModal from '../common/dairy/DiaryModal';
 
 // Memoized MonthCard component for better performance in year view
 const MonthCard = React.memo<{
@@ -49,16 +43,13 @@ const MonthCard = React.memo<{
 });
 
 const CalendarScreen: React.FC = () => {
-  const today = new Date();
   const [view, setView] = useState<'month' | 'year'>('month');
+  const today = new Date();
   const [currentDate, setCurrentDate] = useState(today);
   const [selectedYear, setSelectedYear] = useState(today.getFullYear());
   const [showDiaryModal, setShowDiaryModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   // Removed full screen activity animation logic
-  const [diaryText, setDiaryText] = useState('');
-  const [diaryDate, setDiaryDate] = useState(today);
-  const [showDiaryDatePicker, setShowDiaryDatePicker] = useState(false);
   const insets = useSafeAreaInsets();
 
   // Calendar marking toggles
@@ -106,24 +97,6 @@ const CalendarScreen: React.FC = () => {
         return null;
     }
   }, []);
-
-  useFocusEffect(
-    React.useCallback(() => {
-      setShowDiaryModal(false);
-    }, []),
-  );
-
-  const calendarRoute = useRoute<RouteProp<RootStackParamList, 'Calendar'>>();
-
-  useEffect(() => {
-    if (calendarRoute.params?.openDiaryModal) {
-      setShowDiaryModal(true);
-    }
-  }, [calendarRoute.params]);
-
-  useEffect(() => {
-    setDiaryDate(currentDate);
-  }, [currentDate]);
 
   const handleYearChange = (offset: number) => {
     setSelectedYear(selectedYear + offset);
@@ -708,63 +681,15 @@ const CalendarScreen: React.FC = () => {
             </View>
           </ScrollView>
           {/* Diary Modal */}
-          <Modal
+          <DiaryModal
             visible={showDiaryModal}
-            animationType="slide"
-            transparent={false}
-            onRequestClose={() => setShowDiaryModal(false)}
-          >
-            <KeyboardAvoidingView
-              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-              style={[styles.modalContainer, { paddingTop: insets.top }]}
-              keyboardVerticalOffset={24}
-            >
-              <View style={styles.modalContent}>
-                <View style={styles.modalHeader}>
-                  <ModalTopIcon
-                    iconName="cancel"
-                    onPress={() => setShowDiaryModal(false)}
-                  />
-                  <TouchableOpacity
-                    onPress={() => setShowDiaryDatePicker(true)}
-                  >
-                    <Text style={styles.modalDate}>
-                      {diaryDate.toLocaleDateString()}
-                    </Text>
-                  </TouchableOpacity>
-                  <DateTimePickerModal
-                    isVisible={showDiaryDatePicker}
-                    mode="date"
-                    date={diaryDate}
-                    onConfirm={date => {
-                      setDiaryDate(date);
-                      setShowDiaryDatePicker(false);
-                    }}
-                    onCancel={() => setShowDiaryDatePicker(false)}
-                  />
-                  <ModalTopIcon
-                    iconName="check"
-                    onPress={() => setShowDiaryModal(false)}
-                  />
-                </View>
-
-                <View style={styles.modalBody}>
-                  <Text style={styles.modalLabel}>Daily Notes</Text>
-                  <View style={styles.textInputContainer}>
-                    <TextInput
-                      style={styles.textInput}
-                      multiline
-                      numberOfLines={8}
-                      value={diaryText}
-                      onChangeText={setDiaryText}
-                      placeholder="Write your thoughts, feelings, or any notes..."
-                      placeholderTextColor="#999"
-                    />
-                  </View>
-                </View>
-              </View>
-            </KeyboardAvoidingView>
-          </Modal>
+            onClose={() => setShowDiaryModal(false)}
+            initialDate={currentDate}
+            onSave={(date, text) => {
+              // Handle save logic here
+              console.log('Diary saved:', { date, text });
+            }}
+          />
         </>
       ) : (
         <>
@@ -1031,51 +956,6 @@ const styles = StyleSheet.create({
   activityRatingStars: {
     flexDirection: 'row',
     gap: 4,
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  modalContent: {
-    flex: 1,
-    paddingHorizontal: 24,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  modalDate: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: THEME_COLORS.primary,
-  },
-  modalBody: {
-    flex: 1,
-    paddingTop: 24,
-  },
-  modalLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 12,
-  },
-  textInputContainer: {
-    flex: 1,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#f0f0f0',
-  },
-  textInput: {
-    flex: 1,
-    fontSize: 15,
-    color: '#333',
-    textAlignVertical: 'top',
   },
   yearHeader: {
     flexDirection: 'row',

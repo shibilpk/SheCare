@@ -14,9 +14,12 @@ export function tabOptions(name: string, label: string) {
 
 export function todayTabBarIcon(props: { onPress: () => void }) {
   return (
-    <TouchableOpacity activeOpacity={0.7} onPress={props.onPress}>
+    <TouchableOpacity style={styles.rotatedSquareParent} activeOpacity={0.7} onPress={props.onPress}>
       <View style={styles.rotatedSquareWrapper}>
-        <View style={styles.rotatedSquare} />
+        <View style={styles.rotatedSquareContainer}>
+          <View style={styles.rotatedSquare} />
+        </View>
+
         <FontelloIcon
           style={styles.rotatedSquareIcon}
           name="plus"
@@ -30,28 +33,39 @@ export function todayTabBarIcon(props: { onPress: () => void }) {
 
 const styles = StyleSheet.create({
   rotatedSquareWrapper: {
+    width: 56,
+    height: 56,
     alignItems: 'center',
     justifyContent: 'center',
-    width: 50,
-    height: 50,
-    overflow: 'visible',
   },
+
+  // Defines layout size (not rotated)
+  rotatedSquareContainer: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // Only this rotates
   rotatedSquare: {
     width: '100%',
     height: '100%',
     backgroundColor: THEME_COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
     borderRadius: 8,
-    shadowColor: '#000',
     transform: [{ rotate: '45deg' }],
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 4,
-    position: 'relative',
   },
+
   rotatedSquareIcon: {
     position: 'absolute',
+  },
+  rotatedSquareParent: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

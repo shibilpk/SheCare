@@ -1,15 +1,21 @@
-import { StyleSheet } from 'react-native';
 import React from 'react';
-import { TouchableOpacity } from 'react-native';
+import { StyleSheet, TouchableOpacity } from 'react-native';
 import FontelloIcon from '../../utils/FontelloIcons';
 import { THEME_COLORS } from '../../constants/colors';
 
 type ModalTopIconProps = {
   onPress: () => void;
   iconName: string;
+  size?: number;
+  color?: string;
 };
 
-const ModalTopIcon = ({ onPress, iconName }: ModalTopIconProps) => {
+const ModalTopIcon = ({
+  onPress,
+  iconName,
+  size = 22,
+  color = THEME_COLORS.primary,
+}: ModalTopIconProps) => {
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -18,9 +24,8 @@ const ModalTopIcon = ({ onPress, iconName }: ModalTopIconProps) => {
     >
       <FontelloIcon
         name={iconName}
-        size={22}
-        style={styles.modalHeaderBtnIcon}
-        color={THEME_COLORS.primary}
+        size={size}
+        color={color}
       />
     </TouchableOpacity>
   );
@@ -32,9 +37,5 @@ const styles = StyleSheet.create({
   touchable: {
     paddingHorizontal: 10,
     paddingVertical: 5,
-  },
-  modalHeaderBtnIcon: {
-    fontSize: 27,
-    color: THEME_COLORS.text,
   },
 });
