@@ -32,6 +32,7 @@ import FontelloIcon from './FontelloIcons';
 import ModalTopIcon from '../components/common/ModalTopIcon';
 import { UpdateProvider, useUpdate } from './UpdateManager';
 import { PopupWizardProvider } from './PopupWizardManager';
+import { STYLE } from '../constants/app';
 
 // Create navigation ref for accessing navigation outside React components
 export const navigationRef = createNavigationContainerRef<RootStackParamList>();
@@ -171,12 +172,6 @@ function CustomDrawerContent(props: any) {
       hasToggle: true,
       value: notificationsEnabled,
       onToggle: toggleNotifications,
-    },
-    {
-      icon: 'emo-laugh',
-      label: 'Pregnancy Mode',
-      color: '#6366F1',
-      onPress: () => props.navigation.navigate(SCREENS.PREGNANCY_SETTINGS),
     },
     {
       icon: 'moon',
@@ -375,7 +370,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: THEME_COLORS.primary,
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     marginTop: 12,
     paddingVertical: 14,
     borderRadius: 12,

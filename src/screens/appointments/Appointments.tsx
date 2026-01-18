@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import FontelloIcon from '../../utils/FontelloIcons';
 import { THEME_COLORS } from '../../constants/colors';
 import { useNavigation } from '@react-navigation/native';
+import { STYLE } from '../../constants/app';
 
 const APPOINTMENTS = [
   {
@@ -84,7 +85,7 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 18, fontWeight: '700', color: THEME_COLORS.text },
   card: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: THEME_COLORS.textLight,
-    marginHorizontal: 20, marginTop: 14, padding: 16, borderRadius: 16,
+    marginHorizontal: STYLE.spacing.mh, marginTop: 14, padding: 16, borderRadius: 16,
     shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
   },
   iconBox: { width: 48, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginRight: 14 },

@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import FontelloIcon from '../../utils/FontelloIcons';
 import { THEME_COLORS } from '../../constants/colors';
 import { useNavigation } from '@react-navigation/native';
+import { STYLE } from '../../constants/app';
 
 interface SleepEntry {
   id: number;
@@ -208,7 +209,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: THEME_COLORS.textLight,
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     marginTop: 14,
     padding: 16,
     borderRadius: 16,

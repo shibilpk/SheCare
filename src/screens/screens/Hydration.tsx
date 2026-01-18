@@ -14,6 +14,7 @@ import FontelloIcon from '../../utils/FontelloIcons';
 import { THEME_COLORS } from '../../constants/colors';
 import { useNavigation } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
+import { STYLE } from '../../constants/app';
 
 interface WaterLog {
   id: number;
@@ -323,7 +324,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   progressCard: {
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     marginTop: 20,
     borderRadius: 24,
     shadowColor: '#000',
@@ -409,7 +410,7 @@ const styles = StyleSheet.create({
   },
   waterControlsCard: {
     backgroundColor: THEME_COLORS.textLight,
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     marginTop: 20,
     padding: 24,
     borderRadius: 20,
@@ -487,7 +488,7 @@ const styles = StyleSheet.create({
   },
   benefitsCard: {
     backgroundColor: '#FCE7F3',
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     marginTop: 24,
     padding: 20,
     borderRadius: 16,
@@ -537,7 +538,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: THEME_COLORS.textLight,
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     marginBottom: 10,
     padding: 16,
     borderRadius: 16,
@@ -582,7 +583,7 @@ const styles = StyleSheet.create({
   },
   tipsCard: {
     backgroundColor: '#FEF3C7',
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     marginTop: 24,
     padding: 20,
     borderRadius: 16,

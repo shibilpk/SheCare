@@ -13,6 +13,7 @@ import { THEME_COLORS } from '../../constants/colors';
 import { useNavigation } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import { KeyboardAvoidingModal } from '../../components';
+import { STYLE } from '../../constants/app';
 
 interface DoseSchedule {
   time: string;
@@ -494,7 +495,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   progressCard: {
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     marginTop: 20,
     borderRadius: 20,
     shadowColor: '#000',
@@ -569,7 +570,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: THEME_COLORS.textLight,
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     marginBottom: 12,
     padding: 16,
     borderRadius: 16,
@@ -641,7 +642,7 @@ const styles = StyleSheet.create({
   },
   tipsCard: {
     backgroundColor: '#EFF6FF',
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     marginTop: 24,
     padding: 20,
     borderRadius: 16,

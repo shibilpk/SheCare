@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -13,8 +13,19 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import FontelloIcon from '../../utils/FontelloIcons';
 import { THEME_COLORS } from '../../constants/colors';
 import { RootStackParamList, SCREENS } from '../../constants/navigation';
+import { STYLE } from '../../constants/app';
 
-type BlogListNavigationProp = StackNavigationProp<RootStackParamList, 'BlogList'>;
+type BlogListNavigationProp = StackNavigationProp<
+  RootStackParamList,
+  'BlogList'
+>;
+const FILTER_CATEGORIES = [
+  'All',
+  'Cardio',
+  'Strength',
+  'Flexibility',
+  'Sports',
+] as const;
 
 export interface BlogPost {
   id: number;
@@ -32,7 +43,8 @@ export const blogPosts: BlogPost[] = [
   {
     id: 1,
     title: 'Understanding Your Menstrual Cycle',
-    excerpt: 'Learn about the four phases of your cycle and what happens in each stage.',
+    excerpt:
+      'Learn about the four phases of your cycle and what happens in each stage.',
     content: `Understanding your menstrual cycle is key to better health management. The menstrual cycle has four main phases:
 
 1. Menstrual Phase (Days 1-5): This is when bleeding occurs. Hormone levels are at their lowest, and you might feel tired.
@@ -59,7 +71,8 @@ Track your cycle to understand your body better and optimize your activities aro
   {
     id: 2,
     title: 'Nutrition Tips for Better Periods',
-    excerpt: 'What to eat and avoid during your menstrual cycle for optimal health.',
+    excerpt:
+      'What to eat and avoid during your menstrual cycle for optimal health.',
     content: `The right nutrition can significantly improve your period experience. Here's what to focus on:
 
 Foods to Include:
@@ -93,7 +106,8 @@ Stay hydrated throughout your cycle. Drink at least 8 glasses of water daily, mo
   {
     id: 3,
     title: 'Managing Period Pain Naturally',
-    excerpt: 'Natural remedies and techniques to reduce menstrual cramps and discomfort.',
+    excerpt:
+      'Natural remedies and techniques to reduce menstrual cramps and discomfort.',
     content: `Period pain affects many women, but natural remedies can help manage it effectively:
 
 Heat Therapy:
@@ -193,7 +207,8 @@ Benefits of Cycle-Synced Exercise:
   {
     id: 5,
     title: 'Mental Health and Your Cycle',
-    excerpt: 'Understanding the connection between hormones and mood throughout your cycle.',
+    excerpt:
+      'Understanding the connection between hormones and mood throughout your cycle.',
     content: `Your menstrual cycle significantly affects your mental and emotional wellbeing:
 
 Hormones and Mood:
@@ -315,7 +330,8 @@ When to See a Doctor:
 
 const BlogListScreen: React.FC = () => {
   const navigation = useNavigation<BlogListNavigationProp>();
-
+  const [selectedFilter, setSelectedFilter] =
+    useState<(typeof FILTER_CATEGORIES)[number]>('All');
   const handleBlogPress = (blog: BlogPost) => {
     navigation.navigate(SCREENS.BLOG_DETAIL, { blog } as any);
   };
@@ -361,9 +377,36 @@ const BlogListScreen: React.FC = () => {
           </View>
         </TouchableOpacity>
 
+        {/* Filter Buttons */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterScroll}
+        >
+          {FILTER_CATEGORIES.map(category => (
+            <TouchableOpacity
+              key={category}
+              onPress={() => setSelectedFilter(category)}
+              style={[
+                styles.filterBtn,
+                selectedFilter === category && styles.filterBtnActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.filterText,
+                  selectedFilter === category && styles.filterTextActive,
+                ]}
+              >
+                {category}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
         {/* Blog List */}
         <View style={styles.listSection}>
-          <Text style={styles.sectionTitle}>Recent Articles</Text>
+          {/* <Text style={styles.sectionTitle}>Articles</Text> */}
           {blogPosts.slice(1).map(blog => (
             <TouchableOpacity
               key={blog.id}
@@ -442,7 +485,7 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   featuredCard: {
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     marginBottom: 24,
     backgroundColor: THEME_COLORS.textLight,
     borderRadius: 16,
@@ -574,6 +617,21 @@ const styles = StyleSheet.create({
   bottomPadding: {
     height: 40,
   },
+  filterScroll: { paddingHorizontal: 20, paddingVertical: 12, gap: 8 },
+  filterBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: THEME_COLORS.textLight,
+  },
+  filterBtnActive: {
+    backgroundColor: THEME_COLORS.primary,
+    borderColor: THEME_COLORS.primary,
+  },
+  filterText: { fontSize: 14, fontWeight: '600', color: '#666' },
+  filterTextActive: { color: THEME_COLORS.textLight },
 });
 
 export default BlogListScreen;

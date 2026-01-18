@@ -16,6 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import { RootStackParamList } from '../../constants/navigation';
 import { StackNavigationProp } from '@react-navigation/stack';
 import DiaryModal from '../common/dairy/DiaryModal';
+import { STYLE } from '../../constants/app';
 
 const moods = [
   { name: 'Happy', emoji: '😊', color: '#FFE0B2' },
@@ -517,7 +518,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F0E6FF',
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     marginTop: 16,
     padding: 12,
     borderRadius: 12,
@@ -529,7 +530,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   section: {
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     marginTop: 20,
   },
   sectionHeader: {
@@ -717,7 +718,7 @@ const styles = StyleSheet.create({
   },
   saveBtn: {
     backgroundColor: THEME_COLORS.primary,
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     marginTop: 24,
     paddingVertical: 16,
     borderRadius: 16,
@@ -738,7 +739,7 @@ const styles = StyleSheet.create({
   },
   tabContainer: {
     flexDirection: 'row',
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     marginTop: 16,
     marginBottom: 8,
     backgroundColor: '#fff',

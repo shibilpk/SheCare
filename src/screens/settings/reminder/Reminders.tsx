@@ -18,6 +18,7 @@ import { THEME_COLORS } from '../../../constants/colors';
 import FontelloIcon from '../../../utils/FontelloIcons';
 import ModalTopIcon from '../../../components/common/ModalTopIcon';
 import BackButton from '../../../components/widgets/BackButton';
+import { STYLE } from '../../../constants/app';
 
 type ReminderFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
 type ReminderType = 'repeat' | 'one-time' | 'repeat_from' | 'specific';
@@ -524,7 +525,7 @@ const styles = StyleSheet.create({
   descriptionCard: {
     flexDirection: 'row',
     backgroundColor: '#E3F2FD',
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     marginTop: 16,
     marginBottom: 8,
     padding: 16,

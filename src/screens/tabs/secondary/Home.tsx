@@ -16,6 +16,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
 import { RootStackParamList, SCREENS } from '../../../constants/navigation';
+import { STYLE } from '../../../constants/app';
 
 export default function PregnancyScreen() {
   const navigation = useNavigation<DrawerNavigationProp<RootStackParamList>>();
@@ -478,7 +479,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   mainCard: {
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     marginTop: 20,
     borderRadius: 24,
     overflow: 'hidden',
@@ -541,7 +542,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   babyGrowthCard: {
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     marginTop: 16,
     borderRadius: 20,
     overflow: 'hidden',
@@ -593,7 +594,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: THEME_COLORS.textLight,
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     padding: 20,
     borderRadius: 16,
     marginBottom: 24,
@@ -683,7 +684,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: THEME_COLORS.textLight,
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     marginBottom: 12,
     padding: 16,
     borderRadius: 16,
@@ -757,7 +758,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   kickCounterCard: {
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     borderRadius: 20,
     marginBottom: 24,
     shadowColor: '#000',
@@ -808,7 +809,7 @@ const styles = StyleSheet.create({
   },
   checklistCard: {
     backgroundColor: '#F3E8FF',
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     padding: 20,
     borderRadius: 20,
     marginBottom: 20,
@@ -857,7 +858,7 @@ const styles = StyleSheet.create({
   },
   partnerCard: {
     backgroundColor: '#FFF9F0',
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     padding: 20,
     borderRadius: 20,
     marginBottom: 20,

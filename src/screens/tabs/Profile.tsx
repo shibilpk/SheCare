@@ -11,7 +11,9 @@ import {
   Animated,
   RefreshControl,
   TextInput,
+  Dimensions,
 } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -19,7 +21,7 @@ import {
 import { THEME_COLORS } from '../../constants/colors';
 import FontelloIcon from '../../utils/FontelloIcons';
 import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { DrawerNavigationProp } from '@react-navigation/drawer';
 import { SCREENS, RootStackParamList } from '../../constants/navigation';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { KeyboardAvoidingModal } from '../../components';
@@ -33,11 +35,18 @@ import {
 import useStore from '../../hooks/useStore';
 import apiClient, { APIError } from '../../utils/ApiClient';
 import { AUTH_V1_URLS } from '../../constants/apis';
+import AdBanner from '../../components/common/AdBanner';
+import {
+  SAMPLE_ADS,
+  AD_PLACEMENTS,
+  trackAdClick,
+  trackAdImpression,
+} from '../../constants/ads';
+import { STYLE } from '../../constants/app';
 
 export default function Profile() {
   const clearToken = useStore(state => state.clearToken);
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation = useNavigation<DrawerNavigationProp<RootStackParamList>>();
   const { showWizard } = usePopupWizard();
 
   interface ProfileResponse {
@@ -190,9 +199,21 @@ export default function Profile() {
         setAge(response.profile.age?.toString() || '');
         setWeight(response.profile.weight?.toString() || '');
         setHeight(response.profile.height?.toString() || '');
-        setCycleLength((response.profile.cycleLength || response.profile.cycle_length)?.toString() || '');
-        setPeriodLength((response.profile.periodLength || response.profile.period_length)?.toString() || '');
-        setLutealPhase((response.profile.lutealPhase || response.profile.luteal_phase)?.toString() || '');
+        setCycleLength(
+          (
+            response.profile.cycleLength || response.profile.cycle_length
+          )?.toString() || '',
+        );
+        setPeriodLength(
+          (
+            response.profile.periodLength || response.profile.period_length
+          )?.toString() || '',
+        );
+        setLutealPhase(
+          (
+            response.profile.lutealPhase || response.profile.luteal_phase
+          )?.toString() || '',
+        );
       } else {
         Alert.alert('Error', 'Failed to load profile data');
       }
@@ -256,18 +277,21 @@ export default function Profile() {
   const wizardScreens: PopupScreen[] = [
     {
       id: 'welcome',
-      imageUrl: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=400&fit=crop',
+      imageUrl:
+        'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=400&fit=crop',
       title: 'Welcome to SheCare',
-      message: 'Let\'s personalize your health journey with a few quick questions.',
+      message:
+        "Let's personalize your health journey with a few quick questions.",
       formType: 'none',
-      buttonText: 'Let\'s Start',
+      buttonText: "Let's Start",
       allowSkip: true,
     },
     {
       id: 'trackCycle',
       icon: 'calendar',
       title: 'Track Your Cycle?',
-      message: 'Would you like to enable menstrual cycle tracking and predictions?',
+      message:
+        'Would you like to enable menstrual cycle tracking and predictions?',
       formType: 'yesno',
       allowSkip: true,
     },
@@ -275,7 +299,8 @@ export default function Profile() {
       id: 'reminderTime',
       icon: 'bell',
       title: 'Reminder Time',
-      message: 'What time would you like to receive your daily health reminders?',
+      message:
+        'What time would you like to receive your daily health reminders?',
       formType: 'datepicker',
       allowSkip: false,
     },
@@ -301,8 +326,12 @@ export default function Profile() {
     } catch (error) {
       console.error('Error saving preferences:', error);
       // Handle error gracefully without crashing
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      Alert.alert('Preferences Saved', `Settings saved locally.\n\n${JSON.stringify(data, null, 2)}`);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      Alert.alert(
+        'Preferences Saved',
+        `Settings saved locally.\n\n${JSON.stringify(data, null, 2)}`,
+      );
     }
   };
 
@@ -389,6 +418,14 @@ export default function Profile() {
       >
         {/* Header Profile Section */}
         <View style={styles.headerGradient} onLayout={handleHeaderLayout}>
+          {/* Settings Icon */}
+          <TouchableOpacity
+            onPress={() => navigation.openDrawer()}
+            style={styles.settingsBtn}
+          >
+            <FontelloIcon name="cog-b" size={26} color="#fff" />
+          </TouchableOpacity>
+
           <View style={styles.headerContent}>
             <TouchableOpacity
               onPress={pickImage}
@@ -445,11 +482,7 @@ export default function Profile() {
             <Text style={styles.statValue}>{profile?.age || '--'}</Text>
             <Text style={styles.statLabel}>Age (years)</Text>
             <View style={styles.editBtn}>
-              <FontelloIcon
-                name="pencil"
-                size={12}
-                color={THEME_COLORS.primary}
-              />
+              <FontelloIcon name="pencil" size={12} color="#999" />
             </View>
           </TouchableOpacity>
 
@@ -470,11 +503,7 @@ export default function Profile() {
             <Text style={styles.statValue}>{profile?.weight || '--'}</Text>
             <Text style={styles.statLabel}>Weight (kg)</Text>
             <View style={styles.editBtn}>
-              <FontelloIcon
-                name="pencil"
-                size={12}
-                color={THEME_COLORS.primary}
-              />
+              <FontelloIcon name="pencil" size={12} color="#999" />
             </View>
           </TouchableOpacity>
 
@@ -495,67 +524,230 @@ export default function Profile() {
             <Text style={styles.statValue}>{profile?.height || '--'}</Text>
             <Text style={styles.statLabel}>Height (cm)</Text>
             <View style={styles.editBtn}>
-              <FontelloIcon
-                name="pencil"
-                size={12}
-                color={THEME_COLORS.primary}
-              />
+              <FontelloIcon name="pencil" size={12} color="#999" />
             </View>
           </TouchableOpacity>
         </View>
 
+        {/* Banner Ad - After Stats */}
+        <AdBanner
+          ads={SAMPLE_ADS}
+          size="banner"
+          autoRotate={true}
+          rotationInterval={6000}
+          onAdClick={ad => {
+            trackAdClick(ad.id, AD_PLACEMENTS.PROFILE_TOP);
+            console.log('Ad clicked:', ad.title);
+          }}
+          showCloseButton={false}
+          containerStyle={styles.addContainer}
+        />
+
+        {/* Banner Ad - After Stats */}
+        <AdBanner
+          ads={SAMPLE_ADS}
+          size="fullpage"
+          autoRotate={true}
+          rotationInterval={6000}
+          onAdClick={ad => {
+            trackAdClick(ad.id, AD_PLACEMENTS.PROFILE_TOP);
+            console.log('Ad clicked:', ad.title);
+          }}
+          showCloseButton={false}
+          containerStyle={styles.addContainer}
+        />
+
         {/* Cycle Information Cards */}
-        <View style={styles.sectionCard}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Cycle Information</Text>
-            <TouchableOpacity
-              onPress={() => {
-                setCycleLength((profile?.cycleLength || profile?.cycle_length)?.toString() || '');
-                setPeriodLength((profile?.periodLength || profile?.period_length)?.toString() || '');
-                setLutealPhase((profile?.lutealPhase || profile?.luteal_phase)?.toString() || '');
-                setEditField('cycle');
-              }}
-              style={styles.sectionEditBtn}
-            >
-              <FontelloIcon name="pencil" size={16} color={THEME_COLORS.primary} />
-            </TouchableOpacity>
-          </View>
 
-          <View style={styles.cycleCardsContainer}>
-            <View style={styles.cycleCard}>
-              <View style={styles.cycleCardIcon}>
-                <Text style={styles.cycleCardEmoji}>📅</Text>
+        <View style={[styles.sectionCard, styles.container]}>
+          <TouchableOpacity
+            onPress={() => {
+              setCycleLength(
+                (profile?.cycleLength || profile?.cycle_length)?.toString() ||
+                  '',
+              );
+              setPeriodLength(
+                (profile?.periodLength || profile?.period_length)?.toString() ||
+                  '',
+              );
+              setLutealPhase(
+                (profile?.lutealPhase || profile?.luteal_phase)?.toString() ||
+                  '',
+              );
+              setEditField('cycle');
+            }}
+          >
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleContainer}>
+                <Text style={styles.sectionTitle}>Cycle Information</Text>
               </View>
-              <Text style={styles.cycleCardValue}>
-                {profile?.cycleLength || profile?.cycle_length || '--'}
-              </Text>
-              <Text style={styles.cycleCardLabel}>Cycle Length</Text>
-              <Text style={styles.cycleCardUnit}>days</Text>
+
+              <FontelloIcon name="pencil" size={16} color="#999" />
             </View>
 
-            <View style={styles.cycleCard}>
-              <View style={styles.cycleCardIcon}>
-                <Text style={styles.cycleCardEmoji}>🩸</Text>
+            {/* Cycle Phase Timeline */}
+            <View style={styles.cycleTimelineContainer}>
+              {/* Cycle Length Numbers Line */}
+              <View style={styles.cycleLengthLine}>
+                <View style={styles.cycleLengthDash} />
+                <View style={styles.cycleLengthCenter}>
+                  <Text style={styles.cycleLengthLabel}>Days Cycle</Text>
+                </View>
+                <View style={styles.cycleLengthDash} />
               </View>
-              <Text style={styles.cycleCardValue}>
-                {profile?.periodLength || profile?.period_length || '--'}
-              </Text>
-              <Text style={styles.cycleCardLabel}>Period Length</Text>
-              <Text style={styles.cycleCardUnit}>days</Text>
-            </View>
+              <View style={styles.cycleTimeline}>
+                <View
+                  style={[
+                    styles.cyclePhaseBar,
+                    {
+                      flex:
+                        (profile?.periodLength || profile?.period_length || 5) /
+                        (profile?.cycleLength || profile?.cycle_length || 28),
+                    },
+                  ]}
+                >
+                  <LinearGradient
+                    colors={['#DC2626', '#EF4444']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.cyclePhaseGradient}
+                  >
+                    <Text style={styles.cyclePhaseText}>Period</Text>
+                  </LinearGradient>
+                </View>
+                <View
+                  style={[
+                    styles.cyclePhaseBar,
+                    {
+                      flex:
+                        ((profile?.cycleLength || profile?.cycle_length || 28) -
+                          (profile?.lutealPhase ||
+                            profile?.luteal_phase ||
+                            14) -
+                          (profile?.periodLength ||
+                            profile?.period_length ||
+                            5)) /
+                        (profile?.cycleLength || profile?.cycle_length || 28),
+                    },
+                  ]}
+                >
+                  <LinearGradient
+                    colors={['#F87171', '#FCA5A5']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.cyclePhaseGradient}
+                  >
+                    <Text style={styles.cyclePhaseText}>Follicular</Text>
+                  </LinearGradient>
+                </View>
+                <View
+                  style={[
+                    styles.cyclePhaseBar,
+                    {
+                      flex:
+                        (profile?.lutealPhase || profile?.luteal_phase || 14) /
+                        (profile?.cycleLength || profile?.cycle_length || 28),
+                    },
+                  ]}
+                >
+                  <LinearGradient
+                    colors={['#FFC0CB', '#FFE4E1']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.cyclePhaseGradient}
+                  >
+                    <Text style={styles.cyclePhaseText}>Luteal</Text>
+                  </LinearGradient>
+                </View>
+              </View>
 
-            <View style={styles.cycleCard}>
-              <View style={styles.cycleCardIcon}>
-                <Text style={styles.cycleCardEmoji}>🌙</Text>
+              {/* Cycle Data Below Graph */}
+              <View style={styles.cycleDataContainer}>
+                <View style={styles.cycleDataItem}>
+                  <View style={styles.cycleIconContainer}>
+                    <FontelloIcon
+                      name="calendar"
+                      size={16}
+                      color={THEME_COLORS.primary}
+                    />
+                  </View>
+                  <View style={styles.cycleDataTextContainer}>
+                    <Text style={styles.cycleDataLabel}>Cycle Length</Text>
+                    <Text style={styles.cycleDataValue}>
+                      {profile?.cycleLength || profile?.cycle_length || 28} days
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.cycleDataItem}>
+                  <View style={styles.cycleIconContainer}>
+                    <FontelloIcon
+                      name="drop"
+                      size={16}
+                      color={THEME_COLORS.primary}
+                    />
+                  </View>
+                  <View style={styles.cycleDataTextContainer}>
+                    <Text style={styles.cycleDataLabel}>Period Length</Text>
+                    <Text style={styles.cycleDataValue}>
+                      {profile?.periodLength || profile?.period_length || 7}{' '}
+                      days
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.cycleDataItem}>
+                  <View style={styles.cycleIconContainer}>
+                    <FontelloIcon
+                      name="leaf"
+                      size={16}
+                      color={THEME_COLORS.primary}
+                    />
+                  </View>
+                  <View style={styles.cycleDataTextContainer}>
+                    <Text style={styles.cycleDataLabel}>Follicular Phase</Text>
+                    <Text style={styles.cycleDataValue}>
+                      {(profile?.cycleLength || profile?.cycle_length || 28) -
+                        (profile?.lutealPhase || profile?.luteal_phase || 14) -
+                        (profile?.periodLength ||
+                          profile?.period_length ||
+                          5)}{' '}
+                      days
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.cycleDataItem}>
+                  <View style={styles.cycleIconContainer}>
+                    <FontelloIcon
+                      name="moon"
+                      size={16}
+                      color={THEME_COLORS.primary}
+                    />
+                  </View>
+                  <View style={styles.cycleDataTextContainer}>
+                    <Text style={styles.cycleDataLabel}>Luteal Phase</Text>
+                    <Text style={styles.cycleDataValue}>
+                      {profile?.lutealPhase || profile?.luteal_phase || 14} days
+                    </Text>
+                  </View>
+                </View>
               </View>
-              <Text style={styles.cycleCardValue}>
-                {profile?.lutealPhase || profile?.luteal_phase || '--'}
-              </Text>
-              <Text style={styles.cycleCardLabel}>Luteal Phase</Text>
-              <Text style={styles.cycleCardUnit}>days</Text>
             </View>
-          </View>
+          </TouchableOpacity>
         </View>
+
+        <AdBanner
+          ads={SAMPLE_ADS}
+          size="halfpage"
+          autoRotate={true}
+          rotationInterval={1000}
+          onAdClick={ad => {
+            trackAdClick(ad.id, AD_PLACEMENTS.PROFILE_MIDDLE);
+            console.log('Half page ad clicked:', ad.title);
+          }}
+          showCloseButton={true}
+          containerStyle={styles.addContainer}
+        />
 
         {/* Personal Information */}
         <View style={styles.sectionCard}>
@@ -636,6 +828,19 @@ export default function Profile() {
           </View>
         </View>
 
+        {/* Banner Ad - Before Preferences */}
+        <AdBanner
+          ads={SAMPLE_ADS}
+          size="banner"
+          autoRotate={true}
+          rotationInterval={7000}
+          onAdClick={ad => {
+            trackAdClick(ad.id, AD_PLACEMENTS.PROFILE_BOTTOM);
+          }}
+          showCloseButton={true}
+          containerStyle={styles.addContainer}
+        />
+
         {/* Preferences Section */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
@@ -646,12 +851,7 @@ export default function Profile() {
           <TouchableOpacity
             style={styles.actionRow}
             onPress={() => {
-              // Navigate to theme settings screen
-              // navigation.navigate(SCREENS.THEME_SETTINGS);
-              Alert.alert(
-                'Theme Settings',
-                'Navigate to theme settings screen',
-              );
+              navigation.navigate(SCREENS.THEME_SETTINGS);
             }}
           >
             <View style={styles.actionLeft}>
@@ -741,6 +941,30 @@ export default function Profile() {
               <View>
                 <Text style={styles.actionLabel}>Language</Text>
                 <Text style={styles.preferenceSubtext}>English (US)</Text>
+              </View>
+            </View>
+            <FontelloIcon name="right-open-mini" size={20} color="#999" />
+          </TouchableOpacity>
+          <View style={styles.divider} />
+
+          {/* Pregnancy turn on/off */}
+          <TouchableOpacity
+            style={styles.actionRow}
+            onPress={() => {
+              navigation.navigate(SCREENS.PREGNANCY_SETTINGS);
+            }}
+          >
+            <View style={styles.actionLeft}>
+              <View
+                style={[styles.actionIconBox, { backgroundColor: '#E1F5FE' }]}
+              >
+                <FontelloIcon name="emo-laugh" size={18} color="#0288D1" />
+              </View>
+              <View>
+                <Text style={styles.actionLabel}>Pregnancy Mode</Text>
+                <Text style={styles.preferenceSubtext}>
+                  Track pregnancy health
+                </Text>
               </View>
             </View>
             <FontelloIcon name="right-open-mini" size={20} color="#999" />
@@ -1021,7 +1245,8 @@ export default function Profile() {
                 <View>
                   <Text style={styles.cycleEditTitle}>Cycle Length</Text>
                   <Text style={styles.cycleEditDescription}>
-                    The number of days from the first day of your period to the day before your next period starts. Average is 28 days.
+                    The number of days from the first day of your period to the
+                    day before your next period starts. Average is 28 days.
                   </Text>
                 </View>
               </View>
@@ -1042,7 +1267,7 @@ export default function Profile() {
                   <Text style={styles.cycleSwitchLabel}>Use Average</Text>
                   <Switch
                     value={useCycleAverage}
-                    onValueChange={(value) => {
+                    onValueChange={value => {
                       setUseCycleAverage(value);
                       if (value) setCycleLength('28');
                     }}
@@ -1060,7 +1285,8 @@ export default function Profile() {
                 <View>
                   <Text style={styles.cycleEditTitle}>Period Length</Text>
                   <Text style={styles.cycleEditDescription}>
-                    The number of days your period typically lasts. Average is 5 days.
+                    The number of days your period typically lasts. Average is 5
+                    days.
                   </Text>
                 </View>
               </View>
@@ -1081,7 +1307,7 @@ export default function Profile() {
                   <Text style={styles.cycleSwitchLabel}>Use Average</Text>
                   <Switch
                     value={usePeriodAverage}
-                    onValueChange={(value) => {
+                    onValueChange={value => {
                       setUsePeriodAverage(value);
                       if (value) setPeriodLength('5');
                     }}
@@ -1099,7 +1325,8 @@ export default function Profile() {
                 <View>
                   <Text style={styles.cycleEditTitle}>Luteal Phase</Text>
                   <Text style={styles.cycleEditDescription}>
-                    The number of days between ovulation and the start of your next period. Average is 14 days.
+                    The number of days between ovulation and the start of your
+                    next period. Average is 14 days.
                   </Text>
                 </View>
               </View>
@@ -1120,7 +1347,7 @@ export default function Profile() {
                   <Text style={styles.cycleSwitchLabel}>Use Average</Text>
                   <Switch
                     value={useLutealAverage}
-                    onValueChange={(value) => {
+                    onValueChange={value => {
                       setUseLutealAverage(value);
                       if (value) setLutealPhase('14');
                     }}
@@ -1162,6 +1389,21 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
+    position: 'relative',
+  },
+  settingsBtn: {
+    position: 'absolute',
+    top: 16,
+    left: 20,
+    zIndex: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   headerContent: {
     alignItems: 'center',
@@ -1221,9 +1463,10 @@ const styles = StyleSheet.create({
   },
   statsContainer: {
     flexDirection: 'row',
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     marginTop: -20,
     gap: 12,
+    marginBottom: STYLE.spacing.mv,
   },
   statCard: {
     flex: 1,
@@ -1260,8 +1503,8 @@ const styles = StyleSheet.create({
   },
   sectionCard: {
     backgroundColor: '#fff',
-    marginHorizontal: 20,
-    marginTop: 20,
+    marginHorizontal: STYLE.spacing.mh,
+    marginVertical: STYLE.spacing.mv,
     borderRadius: 20,
     padding: 20,
     shadowColor: '#000',
@@ -1281,46 +1524,104 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#333',
   },
-  cycleCardsContainer: {
+  sectionTitleContainer: {
     flexDirection: 'row',
-    gap: 12,
-  },
-  cycleCard: {
-    flex: 1,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 16,
-    padding: 16,
     alignItems: 'center',
+    gap: 8,
   },
-  cycleCardIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#fff',
+  cycleTimelineContainer: {
+    marginTop: 0,
+  },
+  cycleLengthLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+    paddingHorizontal: 4,
+  },
+  cycleLengthDash: {
+    flex: 1,
+    height: 2,
+    backgroundColor: '#9CA3AF',
+  },
+  cycleLengthCenter: {
+    marginHorizontal: 4,
+  },
+  cycleLengthLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: THEME_COLORS.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  cycleTimeline: {
+    flexDirection: 'row',
+    height: 20,
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  cyclePhaseBar: {
+    height: '100%',
+  },
+  cyclePhaseGradient: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
   },
-  cycleCardEmoji: {
-    fontSize: 24,
+  cyclePhaseText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#fff',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
   },
-  cycleCardValue: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: THEME_COLORS.primary,
-    marginBottom: 4,
+  cycleDataContainer: {
+    marginTop: 16,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: '4%',
   },
-  cycleCardLabel: {
-    fontSize: 12,
-    color: '#666',
-    textAlign: 'center',
+  cycleDataItem: {
+    width: '48%',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    padding: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+    gap: 10,
+  },
+  cycleIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F0E6FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cycleDataTextContainer: {
+    flex: 1,
+  },
+  cycleDataLabel: {
+    fontSize: 11,
     fontWeight: '600',
+    color: '#6B7280',
     marginBottom: 2,
   },
-  cycleCardUnit: {
-    fontSize: 11,
-    color: '#999',
-    textAlign: 'center',
+  cycleDataValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: THEME_COLORS.primary,
   },
   infoRow: {
     flexDirection: 'row',
@@ -1436,30 +1737,6 @@ const styles = StyleSheet.create({
     top: 0,
     zIndex: 10,
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 24,
-    width: '85%',
-    maxWidth: 400,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#333',
-  },
   inputGroup: {
     marginBottom: 16,
   },
@@ -1548,9 +1825,6 @@ const styles = StyleSheet.create({
     top: 12,
     right: 12,
   },
-  sectionEditBtn: {
-    padding: 4,
-  },
   cycleEditSection: {
     marginBottom: 20,
   },
@@ -1609,5 +1883,9 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#f0f0f0',
     marginVertical: 20,
+  },
+  addContainer: {
+    marginVertical: STYLE.spacing.mv,
+    marginHorizontal: STYLE.spacing.mh,
   },
 });

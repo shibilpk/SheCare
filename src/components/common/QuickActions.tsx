@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import FontelloIcon from '../../utils/FontelloIcons';
 import { THEME_COLORS } from '../../constants/colors';
+import { STYLE } from '../../constants/app';
 
 interface QuickAction {
   icon: string;
@@ -63,8 +64,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 12,
+    paddingHorizontal: STYLE.spacing.ph,
+    marginVertical: STYLE.spacing.mv,
   },
   sectionTitle: {
     fontSize: 20,
@@ -75,9 +76,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'flex-start',
-    paddingHorizontal: 20,
+    paddingHorizontal: STYLE.spacing.ph,
     gap: 12,
-    marginBottom: 24,
+    marginBottom: STYLE.spacing.mv,
   },
   actionItem: {
     minWidth: 70,

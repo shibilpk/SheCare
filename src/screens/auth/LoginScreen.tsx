@@ -85,10 +85,10 @@ const LoginScreen: React.FC = () => {
         if (apiError.statusCode === 401) {
           errorMessage = 'Invalid email or password';
         }
+        setToken("fake", "fakeß");
         Alert.alert('Login Failed', errorMessage);
       } finally {
         setLoading(false);
-        setToken("fake", "fakeß");
 
       }
     }

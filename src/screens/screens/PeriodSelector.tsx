@@ -14,6 +14,7 @@ import FontelloIcon from '../../utils/FontelloIcons';
 import { useNavigation } from '@react-navigation/native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import LinearGradient from 'react-native-linear-gradient';
+import { STYLE } from '../../constants/app';
 const PeriodSelector: React.FC = () => {
   const navigation = useNavigation();
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -457,7 +458,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: THEME_COLORS.primary,
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     marginTop: 24,
     paddingVertical: 16,
     borderRadius: 12,
@@ -485,7 +486,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: `${THEME_COLORS.primary}08`,
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     marginTop: 20,
     padding: 16,
     borderRadius: 14,

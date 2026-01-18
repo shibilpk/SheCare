@@ -15,6 +15,7 @@ import { THEME_COLORS } from '../../constants/colors';
 import { useNavigation } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import { STYLE } from '../../constants/app';
 
 const { width } = Dimensions.get('window');
 
@@ -383,7 +384,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   statsCard: {
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     marginTop: 20,
     borderRadius: 20,
     shadowColor: '#000',
@@ -419,7 +420,7 @@ const styles = StyleSheet.create({
   },
   chartCard: {
     backgroundColor: THEME_COLORS.textLight,
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     marginTop: 20,
     padding: 20,
     borderRadius: 20,
@@ -492,7 +493,7 @@ const styles = StyleSheet.create({
   },
   guidelinesCard: {
     backgroundColor: '#F3E8FF',
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     marginTop: 20,
     padding: 20,
     borderRadius: 16,
@@ -554,7 +555,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: THEME_COLORS.textLight,
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     marginBottom: 10,
     padding: 16,
     borderRadius: 16,

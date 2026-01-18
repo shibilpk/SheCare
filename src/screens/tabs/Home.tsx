@@ -19,6 +19,7 @@ import { monthNamesShort } from '../../constants/common';
 import QuickActions from '../../components/common/QuickActions';
 import DiaryModal from '../common/dairy/DiaryModal';
 import { blogPosts } from '../blog/BlogListScreen';
+import { STYLE } from '../../constants/app';
 
 export default function HomeScreen() {
   const navigation = useNavigation<DrawerNavigationProp<RootStackParamList>>();
@@ -200,7 +201,6 @@ export default function HomeScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
       >
         {/* Main Period Card */}
         <LinearGradient
@@ -465,7 +465,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: STYLE.spacing.ph,
     paddingVertical: 8,
     backgroundColor: THEME_COLORS.textLight,
     shadowColor: '#000',
@@ -473,6 +473,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
+    marginBottom: STYLE.spacing.mv,
   },
   headerBtn: {
     padding: 4,
@@ -509,11 +510,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   scrollContent: {
-    paddingBottom: 40,
+    marginVertical: STYLE.spacing.mv,
   },
   mainCard: {
-    marginHorizontal: 20,
-    marginTop: 20,
+    marginHorizontal: STYLE.spacing.mh,
     borderRadius: 24,
     overflow: 'hidden',
     shadowColor: '#000',
@@ -521,6 +521,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 6,
+    marginVertical: STYLE.spacing.mv,
   },
   mainCardContent: {
     padding: 24,
@@ -572,7 +573,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: STYLE.spacing.ph,
     marginTop: 8,
     marginBottom: 12,
   },
@@ -582,7 +583,7 @@ const styles = StyleSheet.create({
     color: THEME_COLORS.text,
   },
   blogsScroll: {
-    paddingHorizontal: 20,
+    paddingHorizontal: STYLE.spacing.ph,
     paddingBottom: 20,
     gap: 12,
   },
@@ -638,10 +639,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: THEME_COLORS.textLight,
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     padding: 20,
     borderRadius: 16,
-    marginBottom: 24,
+    marginVertical: STYLE.spacing.mv,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
@@ -678,8 +679,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 12,
+    paddingHorizontal: STYLE.spacing.ph,
+    marginVertical: STYLE.spacing.mv,
   },
   sectionTitle: {
     fontSize: 20,
@@ -695,8 +696,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: THEME_COLORS.textLight,
-    marginHorizontal: 20,
-    marginBottom: 12,
+    marginHorizontal: STYLE.spacing.mh,
+    marginBottom: STYLE.spacing.mv,
     padding: 16,
     borderRadius: 16,
     shadowColor: '#000',
@@ -728,9 +729,8 @@ const styles = StyleSheet.create({
   },
   tipsCard: {
     backgroundColor: '#FFF9F0',
-    marginHorizontal: 20,
-    marginTop: 12,
-    marginBottom: 24,
+    marginHorizontal: STYLE.spacing.mh,
+    marginVertical: STYLE.spacing.mv,
     padding: 20,
     borderRadius: 16,
     borderLeftWidth: 4,
@@ -770,13 +770,12 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   statsScroll: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: STYLE.spacing.ph,
+    marginVertical: STYLE.spacing.mv,
     gap: 10,
   },
   statCard: {
     width: 100,
-    // height: 115,
     borderRadius: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },

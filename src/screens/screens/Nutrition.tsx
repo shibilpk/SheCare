@@ -13,6 +13,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import FontelloIcon from '../../utils/FontelloIcons';
 import { THEME_COLORS } from '../../constants/colors';
 import { KeyboardAvoidingModal } from '../../components';
+import { STYLE } from '../../constants/app';
 
 interface MealItem {
   id: number;
@@ -311,7 +312,7 @@ const styles = StyleSheet.create({
   addBtn: { padding: 4 },
   scrollContent: { paddingBottom: 40 },
   summaryCard: {
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     marginTop: 20,
     borderRadius: 24,
     shadowColor: '#000',
@@ -358,7 +359,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: THEME_COLORS.textLight,
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     marginBottom: 10,
     padding: 16,
     borderRadius: 16,
@@ -392,7 +393,7 @@ const styles = StyleSheet.create({
 
   tipsCard: {
     backgroundColor: '#FFF7ED',
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     marginTop: 24,
     padding: 20,
     borderRadius: 16,

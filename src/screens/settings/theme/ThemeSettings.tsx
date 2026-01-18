@@ -14,6 +14,7 @@ import { RootStackParamList } from '../../../constants/navigation';
 import { THEME_COLORS } from '../../../constants/colors';
 import useStore from '../../../hooks/useStore';
 import { useIsDarkMode, isUserSetTheme } from '../../../utils/theme';
+import { STYLE } from '../../../constants/app';
 
 type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -187,7 +188,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#E3F2FD',
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     marginTop: 16,
     padding: 14,
     borderRadius: 10,
@@ -202,7 +203,7 @@ const styles = StyleSheet.create({
   toggleContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     marginTop: 30,
     backgroundColor: '#fff',
     borderRadius: 12,
@@ -231,7 +232,7 @@ const styles = StyleSheet.create({
   },
   previewBox: {
     marginTop: 30,
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
   },
   previewTitle: {
     fontSize: 16,
@@ -254,7 +255,7 @@ const styles = StyleSheet.create({
   },
   infoSection: {
     marginTop: 30,
-    marginHorizontal: 20,
+    marginHorizontal: STYLE.spacing.mh,
     gap: 12,
   },
   infoCard: {
