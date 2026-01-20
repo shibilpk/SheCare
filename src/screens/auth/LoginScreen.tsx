@@ -18,89 +18,145 @@ import useStore from '../../hooks/useStore';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList, SCREENS } from '../../constants/navigation';
-import { AUTH_V1_URLS } from '../../constants/apis';
+import { APIS } from '../../constants/apis';
 
 const LoginScreen: React.FC = () => {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>(
-    {},
-  );
+  const [checkingUser, setCheckingUser] = useState(false);
+  const [userExists, setUserExists] = useState<boolean | null>(null);
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const safeAreaInsets = useSafeAreaInsets();
 
   const setToken = useStore(state => state.setToken);
 
-  const resetForm = () => {
-    setFormData({ email: '', password: '' });
-    setErrors({});
+  const validateEmail = (emailValue: string) => {
+    if (!emailValue) {
+      setEmailError('Email is required');
+      return false;
+    } else if (!/\S+@\S+\.\S+/.test(emailValue)) {
+      setEmailError('Email is invalid');
+      return false;
+    }
+    setEmailError('');
+    return true;
   };
 
-  const validateForm = () => {
-    const newErrors: { email?: string; password?: string } = {};
-
-    if (!formData.email) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
+  const handleEmailSubmit = async () => {
+    if (!validateEmail(email)) {
+      return;
     }
 
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-    }
+    setCheckingUser(true);
+    try {
+      // Check if user exists
+      const response = await apiClient.post<any>(
+        APIS.V1.AUTH.CHECK_USER,
+        { email },
+        { is_auth: false },
+      );
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleLogin = async () => {
-    if (validateForm()) {
-      setLoading(true);
-      try {
-        const response = await apiClient.post<any>(
-          AUTH_V1_URLS.LOGIN,
-          formData,
-          { is_auth: false }, // No auth needed for login
-        );
-
-        if (response.state === 1 && response.access && response.refresh) {
-          // Store tokens and user data
-          setToken(response.access, response.refresh);
-
-          // Optionally store user data if needed
-          // await AsyncStorage.setItem('user_data', JSON.stringify(response.user));
-
-          resetForm();
-          Alert.alert('Success', 'Login successful!');
-        } else {
-          Alert.alert('Error', 'Invalid response from server');
+      if (response.state === 1) {
+        setUserExists(response.exists);
+        if (!response.exists) {
+          Alert.alert(
+            'User Not Found',
+            'This email is not registered. Please create an account.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              {
+                text: 'Register',
+                onPress: () => navigation.replace(SCREENS.REGISTER),
+              },
+            ],
+          );
         }
-      } catch (error) {
-        const apiError = error as APIError;
-        let errorMessage = apiError.message;
-
-        if (apiError.statusCode === 401) {
-          errorMessage = 'Invalid email or password';
-        }
-        setToken("fake", "fakeß");
-        Alert.alert('Login Failed', errorMessage);
-      } finally {
-        setLoading(false);
-
       }
+    } catch (error) {
+      const apiError = error as APIError;
+      Alert.alert('Error', apiError.message || 'Failed to check user');
+      // For demo purposes, allow to proceed
+      setUserExists(true);
+    } finally {
+      setCheckingUser(false);
     }
+  };
+
+  const handlePasswordLogin = async () => {
+    if (!password) {
+      setPasswordError('Password is required');
+      return;
+    } else if (password.length < 6) {
+      setPasswordError('Password must be at least 6 characters');
+      return;
+    }
+
+    setPasswordError('');
+    setLoading(true);
+    try {
+      const response = await apiClient.post<any>(
+        APIS.V1.AUTH.LOGIN,
+        { email, password },
+        { is_auth: false },
+      );
+
+      if (response.state === 1 && response.access && response.refresh) {
+        setToken(response.access, response.refresh);
+        Alert.alert('Success', 'Login successful!');
+      } else {
+        Alert.alert('Error', 'Invalid response from server');
+      }
+    } catch (error) {
+      const apiError = error as APIError;
+      let errorMessage = apiError.message;
+
+      if (apiError.statusCode === 401) {
+        errorMessage = 'Invalid email or password';
+      }
+      Alert.alert('Login Failed', errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOTPLogin = async () => {
+    setLoading(true);
+    try {
+      const response = await apiClient.post<any>(
+        APIS.V1.AUTH.SEND_OTP,
+        { email },
+        { is_auth: false },
+      );
+
+      if (response.state === 1) {
+        Alert.alert('Success', 'OTP has been sent to your email');
+        navigation.navigate(SCREENS.OTP_VERIFICATION, {
+          email,
+          isLoginFlow: true,
+        });
+      } else {
+        Alert.alert('Error', response.message || 'Failed to send OTP');
+      }
+    } catch (error) {
+      const apiError = error as APIError;
+      Alert.alert('Failed', apiError.message || 'Failed to send OTP');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChangeEmail = () => {
+    setUserExists(null);
+    setPassword('');
+    setPasswordError('');
   };
 
   return (
     <View style={styles.background}>
-      {/* <Image
-        source={{ uri: 'https://i.pinimg.com/736x/06/99/fa/0699fac320b02ff769e0fa0ad3fc725f.jpg' }}
-        style={styles.absoluteBg}
-        resizeMode="cover"
-      /> */}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={[styles.container, { paddingTop: safeAreaInsets.top }]}
@@ -119,67 +175,116 @@ const LoginScreen: React.FC = () => {
             <Text style={styles.title}>Welcome</Text>
             <Text style={styles.subtitle}>We are glad you are here</Text>
             <View style={styles.form}>
+              {/* Email Input - Always visible */}
               <Input
                 label="Email"
-                value={formData.email}
-                onChangeText={text => setFormData({ ...formData, email: text })}
+                value={email}
+                onChangeText={text => {
+                  setEmail(text);
+                  setEmailError('');
+                }}
                 placeholder="Enter your email"
                 keyboardType="email-address"
-                error={errors.email}
+                error={emailError}
+                editable={userExists === null}
               />
-              <Input
-                label="Password"
-                value={formData.password}
-                onChangeText={text => setFormData({ ...formData, password: text })}
-                placeholder="Enter your password"
-                secureTextEntry
-                error={errors.password}
-              />
-              <Button
-                title="Sign In"
-                onPress={handleLogin}
-                loading={loading}
-                disabled={loading}
-              />
-              <Button
-                title="Create Account"
-                onPress={() => navigation.replace(SCREENS.REGISTER)}
-                variant="secondary"
-              />
+
+              {userExists === null ? (
+                <>
+                  <Button
+                    title="Continue"
+                    onPress={handleEmailSubmit}
+                    loading={checkingUser}
+                    disabled={checkingUser}
+                  />
+                  <Button
+                    title="Create Account"
+                    onPress={() => navigation.replace(SCREENS.REGISTER)}
+                    variant="secondary"
+                  />
+                </>
+              ) : (
+                <>
+                  {/* Email confirmed section */}
+                  <TouchableOpacity
+                    style={styles.changeEmailButton}
+                    onPress={handleChangeEmail}
+                  >
+                    <Text style={styles.changeEmailText}>Change Email</Text>
+                  </TouchableOpacity>
+
+                  {/* Password Input - Only shown after email verification */}
+                  <Input
+                    label="Password"
+                    value={password}
+                    onChangeText={text => {
+                      setPassword(text);
+                      setPasswordError('');
+                    }}
+                    placeholder="Enter your password"
+                    secureTextEntry
+                    error={passwordError}
+                  />
+
+                  <Button
+                    title="Sign In with Password"
+                    onPress={handlePasswordLogin}
+                    loading={loading && password.length > 0}
+                    disabled={loading}
+                  />
+
+                  <View style={styles.dividerContainer}>
+                    <View style={styles.divider} />
+                    <Text style={styles.dividerText}>OR</Text>
+                    <View style={styles.divider} />
+                  </View>
+
+                  <Button
+                    title="Sign In with OTP"
+                    onPress={handleOTPLogin}
+                    variant="secondary"
+                    loading={loading && password.length === 0}
+                    disabled={loading}
+                  />
+                </>
+              )}
             </View>
+
             {/* Social Login Buttons */}
-            <View style={styles.socialLoginContainer}>
-              <Text style={styles.socialLoginText}>Or sign in with</Text>
-              <View style={styles.socialIconsRow}>
-                <TouchableOpacity
-                  style={styles.socialIconButton}
-                  onPress={() => {}}
-                >
-                  <Image
-                    source={require('../../assets/images/icons/icons8-google-50.png')}
-                    style={styles.socialIcon}
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.socialIconButton}
-                  onPress={() => {}}
-                >
-                  <Image
-                    source={require('../../assets/images/icons/icons8-github-50.png')}
-                    style={styles.socialIcon}
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.socialIconButton}
-                  onPress={() => {}}
-                >
-                  <Image
-                    source={require('../../assets/images/icons/icons8-instagram-50.png')}
-                    style={styles.socialIcon}
-                  />
-                </TouchableOpacity>
+            {userExists === null && (
+              <View style={styles.socialLoginContainer}>
+                <Text style={styles.socialLoginText}>Or sign in with</Text>
+                <View style={styles.socialIconsRow}>
+                  <TouchableOpacity
+                    style={styles.socialIconButton}
+                    onPress={() => {}}
+                  >
+                    <Image
+                      source={require('../../assets/images/icons/icons8-google-50.png')}
+                      style={styles.socialIcon}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.socialIconButton}
+                    onPress={() => {}}
+                  >
+                    <Image
+                      source={require('../../assets/images/icons/icons8-github-50.png')}
+                      style={styles.socialIcon}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.socialIconButton}
+                    onPress={() => {}}
+                  >
+                    <Image
+                      source={require('../../assets/images/icons/icons8-instagram-50.png')}
+                      style={styles.socialIcon}
+                    />
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -195,15 +300,6 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'hidden',
   },
-  //   absoluteBg: {
-  //     position: 'absolute',
-  //     top: 0,
-  //     left: 0,
-  //     width: '100%',
-  //     height: '100%',
-  //     zIndex: -1,
-  // 	opacity: .7,
-  //   },
   container: {
     flex: 1,
     backgroundColor: THEME_COLORS.background,
@@ -229,6 +325,31 @@ const styles = StyleSheet.create({
   },
   form: {
     width: '100%',
+  },
+  changeEmailButton: {
+    alignSelf: 'flex-end',
+    marginBottom: 16,
+  },
+  changeEmailText: {
+    color: THEME_COLORS.primary || '#E91E63',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E0E0E0',
+  },
+  dividerText: {
+    marginHorizontal: 16,
+    fontSize: 14,
+    color: '#999',
+    fontWeight: '500',
   },
   socialLoginContainer: {
     marginTop: 10,

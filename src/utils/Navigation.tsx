@@ -538,6 +538,10 @@ export default function RootNavigation() {
                   name={SCREENS.REGISTER}
                   component={Screens.RegisterScreen}
                 />
+                <Stack.Screen
+                  name={SCREENS.OTP_VERIFICATION}
+                  component={Screens.OTPVerificationScreen}
+                />
               </Stack.Navigator>
             )}
           </NavigationContainer>

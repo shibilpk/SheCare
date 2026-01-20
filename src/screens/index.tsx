@@ -1,5 +1,6 @@
 export { default as LoginScreen } from './auth/LoginScreen';
 export { default as RegisterScreen } from './auth/RegisterScreen';
+export { default as OTPVerificationScreen } from './auth/OTPVerificationScreen';
 
 export { default as CalendarScreen } from './tabs/Calendar';
 export { default as HomeScreen } from './tabs/Home';

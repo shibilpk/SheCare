@@ -2,6 +2,7 @@ export const SCREENS = {
   HOME: 'Home',
   LOGIN: 'Login',
   REGISTER: 'Register',
+  OTP_VERIFICATION: 'OTPVerification',
   CALENDAR: 'Calendar',
   PROFILE: 'Profile',
   TODAY: 'Today',
@@ -27,6 +28,18 @@ export const SCREENS = {
   BLOG_DETAIL: 'BlogDetail',
 } as const;
 
+// Define screens that need params and their types
+type ScreenParams = {
+  OTPVerification: {
+    id: string;
+    email?: string;
+    isLoginFlow?: boolean;
+  };
+};
+
+// RootStackParamList automatically types screens
 export type RootStackParamList = {
-  [K in (typeof SCREENS)[keyof typeof SCREENS]]: undefined;
+  [K in (typeof SCREENS)[keyof typeof SCREENS]]: K extends keyof ScreenParams
+    ? ScreenParams[K]
+    : undefined;
 };

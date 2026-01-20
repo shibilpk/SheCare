@@ -17,6 +17,8 @@ import useStore from '../../hooks/useStore';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList, SCREENS } from '../../constants/navigation';
+import { APIS } from '../../constants/apis';
+import apiClient, { APIError } from '../../utils/ApiClient';
 
 const RegisterScreen: React.FC = () => {
   const [firstName, setFirstName] = useState('');
@@ -96,26 +98,41 @@ const RegisterScreen: React.FC = () => {
 
       // Prepare registration data
       const registrationData = {
-        firstName,
-        lastName,
-        email,
-        password,
-        address,
-        city,
-        state,
-        country,
-        zipCode,
+        first_name:firstName,
+        last_name:lastName,
+        email:email,
+        password:password,
+        address:address,
+        city:city,
+        state:state,
+        country:country,
+        zip_code:zipCode,
       };
 
-      // Simulate API call
-      // In production, you would send this data to your backend
-      console.log('Registration data:', registrationData);
+      try {
 
-      // Simulate success and auto-login
-      setToken('dummy_token_123', 'dummy_refresh_456');
-      setLoading(false);
-      resetForm();
-      Alert.alert('Success', 'Account created successfully!');
+        const response = await apiClient.post<any>(
+          APIS.V1.AUTH.REGISTER,
+          registrationData,
+          { is_auth: false },
+        );
+
+        if (response.state === 1) {
+          Alert.alert('Success', 'Registration successful!');
+          resetForm();
+          let user_id = response.user_id;
+          console.log(user_id,"user_id");
+
+          navigation.navigate(SCREENS.OTP_VERIFICATION, { id: user_id });
+        } else {
+          Alert.alert('Error', response.message || 'Registration failed');
+        }
+      } catch (error) {
+        const apiError = error as APIError;
+        Alert.alert('Failed', apiError.message || 'Registration failed');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -318,11 +335,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 10,
     textAlign: 'center',
-    color: THEME_COLORS.dark,
+    color: THEME_COLORS.text,
   },
   subtitle: {
     fontSize: 16,
-    color: THEME_COLORS.gray,
+    color: THEME_COLORS.textGray,
     marginBottom: 30,
     textAlign: 'center',
   },
@@ -332,7 +349,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: THEME_COLORS.dark,
+    color: THEME_COLORS.text,
     marginTop: 10,
     marginBottom: 15,
   },
@@ -351,7 +368,7 @@ const styles = StyleSheet.create({
   },
   socialLoginText: {
     fontSize: 14,
-    color: THEME_COLORS.gray,
+    color: THEME_COLORS.textGray,
     marginBottom: 12,
   },
   socialIconsRow: {

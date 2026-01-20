@@ -34,7 +34,7 @@ import {
 } from 'react-native-image-picker';
 import useStore from '../../hooks/useStore';
 import apiClient, { APIError } from '../../utils/ApiClient';
-import { AUTH_V1_URLS } from '../../constants/apis';
+import { APIS } from '../../constants/apis';
 import AdBanner from '../../components/common/AdBanner';
 import {
   SAMPLE_ADS,
@@ -168,7 +168,7 @@ export default function Profile() {
       appendFormDataRecursively(formData, profileUpdate);
 
       const response = await apiClient.patch<any>(
-        AUTH_V1_URLS.PROFILE,
+        APIS.V1.AUTH.PROFILE,
         formData,
       );
 
@@ -190,7 +190,7 @@ export default function Profile() {
   const fetchProfile = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get<any>(AUTH_V1_URLS.PROFILE);
+      const response = await apiClient.get<any>(APIS.V1.AUTH.PROFILE);
 
       if (response.state === 1 && response.profile) {
         setProfile(response.profile);

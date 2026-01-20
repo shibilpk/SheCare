@@ -19,19 +19,20 @@ export const SAMPLE_ADS: AdData[] = [
 
 
   // Full Page Ads
-  {
-    id: 'fullpage_1',
-    imageUrl: 'https://static-cse.canva.com/blob/2193110/Febreeze_magazinead.jpg',
-    link: 'https://www.example.com/fullpage1',
-    size: 'fullpage',
-    title: 'Febreze Magazine Ad',
-  },
-  {
-    id: 'fullpage_2',
-    imageUrl: 'https://www.webfx.com/wp-content/uploads/2010/06/up-and-up-banner-ad.png',
-    size: 'fullpage',
-    title: 'Febreze Magazine Ad',
-  },
+
+  // {
+  //   id: 'fullpage_1',
+  //   imageUrl: 'https://static-cse.canva.com/blob/2193110/Febreeze_magazinead.jpg',
+  //   link: 'https://www.example.com/fullpage1',
+  //   size: 'fullpage',
+  //   title: 'Febreze Magazine Ad',
+  // },
+  // {
+  //   id: 'fullpage_2',
+  //   imageUrl: 'https://www.webfx.com/wp-content/uploads/2010/06/up-and-up-banner-ad.png',
+  //   size: 'fullpage',
+  //   title: 'Febreze Magazine Ad',
+  // },
 
   // Half Page Ads
   {

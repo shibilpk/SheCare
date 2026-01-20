@@ -1,4 +1,4 @@
-import { AUTH_V1_URLS } from '../constants/apis';
+import { APIS, BASE_URL } from '../constants/apis';
 import useStore from '../hooks/useStore';
 
 // Custom API Error class
@@ -161,7 +161,7 @@ class ApiClient {
         throw new Error('No refresh token available');
       }
 
-      const response = await fetch(`${this.baseURL}${AUTH_V1_URLS.REFRESH}`, {
+      const response = await fetch(`${this.baseURL}${APIS.V1.AUTH.REFRESH}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -485,7 +485,7 @@ class ApiClient {
 
 // Create and export singleton instance
 // TODO: Update the baseURL to your actual API base URL
-const apiClient = new ApiClient('http://localhost:8006');
+const apiClient = new ApiClient(BASE_URL);
 
 export default apiClient;
 

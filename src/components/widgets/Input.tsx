@@ -10,6 +10,8 @@ interface InputProps {
   secureTextEntry?: boolean;
   keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
   error?: string;
+  multiline?: boolean;
+  numberOfLines?: number;
 }
 
 const Input: React.FC<InputProps> = ({
@@ -19,6 +21,8 @@ const Input: React.FC<InputProps> = ({
   placeholder,
   secureTextEntry = false,
   keyboardType = 'default',
+  multiline = false,
+  numberOfLines = 1,
   error,
 }) => {
   return (
@@ -32,6 +36,8 @@ const Input: React.FC<InputProps> = ({
         secureTextEntry={secureTextEntry}
         keyboardType={keyboardType}
         autoCapitalize="none"
+        multiline={multiline}
+        numberOfLines={numberOfLines}
       />
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
     </View>

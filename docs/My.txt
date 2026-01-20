@@ -12,3 +12,5 @@ export type RootStackParamList = {
     ? { openDiaryModal?: boolean }
     : undefined;
 };
+
+npx react-native-asset
