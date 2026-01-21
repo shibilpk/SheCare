@@ -434,9 +434,9 @@ export default function RootNavigation() {
   const close = () => setModalVisible(false);
 
   return (
-    <UpdateProvider>
-      <PopupWizardProvider>
-        <SafeAreaProvider>
+    <SafeAreaProvider>
+      <UpdateProvider>
+        <PopupWizardProvider>
           <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
           <NavigationContainer ref={navigationRef}>
             {isLoggedIn ? (
@@ -545,8 +545,8 @@ export default function RootNavigation() {
               </Stack.Navigator>
             )}
           </NavigationContainer>
-        </SafeAreaProvider>
-      </PopupWizardProvider>
-    </UpdateProvider>
+        </PopupWizardProvider>
+      </UpdateProvider>
+    </SafeAreaProvider>
   );
 }

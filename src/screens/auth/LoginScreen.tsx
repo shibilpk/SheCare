@@ -8,10 +8,10 @@ import {
   Platform,
   Image,
   ScrollView,
+  TouchableOpacity,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Input, Button } from '../../components';
-import { TouchableOpacity } from 'react-native';
 import apiClient, { APIError } from '../../utils/ApiClient';
 import { THEME_COLORS } from '../../constants/colors';
 import useStore from '../../hooks/useStore';
@@ -19,16 +19,22 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList, SCREENS } from '../../constants/navigation';
 import { APIS } from '../../constants/apis';
+import LinearGradient from 'react-native-linear-gradient';
+import FontelloIcon from '../../utils/FontelloIcons';
+import { STYLE } from '../../constants/app';
+
+type InputMode = 'email' | 'phone';
 
 const LoginScreen: React.FC = () => {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const [inputMode, setInputMode] = useState<InputMode>('email');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [checkingUser, setCheckingUser] = useState(false);
-  const [userExists, setUserExists] = useState<boolean | null>(null);
-  const [emailError, setEmailError] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [inputError, setInputError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const safeAreaInsets = useSafeAreaInsets();
 
@@ -36,57 +42,35 @@ const LoginScreen: React.FC = () => {
 
   const validateEmail = (emailValue: string) => {
     if (!emailValue) {
-      setEmailError('Email is required');
+      setInputError('Email is required');
       return false;
     } else if (!/\S+@\S+\.\S+/.test(emailValue)) {
-      setEmailError('Email is invalid');
+      setInputError('Email is invalid');
       return false;
     }
-    setEmailError('');
+    setInputError('');
     return true;
   };
 
-  const handleEmailSubmit = async () => {
-    if (!validateEmail(email)) {
-      return;
+  const validatePhone = (phoneValue: string) => {
+    if (!phoneValue) {
+      setInputError('Phone number is required');
+      return false;
+    } else if (!/^[0-9]{10}$/.test(phoneValue)) {
+      setInputError('Phone number must be 10 digits');
+      return false;
     }
-
-    setCheckingUser(true);
-    try {
-      // Check if user exists
-      const response = await apiClient.post<any>(
-        APIS.V1.AUTH.CHECK_USER,
-        { email },
-        { is_auth: false },
-      );
-
-      if (response.state === 1) {
-        setUserExists(response.exists);
-        if (!response.exists) {
-          Alert.alert(
-            'User Not Found',
-            'This email is not registered. Please create an account.',
-            [
-              { text: 'Cancel', style: 'cancel' },
-              {
-                text: 'Register',
-                onPress: () => navigation.replace(SCREENS.REGISTER),
-              },
-            ],
-          );
-        }
-      }
-    } catch (error) {
-      const apiError = error as APIError;
-      Alert.alert('Error', apiError.message || 'Failed to check user');
-      // For demo purposes, allow to proceed
-      setUserExists(true);
-    } finally {
-      setCheckingUser(false);
-    }
+    setInputError('');
+    return true;
   };
 
   const handlePasswordLogin = async () => {
+    const isValid =
+      inputMode === 'email' ? validateEmail(email) : validatePhone(phone);
+    if (!isValid) {
+      return;
+    }
+
     if (!password) {
       setPasswordError('Password is required');
       return;
@@ -98,11 +82,12 @@ const LoginScreen: React.FC = () => {
     setPasswordError('');
     setLoading(true);
     try {
-      const response = await apiClient.post<any>(
-        APIS.V1.AUTH.LOGIN,
-        { email, password },
-        { is_auth: false },
-      );
+      const payload =
+        inputMode === 'email' ? { email, password } : { phone, password };
+
+      const response = await apiClient.post<any>(APIS.V1.AUTH.LOGIN, payload, {
+        is_auth: false,
+      });
 
       if (response.state === 1 && response.access && response.refresh) {
         setToken(response.access, response.refresh);
@@ -113,10 +98,6 @@ const LoginScreen: React.FC = () => {
     } catch (error) {
       const apiError = error as APIError;
       let errorMessage = apiError.message;
-
-      if (apiError.statusCode === 401) {
-        errorMessage = 'Invalid email or password';
-      }
       Alert.alert('Login Failed', errorMessage);
     } finally {
       setLoading(false);
@@ -124,18 +105,26 @@ const LoginScreen: React.FC = () => {
   };
 
   const handleOTPLogin = async () => {
-    setLoading(true);
+    const isValid =
+      inputMode === 'email' ? validateEmail(email) : validatePhone(phone);
+    if (!isValid) {
+      return;
+    }
+
+    setOtpLoading(true);
     try {
+      const payload = inputMode === 'email' ? { email } : { phone };
+
       const response = await apiClient.post<any>(
         APIS.V1.AUTH.SEND_OTP,
-        { email },
+        payload,
         { is_auth: false },
       );
 
       if (response.state === 1) {
-        Alert.alert('Success', 'OTP has been sent to your email');
+        Alert.alert('Success', `OTP has been sent to your ${inputMode}`);
         navigation.navigate(SCREENS.OTP_VERIFICATION, {
-          email,
+          email: inputMode === 'email' ? email : phone,
           isLoginFlow: true,
         });
       } else {
@@ -145,75 +134,103 @@ const LoginScreen: React.FC = () => {
       const apiError = error as APIError;
       Alert.alert('Failed', apiError.message || 'Failed to send OTP');
     } finally {
-      setLoading(false);
+      setOtpLoading(false);
     }
   };
 
-  const handleChangeEmail = () => {
-    setUserExists(null);
-    setPassword('');
+  const handleSocialLogin = (provider: string) => {
+    Alert.alert('Coming Soon', `${provider} login will be available soon!`);
+  };
+
+  const toggleInputMode = () => {
+    setInputMode(inputMode === 'email' ? 'phone' : 'email');
+    setInputError('');
     setPasswordError('');
   };
 
   return (
     <View style={styles.background}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={[styles.container, { paddingTop: safeAreaInsets.top }]}
-        keyboardVerticalOffset={24}
+      <LinearGradient
+        colors={['#FFF5F7', '#FFF', '#FFF']}
+        style={styles.gradientBackground}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={[styles.container, { paddingTop: safeAreaInsets.top }]}
+          keyboardVerticalOffset={24}
         >
-          <View style={styles.inner}>
-            <Image
-              source={require('../../assets/images/calendar-woman.png')}
-              style={styles.calendarWoman}
-              resizeMode="contain"
-            />
-            <Text style={styles.title}>Welcome</Text>
-            <Text style={styles.subtitle}>We are glad you are here</Text>
-            <View style={styles.form}>
-              {/* Email Input - Always visible */}
-              <Input
-                label="Email"
-                value={email}
-                onChangeText={text => {
-                  setEmail(text);
-                  setEmailError('');
-                }}
-                placeholder="Enter your email"
-                keyboardType="email-address"
-                error={emailError}
-                editable={userExists === null}
-              />
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.inner}>
+              {/* Header Section */}
+              <View style={styles.headerSection}>
+                <Image
+                  source={require('../../assets/images/calendar-woman.png')}
+                  style={styles.calendarWoman}
+                  resizeMode="contain"
+                />
+                <Text style={styles.title}>Welcome Back! 👋</Text>
+                <Text style={styles.subtitle}>Sign in to continue</Text>
+              </View>
 
-              {userExists === null ? (
-                <>
-                  <Button
-                    title="Continue"
-                    onPress={handleEmailSubmit}
-                    loading={checkingUser}
-                    disabled={checkingUser}
-                  />
-                  <Button
-                    title="Create Account"
-                    onPress={() => navigation.replace(SCREENS.REGISTER)}
-                    variant="secondary"
-                  />
-                </>
-              ) : (
-                <>
-                  {/* Email confirmed section */}
-                  <TouchableOpacity
-                    style={styles.changeEmailButton}
-                    onPress={handleChangeEmail}
-                  >
-                    <Text style={styles.changeEmailText}>Change Email</Text>
-                  </TouchableOpacity>
+              {/* Login Form Card */}
+              <View style={styles.formCard}>
+                <View style={styles.form}>
+                  {/* Input Field with Switch Option */}
+                  {inputMode === 'email' ? (
+                    <>
+                      <Input
+                        label="Email Address"
+                        value={email}
+                        onChangeText={text => {
+                          setEmail(text);
+                          setInputError('');
+                        }}
+                        placeholder="Enter your email"
+                        keyboardType="email-address"
+                        error={inputError}
+                        autoCapitalize="none"
+                      />
+                      <TouchableOpacity
+                        onPress={toggleInputMode}
+                        style={styles.switchModeLink}
+                        activeOpacity={0.7}
+                      >
+                        <FontelloIcon name="mobile" size={14} color="#8B5CF6" />
+                        <Text style={styles.switchModeText}>
+                          Use phone number instead
+                        </Text>
+                      </TouchableOpacity>
+                    </>
+                  ) : (
+                    <>
+                      <Input
+                        label="Phone Number"
+                        value={phone}
+                        onChangeText={text => {
+                          setPhone(text);
+                          setInputError('');
+                        }}
+                        placeholder="Enter your phone number"
+                        keyboardType="phone-pad"
+                        error={inputError}
+                      />
+                      <TouchableOpacity
+                        onPress={toggleInputMode}
+                        style={styles.switchModeLink}
+                        activeOpacity={0.7}
+                      >
+                        <FontelloIcon name="mail" size={14} color="#8B5CF6" />
+                        <Text style={styles.switchModeText}>
+                          Use email instead
+                        </Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
 
-                  {/* Password Input - Only shown after email verification */}
                   <Input
                     label="Password"
                     value={password}
@@ -226,68 +243,102 @@ const LoginScreen: React.FC = () => {
                     error={passwordError}
                   />
 
+                  {/* Primary Login Button */}
                   <Button
-                    title="Sign In with Password"
+                    title="Sign In"
                     onPress={handlePasswordLogin}
-                    loading={loading && password.length > 0}
-                    disabled={loading}
+                    loading={loading}
+                    disabled={loading || otpLoading}
+                    style={styles.primaryButton}
                   />
 
-                  <View style={styles.dividerContainer}>
-                    <View style={styles.divider} />
-                    <Text style={styles.dividerText}>OR</Text>
-                    <View style={styles.divider} />
-                  </View>
-
-                  <Button
-                    title="Sign In with OTP"
+                  {/* OTP Login Link */}
+                  <TouchableOpacity
                     onPress={handleOTPLogin}
-                    variant="secondary"
-                    loading={loading && password.length === 0}
-                    disabled={loading}
-                  />
-                </>
-              )}
-            </View>
-
-            {/* Social Login Buttons */}
-            {userExists === null && (
-              <View style={styles.socialLoginContainer}>
-                <Text style={styles.socialLoginText}>Or sign in with</Text>
-                <View style={styles.socialIconsRow}>
-                  <TouchableOpacity
-                    style={styles.socialIconButton}
-                    onPress={() => {}}
+                    style={styles.otpLink}
+                    disabled={loading || otpLoading}
+                    activeOpacity={0.7}
                   >
-                    <Image
-                      source={require('../../assets/images/icons/icons8-google-50.png')}
-                      style={styles.socialIcon}
-                    />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.socialIconButton}
-                    onPress={() => {}}
-                  >
-                    <Image
-                      source={require('../../assets/images/icons/icons8-github-50.png')}
-                      style={styles.socialIcon}
-                    />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.socialIconButton}
-                    onPress={() => {}}
-                  >
-                    <Image
-                      source={require('../../assets/images/icons/icons8-instagram-50.png')}
-                      style={styles.socialIcon}
-                    />
+                    {otpLoading ? (
+                      <Text style={styles.otpLinkText}>Sending OTP...</Text>
+                    ) : (
+                      <>
+                        <FontelloIcon name="key" size={14} color="#8B5CF6" />
+                        <Text style={styles.otpLinkText}>
+                          Login with OTP instead
+                        </Text>
+                      </>
+                    )}
                   </TouchableOpacity>
                 </View>
               </View>
-            )}
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+
+              {/* Social Login Section */}
+              <View style={styles.socialSection}>
+                <View style={styles.dividerContainer}>
+                  <View style={styles.divider} />
+                  <Text style={styles.dividerText}>Or continue with</Text>
+                  <View style={styles.divider} />
+                </View>
+                <View style={styles.socialLoginContainer}>
+                  <View style={styles.socialIconsRow}>
+                    <TouchableOpacity
+                      style={styles.socialIconButton}
+                      onPress={() => {}}
+                    >
+                      <Image
+                        source={require('../../assets/images/icons/icons8-google-50.png')}
+                        style={styles.socialIcon}
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.socialIconButton}
+                      onPress={() => {}}
+                    >
+                      <Image
+                        source={require('../../assets/images/icons/icons8-github-50.png')}
+                        style={styles.socialIcon}
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.socialIconButton}
+                      onPress={() => {}}
+                    >
+                      <Image
+                        source={require('../../assets/images/icons/icons8-instagram-50.png')}
+                        style={styles.socialIcon}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+
+              {/* Sign Up Section */}
+              <View style={styles.signupSection}>
+                <Text style={styles.signupPrompt}>Don't have an account?</Text>
+                <TouchableOpacity
+                  style={styles.signupButton}
+                  onPress={() => navigation.replace(SCREENS.REGISTER)}
+                  activeOpacity={0.9}
+                >
+                  <LinearGradient
+                    colors={['#EC4899', '#8B5CF6']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                  >
+                    <View style={styles.signupGradient}>
+                      <Text style={styles.signupButtonText}>
+                        Create Account
+                      </Text>
+                      <FontelloIcon name="right-open" size={18} color="#FFF" />
+                    </View>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </LinearGradient>
     </View>
   );
 };
@@ -295,69 +346,157 @@ const LoginScreen: React.FC = () => {
 const styles = StyleSheet.create({
   background: {
     flex: 1,
-    width: '100%',
-    height: '100%',
-    position: 'relative',
-    overflow: 'hidden',
+  },
+  gradientBackground: {
+    flex: 1,
   },
   container: {
     flex: 1,
-    backgroundColor: THEME_COLORS.background,
   },
   scrollContent: {
     flexGrow: 1,
+    paddingBottom: 40,
   },
   inner: {
     flex: 1,
-    justifyContent: 'flex-start',
-    paddingHorizontal: 20,
+    justifyContent: 'center',
+    paddingHorizontal: STYLE.spacing.ph,
+  },
+
+  // Header Section
+  headerSection: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  calendarWoman: {
+    width: 180,
+    height: 180,
+    marginBottom: 16,
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 10,
+    fontWeight: '800',
+    marginBottom: 8,
     textAlign: 'center',
+    color: '#1F2937',
   },
   subtitle: {
     fontSize: 16,
-    marginBottom: 30,
     textAlign: 'center',
+    color: '#6B7280',
+    fontWeight: '500',
   },
+
+  // Form Card
+  formCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    marginBottom: 24,
+  },
+
+  // Form
   form: {
     width: '100%',
   },
-  changeEmailButton: {
-    alignSelf: 'flex-end',
+
+  // Switch Mode Link
+  switchModeLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: -8,
     marginBottom: 16,
   },
-  changeEmailText: {
-    color: THEME_COLORS.primary || '#E91E63',
-    fontSize: 14,
+  switchModeText: {
+    fontSize: 13,
+    color: '#8B5CF6',
     fontWeight: '600',
+  },
+
+  primaryButton: {
+    marginTop: 8,
+  },
+
+  // OTP Link
+  otpLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    marginTop: 4,
+    gap: 6,
+  },
+  otpLinkText: {
+    fontSize: 13,
+    color: '#8B5CF6',
+    fontWeight: '600',
+  },
+
+  // Social Section
+  socialSection: {
+    marginBottom: STYLE.spacing.mv,
   },
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 16,
+    marginBottom: STYLE.spacing.mv,
   },
   divider: {
     flex: 1,
     height: 1,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: '#E5E7EB',
   },
   dividerText: {
     marginHorizontal: 16,
-    fontSize: 14,
-    color: '#999',
+    fontSize: 13,
+    color: '#9CA3AF',
     fontWeight: '500',
   },
-  socialLoginContainer: {
-    marginTop: 10,
+
+  // Sign Up Section
+  signupSection: {
     alignItems: 'center',
+    gap: 12,
   },
-  socialLoginText: {
-    fontSize: 14,
-    marginBottom: 12,
+  signupPrompt: {
+    fontSize: 15,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  signupButton: {
+    width: '100%',
+    borderRadius: 18,
+    overflow: 'hidden',
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  signupGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 18,
+    gap: 10,
+  },
+  signupButtonText: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#FFF',
+    letterSpacing: 0.5,
+  },
+  socialLoginContainer: {
+    alignItems: 'center',
   },
   socialIconsRow: {
     flexDirection: 'row',
@@ -379,11 +518,6 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     resizeMode: 'contain',
-  },
-  calendarWoman: {
-    width: '100%',
-    height: 200,
-    marginBottom: 20,
   },
 });
 

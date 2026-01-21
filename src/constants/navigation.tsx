@@ -31,7 +31,7 @@ export const SCREENS = {
 // Define screens that need params and their types
 type ScreenParams = {
   OTPVerification: {
-    id: string;
+    id?: string;
     email?: string;
     isLoginFlow?: boolean;
   };

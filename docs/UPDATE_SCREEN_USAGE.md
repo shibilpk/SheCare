@@ -160,31 +160,112 @@ const handleUpdate = () => {
 
 ## Integration with Update Check Service
 
+The app now includes an automatic update check service that runs on app load and checks for updates only once per day.
+
+### Automatic Check (Recommended)
+
+The update check runs automatically when the app starts via `UpdateProvider`:
+
+```tsx
+// Already integrated - no code needed!
+// The UpdateProvider in App.tsx handles this automatically
+```
+
+**How it works:**
+1. App launches
+2. `UpdateProvider` calls `checkForUpdates()` automatically
+3. If 24 hours have passed since last check:
+   - Makes API call to `/api/v1/app/version`
+   - Compares current version with latest
+   - Shows UpdateScreen if update available
+4. If checked within 24 hours:
+   - Skips API call (cached)
+   - No modal shown
+
+### Manual Check in Settings
+
+Add a "Check for Updates" button in your settings screen:
+
+```tsx
+import { useUpdate } from '../utils/UpdateManager';
+import { forceCheckForUpdates } from '../services/updateService';
+
+function SettingsScreen() {
+  const { showUpdate } = useUpdate();
+  const [checking, setChecking] = useState(false);
+
+  const handleCheckUpdates = async () => {
+    setChecking(true);
+    try {
+      // Force check (bypasses 24-hour limit)
+      const updateInfo = await forceCheckForUpdates();
+
+      if (updateInfo.shouldUpdate) {
+        showUpdate(updateInfo.isRequired);
+      } else {
+        Alert.alert('No Updates', 'You are using the latest version!');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to check for updates');
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  return (
+    <TouchableOpacity onPress={handleCheckUpdates} disabled={checking}>
+      <Text>{checking ? 'Checking...' : 'Check for Updates'}</Text>
+    </TouchableOpacity>
+  );
+}
+```
+
+### Service Functions
+
 ```tsx
 // services/updateService.ts
-export const checkForUpdates = async () => {
-  try {
-    const response = await fetch('https://api.yourapp.com/version');
-    const { latestVersion, isRequired, releaseNotes } = await response.json();
+import { checkForUpdates, forceCheckForUpdates, getLastUpdateCheckTime } from '../services/updateService';
 
-    const currentVersion = DeviceInfo.getVersion();
+// Automatic check (respects 24-hour limit)
+const updateInfo = await checkForUpdates();
 
-    if (latestVersion > currentVersion) {
-      return {
-        shouldUpdate: true,
-        version: latestVersion,
-        isRequired,
-        notes: releaseNotes,
-      };
-    }
+// Force check (bypasses 24-hour limit)
+const updateInfo = await forceCheckForUpdates();
 
-    return { shouldUpdate: false };
-  } catch (error) {
-    console.error('Update check failed:', error);
-    return { shouldUpdate: false };
-  }
-};
+// Get last check time
+const lastCheck = await getLastUpdateCheckTime();
+console.log('Last checked:', lastCheck?.toLocaleString());
 ```
+
+### API Response Format
+
+Your backend should return:
+
+```json
+{
+  "latestVersion": "2.1.0",
+  "isRequired": false,
+  "releaseNotes": [
+    "Improved sleep tracking features",
+    "New health insights dashboard",
+    "Bug fixes and performance improvements"
+  ],
+  "minimumVersion": "1.5.0"
+}
+```
+
+**Endpoint:** `GET /api/v1/app/version`
+
+### Configuration
+
+The service checks once every 24 hours by default. To change this, edit `src/services/updateService.ts`:
+
+```ts
+// Change check interval
+const ONE_DAY_MS = 12 * 60 * 60 * 1000; // 12 hours
+```
+
+For more details, see [UPDATE_SERVICE_API.md](./UPDATE_SERVICE_API.md)
 
 ## Notes
 - The component uses `react-native-linear-gradient` for the header gradient

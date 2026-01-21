@@ -11,7 +11,6 @@ import {
   Animated,
   RefreshControl,
   TextInput,
-  Dimensions,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {
@@ -40,7 +39,6 @@ import {
   SAMPLE_ADS,
   AD_PLACEMENTS,
   trackAdClick,
-  trackAdImpression,
 } from '../../constants/ads';
 import { STYLE } from '../../constants/app';
 
@@ -168,7 +166,7 @@ export default function Profile() {
       appendFormDataRecursively(formData, profileUpdate);
 
       const response = await apiClient.patch<any>(
-        APIS.V1.AUTH.PROFILE,
+        APIS.V1.CUSTOMER.PROFILE,
         formData,
       );
 
@@ -190,7 +188,7 @@ export default function Profile() {
   const fetchProfile = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get<any>(APIS.V1.AUTH.PROFILE);
+      const response = await apiClient.get<any>(APIS.V1.CUSTOMER.PROFILE);
 
       if (response.state === 1 && response.profile) {
         setProfile(response.profile);

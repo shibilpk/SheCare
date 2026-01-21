@@ -158,7 +158,7 @@ const OTPVerificationScreen: React.FC = () => {
     try {
       const endpoint = isLoginFlow
         ? APIS.V1.AUTH.LOGIN_WITH_OTP
-        : APIS.V1.AUTH.getVerifyOTP(id);
+        : APIS.V1.AUTH.getVerifyOTP(id || '');
       const response = await apiClient.post<any>(
         endpoint,
         { email, otp: otpValue },

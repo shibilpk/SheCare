@@ -1,26 +1,30 @@
 // constants/apis.ts
-export const BASE_URL = 'http://localhost:8006';
+export const BASE_URL = 'http://192.168.108.149:7865';
 const API_VERSION = 'v1';
 
-const BASE_AUTH_URL = `/api/${API_VERSION}/auth`;
-const BASE_CUSTOMER_URL = `/api/${API_VERSION}/customer`;
-
 const AUTH_API = {
-  LOGIN: `${BASE_AUTH_URL}/login/`,
-  REFRESH: `${BASE_AUTH_URL}/refresh/`,
-  CHECK_USER: `${BASE_AUTH_URL}/check-user/`,
-  SEND_OTP: `${BASE_AUTH_URL}/send-otp/`,
-  getVerifyOTP: (id: string) => `${BASE_AUTH_URL}/verify-otp/${id}/`,
-  LOGIN_WITH_OTP: `${BASE_AUTH_URL}/login-otp/`,
+  LOGIN: `/api/${API_VERSION}/auth/login/`,
+  REFRESH: `/api/${API_VERSION}/auth/refresh/`,
+  SEND_OTP: `/api/${API_VERSION}/auth/send-otp/`,
+  getVerifyOTP: (id: string) => `/api/${API_VERSION}/auth/verify-otp/${id}/`,
+  LOGIN_WITH_OTP: `/api/${API_VERSION}/auth/login-otp/`,
+};
 
-  // Customer endpoints
-  REGISTER: `${BASE_CUSTOMER_URL}/register/`,
-  PROFILE: `${BASE_CUSTOMER_URL}/profile/`,
-  getProfile: (id: string | number) => `${BASE_CUSTOMER_URL}/profile/${id}/`, // dynamic
+const CUSTOMER_API = {
+  REGISTER: `/api/${API_VERSION}/customer/register/`,
+  PROFILE: `/api/${API_VERSION}/customer/profile/`,
+  getProfile: (id: string | number) =>
+    `/api/${API_VERSION}/customer/profile/${id}/`, // dynamic
+};
+
+const APP_API = {
+  getVersion: (os: string) => `/api/${API_VERSION}/general/app-version/${os}/`,
 };
 
 export const APIS = {
   V1: {
     AUTH: AUTH_API,
+    CUSTOMER: CUSTOMER_API,
+    APP: APP_API,
   },
 };

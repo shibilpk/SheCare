@@ -12,6 +12,7 @@ interface InputProps {
   error?: string;
   multiline?: boolean;
   numberOfLines?: number;
+  editable?: boolean;
 }
 
 const Input: React.FC<InputProps> = ({
@@ -24,6 +25,7 @@ const Input: React.FC<InputProps> = ({
   multiline = false,
   numberOfLines = 1,
   error,
+  editable = true,
 }) => {
   return (
     <View style={styles.container}>
@@ -38,6 +40,7 @@ const Input: React.FC<InputProps> = ({
         autoCapitalize="none"
         multiline={multiline}
         numberOfLines={numberOfLines}
+        editable={editable}
       />
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
     </View>
