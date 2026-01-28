@@ -7,10 +7,10 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import GlobalModalContext from '../../utils/GlobalContext';
+import GlobalModalContext from '../../services/GlobalContext';
 import DaysScroller from '../../components/widgets/DaysScroller';
 import ModalTopIcon from '../../components/common/ModalTopIcon';
-import FontelloIcon from '../../utils/FontelloIcons';
+import FontelloIcon from '../../services/FontelloIcons';
 import { THEME_COLORS } from '../../constants/colors';
 import { useNavigation } from '@react-navigation/native';
 import { RootStackParamList } from '../../constants/navigation';

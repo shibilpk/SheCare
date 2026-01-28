@@ -18,28 +18,24 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import { THEME_COLORS } from '../../constants/colors';
-import FontelloIcon from '../../utils/FontelloIcons';
+import FontelloIcon from '../../services/FontelloIcons';
 import { useNavigation } from '@react-navigation/native';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
 import { SCREENS, RootStackParamList } from '../../constants/navigation';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { KeyboardAvoidingModal } from '../../components';
 import { PopupScreen } from '../../components/common/PopupWizard';
-import { usePopupWizard } from '../../utils/PopupWizardManager';
+import { usePopupWizard } from '../../services/PopupWizardManager';
 import {
   launchImageLibrary,
   ImageLibraryOptions,
   Asset,
 } from 'react-native-image-picker';
 import useStore from '../../hooks/useStore';
-import apiClient, { APIError } from '../../utils/ApiClient';
+import apiClient, { APIError } from '../../services/ApiClient';
 import { APIS } from '../../constants/apis';
 import AdBanner from '../../components/common/AdBanner';
-import {
-  SAMPLE_ADS,
-  AD_PLACEMENTS,
-  trackAdClick,
-} from '../../constants/ads';
+import { SAMPLE_ADS, AD_PLACEMENTS, trackAdClick } from '../../constants/ads';
 import { STYLE } from '../../constants/app';
 
 export default function Profile() {
@@ -170,7 +166,7 @@ export default function Profile() {
         formData,
       );
 
-      if (response.state === 1 && response.profile) {
+      if (response.profile) {
         setProfile(response.profile);
         setEditField(null);
         Alert.alert('Success', 'Profile updated successfully');
@@ -190,7 +186,7 @@ export default function Profile() {
       setLoading(true);
       const response = await apiClient.get<any>(APIS.V1.CUSTOMER.PROFILE);
 
-      if (response.state === 1 && response.profile) {
+      if (response.profile) {
         setProfile(response.profile);
         setName(response.profile.name || '');
         setPhone(response.profile.phone || '');
@@ -235,12 +231,12 @@ export default function Profile() {
       } as any);
 
       const response = await apiClient.patch<any>(
-        AUTH_V1_URLS.PROFILE,
+        APIS.V1.CUSTOMER.PROFILE,
         formData,
         { headers: { 'Content-Type': 'multipart/form-data' } },
       );
 
-      if (response.state === 1 && response.profile) {
+      if ( response.profile) {
         setProfile(response.profile);
         setAvatar(null);
         Alert.alert('Success', 'Profile picture updated');

@@ -8,7 +8,7 @@ import {
   Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import FontelloIcon from '../../../utils/FontelloIcons';
+import FontelloIcon from '../../../services/FontelloIcons';
 import QuickActions from '../../../components/common/QuickActions';
 import NotificationsModal from '../../../components/common/NotificationsModal';
 import { THEME_COLORS } from '../../../constants/colors';

@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
-import FontelloIcon from '../../utils/FontelloIcons';
+import FontelloIcon from '../../services/FontelloIcons';
 import { THEME_COLORS } from '../../constants/colors';
 import LinearGradient from 'react-native-linear-gradient';
 import { KeyboardAvoidingModal } from '..';

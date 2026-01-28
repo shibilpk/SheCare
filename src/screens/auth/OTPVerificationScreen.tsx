@@ -13,11 +13,11 @@ import {
   Image,
   TouchableOpacity,
   ActivityIndicator,
-  Clipboard,
 } from 'react-native';
+import Clipboard from '@react-native-clipboard/clipboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../../components';
-import apiClient, { APIError } from '../../utils/ApiClient';
+import apiClient, { APIError } from '../../services/ApiClient';
 import { THEME_COLORS } from '../../constants/colors';
 import useStore from '../../hooks/useStore';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -138,7 +138,10 @@ const OTPVerificationScreen: React.FC = () => {
 
         Alert.alert('Success', 'OTP pasted successfully!');
       } else {
-        Alert.alert('No OTP Found', 'Clipboard does not contain a valid 6-digit OTP');
+        Alert.alert(
+          'No OTP Found',
+          'Clipboard does not contain a valid 6-digit OTP',
+        );
       }
     } catch (error) {
       console.error('Error pasting from clipboard:', error);
@@ -165,19 +168,13 @@ const OTPVerificationScreen: React.FC = () => {
         { is_auth: false },
       );
 
-      if (response.state === 1) {
-        if (isLoginFlow) {
-
-          Alert.alert('Success', 'Login successful!');
-        } else {
-
-          Alert.alert('Success', 'OTP verified successfully!');
-        }
-        if (response.access && response.refresh) {
-            setToken(response.access, response.refresh);
-        }
+      if (isLoginFlow) {
+        Alert.alert('Success', 'Login successful!');
       } else {
-        Alert.alert('Error', response.message || 'Invalid OTP');
+        Alert.alert('Success', 'OTP verified successfully!');
+      }
+      if (response.access && response.refresh) {
+        setToken(response.access, response.refresh);
       }
     } catch (error) {
       const apiError = error as APIError;
@@ -196,17 +193,13 @@ const OTPVerificationScreen: React.FC = () => {
         { is_auth: false },
       );
 
-      if (response.state === 1) {
-        Alert.alert('Success', 'OTP has been resent to your email');
-        setOtp('');
-        // Clear the OTP input
-        if (otpInputRef.current?.clear) {
-          otpInputRef.current.clear();
-        }
-        startResendTimer();
-      } else {
-        Alert.alert('Error', response.message || 'Failed to resend OTP');
+      Alert.alert('Success', 'OTP has been resent to your email');
+      setOtp('');
+      // Clear the OTP input
+      if (otpInputRef.current?.clear) {
+        otpInputRef.current.clear();
       }
+      startResendTimer();
     } catch (error) {
       const apiError = error as APIError;
       Alert.alert('Failed', apiError.message || 'Failed to resend OTP');
@@ -261,10 +254,10 @@ const OTPVerificationScreen: React.FC = () => {
               numberOfDigits={6}
               focusColor={THEME_COLORS.primary || '#E91E63'}
               focusStickBlinkingDuration={500}
-              onTextChange={(text) => {
+              onTextChange={text => {
                 setOtp(text);
               }}
-              onFilled={(text) => {
+              onFilled={text => {
                 console.log('OTP filled:', text);
                 setOtp(text);
               }}

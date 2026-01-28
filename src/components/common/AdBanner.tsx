@@ -9,7 +9,7 @@ import {
   Linking,
   Alert,
 } from 'react-native';
-import FontelloIcon from '../../utils/FontelloIcons';
+import FontelloIcon from '../../services/FontelloIcons';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 

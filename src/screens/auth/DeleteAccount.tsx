@@ -6,7 +6,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../constants/navigation';
 import DeleteAccountSvg from '../../assets/images/delete-account.svg';
-import FontelloIcon from '../../utils/FontelloIcons';
+import FontelloIcon from '../../services/FontelloIcons';
 
 export default function DeleteAccountScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();

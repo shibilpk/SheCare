@@ -14,7 +14,7 @@ import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { LineChart } from 'react-native-chart-kit';
 import { THEME_COLORS } from '../../constants/colors';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import FontelloIcon from '../../utils/FontelloIcons';
+import FontelloIcon from '../../services/FontelloIcons';
 
 const LifestyleDetailsScreen = () => {
   const navigation = useNavigation();

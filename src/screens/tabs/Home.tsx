@@ -8,7 +8,7 @@ import {
   Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import FontelloIcon from '../../utils/FontelloIcons';
+import FontelloIcon from '../../services/FontelloIcons';
 import NotificationsModal from '../../components/common/NotificationsModal';
 import { THEME_COLORS, HOME_CARD_PASTEL } from '../../constants/colors';
 import LinearGradient from 'react-native-linear-gradient';

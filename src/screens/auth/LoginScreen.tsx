@@ -12,108 +12,128 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Input, Button } from '../../components';
-import apiClient, { APIError } from '../../utils/ApiClient';
-import { THEME_COLORS } from '../../constants/colors';
+import apiClient, { APIError } from '../../services/ApiClient';
 import useStore from '../../hooks/useStore';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList, SCREENS } from '../../constants/navigation';
 import { APIS } from '../../constants/apis';
 import LinearGradient from 'react-native-linear-gradient';
-import FontelloIcon from '../../utils/FontelloIcons';
+import FontelloIcon from '../../services/FontelloIcons';
 import { STYLE } from '../../constants/app';
-
+import {
+  clearFieldError,
+  FormErrors,
+  validateRequiredFields,
+  validateEmail,
+  validatePhone,
+  parseValidationErrors,
+} from '../../utils/formUtils';
 type InputMode = 'email' | 'phone';
+// Types for login
+
+type LoginData = {
+  email: string;
+  phone: string;
+  password: string;
+};
 
 const LoginScreen: React.FC = () => {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [inputMode, setInputMode] = useState<InputMode>('email');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
-  const [inputError, setInputError] = useState('');
-  const [passwordError, setPasswordError] = useState('');
   const safeAreaInsets = useSafeAreaInsets();
+
+  const [loginData, setLoginData] = useState<LoginData>({
+    email: '',
+    phone: '',
+    password: '',
+  });
+  const [errors, setErrors] = useState<FormErrors<LoginData>>({});
 
   const setToken = useStore(state => state.setToken);
 
-  const validateEmail = (emailValue: string) => {
-    if (!emailValue) {
-      setInputError('Email is required');
-      return false;
-    } else if (!/\S+@\S+\.\S+/.test(emailValue)) {
-      setInputError('Email is invalid');
-      return false;
-    }
-    setInputError('');
-    return true;
-  };
+  const validateLoginForm = (): boolean => {
+    let newErrors: FormErrors<LoginData> = {};
 
-  const validatePhone = (phoneValue: string) => {
-    if (!phoneValue) {
-      setInputError('Phone number is required');
-      return false;
-    } else if (!/^[0-9]{10}$/.test(phoneValue)) {
-      setInputError('Phone number must be 10 digits');
-      return false;
+    // Required fields
+    newErrors = {
+      ...newErrors,
+      ...validateRequiredFields(
+        loginData,
+        inputMode === 'email' ? ['email', 'password'] : ['phone', 'password'],
+      ),
+    };
+
+    // Mode-specific validation
+    if (inputMode === 'email' && !newErrors.email) {
+      const err = validateEmail(loginData.email);
+      if (err) newErrors.email = err;
     }
-    setInputError('');
-    return true;
+
+    if (inputMode === 'phone' && !newErrors.phone) {
+      const err = validatePhone(loginData.phone);
+      if (err) newErrors.phone = err;
+    }
+
+    // Password length
+    if (!newErrors.password && loginData.password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handlePasswordLogin = async () => {
-    const isValid =
-      inputMode === 'email' ? validateEmail(email) : validatePhone(phone);
-    if (!isValid) {
-      return;
-    }
+    if (!validateLoginForm()) return;
 
-    if (!password) {
-      setPasswordError('Password is required');
-      return;
-    } else if (password.length < 6) {
-      setPasswordError('Password must be at least 6 characters');
-      return;
-    }
-
-    setPasswordError('');
     setLoading(true);
     try {
       const payload =
-        inputMode === 'email' ? { email, password } : { phone, password };
+        inputMode === 'email'
+          ? { email: loginData.email, password: loginData.password }
+          : { phone: loginData.phone, password: loginData.password };
 
       const response = await apiClient.post<any>(APIS.V1.AUTH.LOGIN, payload, {
         is_auth: false,
       });
 
-      if (response.state === 1 && response.access && response.refresh) {
-        setToken(response.access, response.refresh);
-        Alert.alert('Success', 'Login successful!');
-      } else {
-        Alert.alert('Error', 'Invalid response from server');
-      }
+      setToken(response.access, response.refresh);
     } catch (error) {
       const apiError = error as APIError;
-      let errorMessage = apiError.message;
-      Alert.alert('Login Failed', errorMessage);
+
+      if (apiError.statusCode === 422 && apiError.data) {
+        // Same behavior as Register screen
+        setErrors(parseValidationErrors(apiError.data));
+      } else {
+        Alert.alert(
+          apiError.normalizedError.title,
+          apiError.normalizedError.message,
+        );
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const handleOTPLogin = async () => {
-    const isValid =
-      inputMode === 'email' ? validateEmail(email) : validatePhone(phone);
-    if (!isValid) {
+    const value = inputMode === 'email' ? loginData.email : loginData.phone;
+    const error = inputMode === 'email' ? validateEmail(value) : validatePhone(value);
+
+    if (error) {
+      setErrors(prev => ({
+        ...prev,
+        [inputMode]: error,
+      }));
       return;
     }
 
     setOtpLoading(true);
     try {
-      const payload = inputMode === 'email' ? { email } : { phone };
+      const payload = inputMode === 'email' ? { email: loginData.email } : { phone: loginData.phone };
 
       const response = await apiClient.post<any>(
         APIS.V1.AUTH.SEND_OTP,
@@ -121,15 +141,11 @@ const LoginScreen: React.FC = () => {
         { is_auth: false },
       );
 
-      if (response.state === 1) {
-        Alert.alert('Success', `OTP has been sent to your ${inputMode}`);
-        navigation.navigate(SCREENS.OTP_VERIFICATION, {
-          email: inputMode === 'email' ? email : phone,
-          isLoginFlow: true,
-        });
-      } else {
-        Alert.alert('Error', response.message || 'Failed to send OTP');
-      }
+      Alert.alert('Success', `OTP has been sent to your ${inputMode}`);
+      navigation.navigate(SCREENS.OTP_VERIFICATION, {
+        email: inputMode === 'email' ? loginData.email : loginData.phone,
+        isLoginFlow: true,
+      });
     } catch (error) {
       const apiError = error as APIError;
       Alert.alert('Failed', apiError.message || 'Failed to send OTP');
@@ -144,8 +160,17 @@ const LoginScreen: React.FC = () => {
 
   const toggleInputMode = () => {
     setInputMode(inputMode === 'email' ? 'phone' : 'email');
-    setInputError('');
-    setPasswordError('');
+    // Clear the errors for the current input mode field
+    setErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors[inputMode];
+      return newErrors;
+    });
+  };
+
+  const handleChange = (field: keyof LoginData, value: string) => {
+    setLoginData(prev => ({ ...prev, [field]: value }));
+    setErrors(prev => clearFieldError(prev, field));
   };
 
   return (
@@ -182,65 +207,56 @@ const LoginScreen: React.FC = () => {
                   {/* Input Field with Switch Option */}
                   {inputMode === 'email' ? (
                     <>
-                      <Input
-                        label="Email Address"
-                        value={email}
-                        onChangeText={text => {
-                          setEmail(text);
-                          setInputError('');
-                        }}
-                        placeholder="Enter your email"
-                        keyboardType="email-address"
-                        error={inputError}
-                        autoCapitalize="none"
-                      />
                       <TouchableOpacity
                         onPress={toggleInputMode}
                         style={styles.switchModeLink}
                         activeOpacity={0.7}
                       >
                         <FontelloIcon name="mobile" size={14} color="#8B5CF6" />
-                        <Text style={styles.switchModeText}>
-                          Use phone number instead
-                        </Text>
+                        <Text style={styles.switchModeText}>Use Mobile</Text>
                       </TouchableOpacity>
+                      <Input
+                        label="Email Address"
+                        value={loginData.email}
+                        onChangeText={text => {
+                          handleChange('email', text);
+                        }}
+                        placeholder="Enter your email"
+                        keyboardType="email-address"
+                        error={errors.email}
+                        autoCapitalize="none"
+                      />
                     </>
                   ) : (
                     <>
-                      <Input
-                        label="Phone Number"
-                        value={phone}
-                        onChangeText={text => {
-                          setPhone(text);
-                          setInputError('');
-                        }}
-                        placeholder="Enter your phone number"
-                        keyboardType="phone-pad"
-                        error={inputError}
-                      />
                       <TouchableOpacity
                         onPress={toggleInputMode}
                         style={styles.switchModeLink}
                         activeOpacity={0.7}
                       >
                         <FontelloIcon name="mail" size={14} color="#8B5CF6" />
-                        <Text style={styles.switchModeText}>
-                          Use email instead
-                        </Text>
+                        <Text style={styles.switchModeText}>Use Email</Text>
                       </TouchableOpacity>
+                      <Input
+                        label="Phone Number"
+                        value={loginData.phone}
+                        onChangeText={text => {
+                          handleChange('phone', text);
+                        }}
+                        placeholder="Enter your phone number"
+                        keyboardType="phone-pad"
+                        error={errors.phone}
+                      />
                     </>
                   )}
 
                   <Input
                     label="Password"
-                    value={password}
-                    onChangeText={text => {
-                      setPassword(text);
-                      setPasswordError('');
-                    }}
+                    value={loginData.password}
+                    onChangeText={text => handleChange('password', text)}
                     placeholder="Enter your password"
                     secureTextEntry
-                    error={passwordError}
+                    error={errors.password}
                   />
 
                   {/* Primary Login Button */}
@@ -249,7 +265,6 @@ const LoginScreen: React.FC = () => {
                     onPress={handlePasswordLogin}
                     loading={loading}
                     disabled={loading || otpLoading}
-                    style={styles.primaryButton}
                   />
 
                   {/* OTP Login Link */}
@@ -284,7 +299,9 @@ const LoginScreen: React.FC = () => {
                   <View style={styles.socialIconsRow}>
                     <TouchableOpacity
                       style={styles.socialIconButton}
-                      onPress={() => {}}
+                      onPress={() => {
+                        handleSocialLogin('Google');
+                      }}
                     >
                       <Image
                         source={require('../../assets/images/icons/icons8-google-50.png')}
@@ -293,7 +310,9 @@ const LoginScreen: React.FC = () => {
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.socialIconButton}
-                      onPress={() => {}}
+                      onPress={() => {
+                        handleSocialLogin('Facebook');
+                      }}
                     >
                       <Image
                         source={require('../../assets/images/icons/icons8-github-50.png')}
@@ -302,7 +321,9 @@ const LoginScreen: React.FC = () => {
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.socialIconButton}
-                      onPress={() => {}}
+                      onPress={() => {
+                        handleSocialLogin('Instagram');
+                      }}
                     >
                       <Image
                         source={require('../../assets/images/icons/icons8-instagram-50.png')}
@@ -321,18 +342,14 @@ const LoginScreen: React.FC = () => {
                   onPress={() => navigation.replace(SCREENS.REGISTER)}
                   activeOpacity={0.9}
                 >
-                  <LinearGradient
-                    colors={['#EC4899', '#8B5CF6']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                  >
-                    <View style={styles.signupGradient}>
-                      <Text style={styles.signupButtonText}>
-                        Create Account
-                      </Text>
-                      <FontelloIcon name="right-open" size={18} color="#FFF" />
-                    </View>
-                  </LinearGradient>
+                  <Button
+                    title="Sign up"
+                    onPress={() => navigation.replace(SCREENS.REGISTER)}
+                    loading={loading}
+                    disabled={loading || otpLoading}
+                    variant="secondary"
+                    style={{ marginHorizontal: STYLE.spacing.mh }}
+                  />
                 </TouchableOpacity>
               </View>
             </View>
@@ -399,7 +416,7 @@ const styles = StyleSheet.create({
     elevation: 4,
     borderWidth: 1,
     borderColor: '#F3F4F6',
-    marginBottom: 24,
+    marginBottom: STYLE.spacing.mv,
   },
 
   // Form
@@ -412,6 +429,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    alignSelf: 'flex-end',
     gap: 6,
     marginTop: -8,
     marginBottom: 16,
@@ -420,10 +438,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#8B5CF6',
     fontWeight: '600',
-  },
-
-  primaryButton: {
-    marginTop: 8,
   },
 
   // OTP Link
@@ -481,19 +495,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 12,
     elevation: 6,
-  },
-  signupGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 18,
-    gap: 10,
-  },
-  signupButtonText: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#FFF',
-    letterSpacing: 0.5,
   },
   socialLoginContainer: {
     alignItems: 'center',

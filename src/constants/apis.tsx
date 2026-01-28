@@ -1,5 +1,6 @@
 // constants/apis.ts
-export const BASE_URL = 'http://192.168.108.149:7865';
+// export const BASE_URL = 'http://192.168.108.149:7865';
+export const BASE_URL = 'http://192.168.1.5:7865';
 const API_VERSION = 'v1';
 
 const AUTH_API = {

@@ -14,7 +14,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import LinearGradient from 'react-native-linear-gradient';
-import FontelloIcon from '../../../utils/FontelloIcons';
+import FontelloIcon from '../../../services/FontelloIcons';
 import { THEME_COLORS } from '../../../constants/colors';
 import { RootStackParamList } from '../../../constants/navigation';
 import useStore from '../../../hooks/useStore';

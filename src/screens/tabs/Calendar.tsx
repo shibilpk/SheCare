@@ -12,7 +12,7 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import { THEME_COLORS } from '../../constants/colors';
-import FontelloIcon from '../../utils/FontelloIcons';
+import FontelloIcon from '../../services/FontelloIcons';
 import { CalendarWidget, DateRange } from '../../components/widgets/Calender';
 import ModalTopIcon from '../../components/common/ModalTopIcon';
 import { ScrollView } from 'react-native-gesture-handler';

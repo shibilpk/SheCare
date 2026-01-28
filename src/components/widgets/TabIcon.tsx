@@ -1,5 +1,5 @@
 import React from 'react';
-import FontelloIcon from '../../utils/FontelloIcons';
+import FontelloIcon from '../../services/FontelloIcons';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { THEME_COLORS } from '../../constants/colors';
 

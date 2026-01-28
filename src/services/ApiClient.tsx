@@ -1,23 +1,91 @@
 import { APIS, BASE_URL } from '../constants/apis';
 import useStore from '../hooks/useStore';
 
+type NormalizedError = {
+  title: string;
+  message: string;
+};
+
+const DEFAULT_ERROR_MESSAGES = {
+  server: {
+    title: 'Server Error',
+    message: 'Something went wrong. Please try again later.',
+  },
+  network: {
+    title: 'Network Error',
+    message: 'Unable to connect. Please check your internet connection.',
+  },
+  cancelled: {
+    title: 'Cancelled',
+    message: 'The request was cancelled.',
+  },
+  validation: {
+    title: 'Validation Error',
+    message: 'Something went wrong',
+  },
+  default: {
+    title: 'Error',
+    message: 'An unexpected error occurred.',
+  },
+};
+
+const normalizeError = (status: number, errorData: any): NormalizedError => {
+  // Case 1: API already sends title & message
+  if (errorData?.title && errorData?.message) {
+    return {
+      title: errorData.title,
+      message: errorData.message,
+    };
+  }
+
+  // errorData?.detail is object with messages and title
+  // Case 2: detail is an object with messages
+  if (typeof errorData?.detail === 'object') {
+    return {
+      title:
+        errorData?.detail?.title ??
+        (status === 400 || status === 422
+          ? DEFAULT_ERROR_MESSAGES.validation.title
+          : DEFAULT_ERROR_MESSAGES.default.title),
+
+      message: errorData.detail.message || 'Something went wrong',
+    };
+  }
+
+  // Case 3: Single detail string
+  if (typeof errorData?.detail === 'string') {
+    return {
+      title: 'Error',
+      message: errorData.detail,
+    };
+  }
+
+  // Case 4: Fallback
+  return {
+    title: 'Something went wrong',
+    message: `Request failed with status code ${status}`,
+  };
+};
+
 // Custom API Error class
 export class APIError extends Error {
   public readonly type: 'network' | 'server' | 'cancelled';
   public readonly statusCode?: number;
   public readonly data?: unknown;
+  public readonly normalizedError: NormalizedError;
 
   constructor(
-    message: string,
+    errorMessage: NormalizedError,
     type: 'network' | 'server' | 'cancelled',
     statusCode?: number,
     data?: unknown,
   ) {
-    super(message);
+    super(errorMessage.message);
     this.name = 'APIError';
     this.type = type;
     this.statusCode = statusCode;
     this.data = data;
+    this.normalizedError = errorMessage;
   }
 }
 
@@ -174,7 +242,6 @@ class ApiClient {
       }
 
       const data = (await response.json()) as TokenResponse;
-      console.log('Token refresh response:', data);
 
       // Update tokens in Zustand store
       const newAccessToken = data.access || data.access_token;
@@ -195,18 +262,15 @@ class ApiClient {
 
   // Handle refresh token failure
   private async handleRefreshFailure(): Promise<void> {
-    try {
-      // Clear all auth-related storage - this will trigger Zustand to update isLoggedIn
-      useStore.getState().clearToken();
+    /**
+    Clear all auth-related storage - this will trigger Zustand to update isLoggedIn.
+    The navigation container will automatically show the Login screen
+    because isLoggedIn will be false after clearing tokens
+    */
 
-      // Small delay to ensure storage is cleared and state is updated
-      await new Promise<void>(resolve => setTimeout(resolve, 100));
-
-      // The navigation container will automatically show the Login screen
-      // because isLoggedIn will be false after clearing tokens
-    } catch (error) {
-      console.error('Error during refresh failure handling:', error);
-    }
+    useStore.getState().clearToken();
+    // Small delay to ensure storage is cleared and state is updated
+    await new Promise<void>(resolve => setTimeout(resolve, 100));
   }
 
   // Process queued requests after token refresh
@@ -248,8 +312,6 @@ class ApiClient {
       ? endpoint
       : `${this.baseURL}${endpoint}`;
 
-    console.log('API Request URL:', url);
-
     // Handle abort previous request logic
     if (abortPrevious) {
       const existingController = this.abortControllers.get(endpoint);
@@ -277,15 +339,13 @@ class ApiClient {
       };
 
       // Add body for methods that support it
+
       if (data && ['POST', 'PUT', 'PATCH'].includes(method)) {
-        console.log(data, 'data');
-        if (data && ['POST', 'PUT', 'PATCH'].includes(method)) {
-          if (data instanceof FormData) {
-            requestOptions.body = data;
-            delete (requestOptions.headers as any)['Content-Type'];
-          } else {
-            requestOptions.body = JSON.stringify(data);
-          }
+        if (data instanceof FormData) {
+          requestOptions.body = data;
+          delete (requestOptions.headers as any)['Content-Type'];
+        } else {
+          requestOptions.body = JSON.stringify(data);
         }
       }
 
@@ -303,11 +363,8 @@ class ApiClient {
 
       // Handle 401 Unauthorized
       if (response.status === 401 && is_auth) {
-        console.log('401 Unauthorized - Token refresh needed');
-
         // If already refreshing, queue this request
         if (this.isRefreshing) {
-          console.log('Already refreshing - queuing request');
           return new Promise<T>((resolve, reject) => {
             this.refreshQueue.push({
               resolve: resolve as (value: unknown) => void,
@@ -324,14 +381,11 @@ class ApiClient {
         try {
           // Single refresh call
           if (!this.refreshPromise) {
-            console.log('Starting token refresh...');
             this.refreshPromise = this.refreshAccessToken();
           }
 
           await this.refreshPromise;
           this.refreshPromise = null;
-
-          console.log('Token refreshed - retrying original request');
 
           // Retry the original request with new token
           const retryResult = await this.executeRequest<T>(endpoint, options);
@@ -352,12 +406,21 @@ class ApiClient {
 
       // Handle other error status codes
       if (!response.ok) {
+        console.log('response.ok', response.ok);
+
         const errorData = await response.json().catch(() => ({}));
-        const errorMessage =
-          errorData.detail ||
-          errorData.message ||
-          errorData.error ||
-          `Server error: ${response.status}`;
+
+        let errorMessage = normalizeError(response.status, errorData);
+
+        console.log(
+          'errorMessage',
+          errorMessage,
+          'response.status',
+          response.status,
+          'errorData',
+          errorData,
+        );
+
         throw new APIError(errorMessage, 'server', response.status, errorData);
       }
 
@@ -367,16 +430,12 @@ class ApiClient {
     } catch (error: unknown) {
       // Handle AbortError
       if (error instanceof Error && error.name === 'AbortError') {
-        throw new APIError('Request was cancelled', 'cancelled', 0);
+        throw new APIError(DEFAULT_ERROR_MESSAGES.cancelled, 'cancelled', 0);
       }
 
       // Handle network errors
       if (error instanceof TypeError) {
-        throw new APIError(
-          'Network error: Unable to connect to server',
-          'network',
-          0,
-        );
+        throw new APIError(DEFAULT_ERROR_MESSAGES.network, 'network', 0);
       }
 
       // Re-throw APIError
@@ -384,10 +443,7 @@ class ApiClient {
         throw error;
       }
 
-      // Handle unknown errors
-      const errorMessage =
-        error instanceof Error ? error.message : 'An unexpected error occurred';
-      throw new APIError(errorMessage, 'network', 0);
+      throw new APIError(DEFAULT_ERROR_MESSAGES.server, 'server', 0);
     } finally {
       // Clean up abort controller
       if (abortPrevious) {

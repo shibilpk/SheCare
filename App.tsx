@@ -1,5 +1,10 @@
-import RootNavigation from './src/utils/Navigation';
+import RootNavigation from './src/services/Navigation';
+import { ToastProvider } from 'react-native-toast-notifications';
 
 export default function App() {
-  return <RootNavigation />;
+  return (
+    <ToastProvider>
+      <RootNavigation />
+    </ToastProvider>
+  );
 }

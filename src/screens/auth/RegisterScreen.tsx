@@ -11,80 +11,104 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Input, Button } from '../../components';
-import { THEME_COLORS } from '../../constants/colors';
-import useStore from '../../hooks/useStore';
+import { Input, Button } from '@src/components';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList, SCREENS } from '../../constants/navigation';
-import { APIS } from '../../constants/apis';
-import apiClient, { APIError } from '../../utils/ApiClient';
+import { RootStackParamList, SCREENS } from '@src/constants/navigation';
+import { APIS } from '@src/constants/apis';
+import apiClient, { APIError } from '@src/services/ApiClient';
+import { STYLE } from '@src/constants/app';
+import {
+  parseValidationErrors,
+  FormErrors,
+  clearFieldError,
+  validateRequiredFields,
+  validateEmail,
+} from '@src/utils/formUtils';
+import { useToastMessage } from '@src/utils/toastMessage';
+
+
+
+// Types for registration
+type RegistrationData = {
+  first_name: string;
+  last_name: string;
+  email: string;
+  password: string;
+  address: string;
+  city: string;
+  state: string;
+  country: string;
+  zip_code: string;
+};
+
+type RegistrationErrors = FormErrors<RegistrationData & { confirmPassword: string }>;
 
 const RegisterScreen: React.FC = () => {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [address, setAddress] = useState('');
-  const [city, setCity] = useState('');
-  const [state, setState] = useState('');
-  const [country, setCountry] = useState('');
-  const [zipCode, setZipCode] = useState('');
+  const [registrationData, setRegistrationData] = useState<RegistrationData & { confirmPassword: string }>({
+    first_name: '',
+    last_name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    address: '',
+    city: '',
+    state: '',
+    country: '',
+    zip_code: '',
+  });
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{
-    firstName?: string;
-    email?: string;
-    password?: string;
-    confirmPassword?: string;
-  }>({});
+  const [errors, setErrors] = useState<RegistrationErrors>({});
 
   const safeAreaInsets = useSafeAreaInsets();
-  const setToken = useStore(state => state.setToken);
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { showToast } = useToastMessage();
+
 
   const resetForm = () => {
-    setFirstName('');
-    setLastName('');
-    setEmail('');
-    setPassword('');
-    setConfirmPassword('');
-    setAddress('');
-    setCity('');
-    setState('');
-    setCountry('');
-    setZipCode('');
+    setRegistrationData({
+      first_name: '',
+      last_name: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      address: '',
+      city: '',
+      state: '',
+      country: '',
+      zip_code: '',
+    });
     setErrors({});
   };
 
-  const validateForm = () => {
-    const newErrors: {
-      firstName?: string;
-      email?: string;
-      password?: string;
-      confirmPassword?: string;
-    } = {};
+  const handleChange = (field: keyof (RegistrationData & { confirmPassword: string }), value: string) => {
+    setRegistrationData(prev => ({ ...prev, [field]: value }));
+    setErrors(prev => clearFieldError(prev, field));
+  };
 
-    if (!firstName.trim()) {
-      newErrors.firstName = 'First name is required';
+  const validateForm = (): boolean => {
+    let newErrors: RegistrationErrors = {};
+
+    // Required fields
+    newErrors = {
+      ...newErrors,
+      ...validateRequiredFields(registrationData, ['first_name', 'email', 'password', 'confirmPassword']),
+    };
+
+    // Email validation
+    if (!newErrors.email) {
+      const emailError = validateEmail(registrationData.email);
+      if (emailError) newErrors.email = emailError;
     }
 
-    if (!email) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'Email is invalid';
-    }
-
-    if (!password) {
-      newErrors.password = 'Password is required';
-    } else if (password.length < 6) {
+    // Password length
+    if (!newErrors.password && registrationData.password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters';
     }
 
-    if (!confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password';
-    } else if (password !== confirmPassword) {
+    // Confirm password match
+    if (!newErrors.confirmPassword && registrationData.password !== registrationData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
     }
 
@@ -93,46 +117,40 @@ const RegisterScreen: React.FC = () => {
   };
 
   const handleRegister = async () => {
-    if (validateForm()) {
-      setLoading(true);
+    if (!validateForm()) return;
 
-      // Prepare registration data
-      const registrationData = {
-        first_name:firstName,
-        last_name:lastName,
-        email:email,
-        password:password,
-        address:address,
-        city:city,
-        state:state,
-        country:country,
-        zip_code:zipCode,
-      };
+    setLoading(true);
 
-      try {
+    // Prepare registration data (exclude confirmPassword)
+    const { confirmPassword, ...apiData } = registrationData;
 
-        const response = await apiClient.post<any>(
-          APIS.V1.CUSTOMER.REGISTER,
-          registrationData,
-          { is_auth: false },
-        );
+    try {
+      const response = await apiClient.post<any>(
+        APIS.V1.CUSTOMER.REGISTER,
+        apiData,
+        { is_auth: false },
+      );
 
-        if (response.state === 1) {
-          Alert.alert('Success', 'Registration successful!');
-          resetForm();
-          let user_id = response.user_id;
-          console.log(user_id,"user_id");
-
-          navigation.navigate(SCREENS.OTP_VERIFICATION, { id: user_id });
-        } else {
-          Alert.alert('Error', response.message || 'Registration failed');
-        }
-      } catch (error) {
-        const apiError = error as APIError;
-        Alert.alert('Failed', apiError.message || 'Registration failed');
-      } finally {
-        setLoading(false);
+      resetForm();
+      const userId = response.user_id;
+      navigation.navigate(SCREENS.OTP_VERIFICATION, { id: userId });
+      if (response.detail?.message) {
+        showToast(response.detail.message);
       }
+    } catch (error) {
+      const apiError = error as APIError;
+
+      if (apiError.statusCode === 422 && apiError.data) {
+        setErrors(parseValidationErrors(apiError.data));
+        showToast('Validation Error', { type: 'danger', duration: 1000 });
+      } else {
+        Alert.alert(
+          apiError.normalizedError.title,
+          apiError.normalizedError.message,
+        );
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -150,7 +168,7 @@ const RegisterScreen: React.FC = () => {
         >
           <View style={styles.inner}>
             <Image
-              source={require('../../assets/images/calendar-woman.png')}
+              source={require('@src/assets/images/calendar-woman.png')}
               style={styles.calendarWoman}
               resizeMode="contain"
             />
@@ -163,23 +181,23 @@ const RegisterScreen: React.FC = () => {
 
               <Input
                 label="First Name *"
-                value={firstName}
-                onChangeText={setFirstName}
+                value={registrationData.first_name}
+                onChangeText={text => handleChange('first_name', text)}
                 placeholder="Enter your first name"
-                error={errors.firstName}
+                error={errors.first_name}
               />
 
               <Input
                 label="Last Name"
-                value={lastName}
-                onChangeText={setLastName}
+                value={registrationData.last_name}
+                onChangeText={text => handleChange('last_name', text)}
                 placeholder="Enter your last name (optional)"
               />
 
               <Input
                 label="Email *"
-                value={email}
-                onChangeText={setEmail}
+                value={registrationData.email}
+                onChangeText={text => handleChange('email', text)}
                 placeholder="Enter your email"
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -188,8 +206,8 @@ const RegisterScreen: React.FC = () => {
 
               <Input
                 label="Password *"
-                value={password}
-                onChangeText={setPassword}
+                value={registrationData.password}
+                onChangeText={text => handleChange('password', text)}
                 placeholder="Enter your password"
                 secureTextEntry
                 error={errors.password}
@@ -197,8 +215,8 @@ const RegisterScreen: React.FC = () => {
 
               <Input
                 label="Confirm Password *"
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
+                value={registrationData.confirmPassword}
+                onChangeText={text => handleChange('confirmPassword', text)}
                 placeholder="Re-enter your password"
                 secureTextEntry
                 error={errors.confirmPassword}
@@ -209,8 +227,8 @@ const RegisterScreen: React.FC = () => {
 
               <Input
                 label="Address"
-                value={address}
-                onChangeText={setAddress}
+                value={registrationData.address}
+                onChangeText={text => handleChange('address', text)}
                 placeholder="Enter your address"
                 multiline
                 numberOfLines={2}
@@ -220,16 +238,16 @@ const RegisterScreen: React.FC = () => {
                 <View style={styles.halfWidth}>
                   <Input
                     label="City"
-                    value={city}
-                    onChangeText={setCity}
+                    value={registrationData.city}
+                    onChangeText={text => handleChange('city', text)}
                     placeholder="City"
                   />
                 </View>
                 <View style={styles.halfWidth}>
                   <Input
                     label="State"
-                    value={state}
-                    onChangeText={setState}
+                    value={registrationData.state}
+                    onChangeText={text => handleChange('state', text)}
                     placeholder="State"
                   />
                 </View>
@@ -239,16 +257,16 @@ const RegisterScreen: React.FC = () => {
                 <View style={styles.halfWidth}>
                   <Input
                     label="Country"
-                    value={country}
-                    onChangeText={setCountry}
+                    value={registrationData.country}
+                    onChangeText={text => handleChange('country', text)}
                     placeholder="Country"
                   />
                 </View>
                 <View style={styles.halfWidth}>
                   <Input
                     label="Zip Code"
-                    value={zipCode}
-                    onChangeText={setZipCode}
+                    value={registrationData.zip_code}
+                    onChangeText={text => handleChange('zip_code', text)}
                     placeholder="Zip Code"
                     keyboardType="numeric"
                   />
@@ -260,6 +278,7 @@ const RegisterScreen: React.FC = () => {
                 onPress={handleRegister}
                 loading={loading}
                 disabled={loading}
+                style={styles.createAccountButton}
               />
 
               <Button
@@ -278,7 +297,7 @@ const RegisterScreen: React.FC = () => {
                   onPress={() => Alert.alert('Google', 'Google sign up')}
                 >
                   <Image
-                    source={require('../../assets/images/icons/icons8-google-50.png')}
+                    source={require('@src/assets/images/icons/icons8-google-50.png')}
                     style={styles.socialIcon}
                   />
                 </TouchableOpacity>
@@ -287,7 +306,7 @@ const RegisterScreen: React.FC = () => {
                   onPress={() => Alert.alert('GitHub', 'GitHub sign up')}
                 >
                   <Image
-                    source={require('../../assets/images/icons/icons8-github-50.png')}
+                    source={require('@src/assets/images/icons/icons8-github-50.png')}
                     style={styles.socialIcon}
                   />
                 </TouchableOpacity>
@@ -296,7 +315,7 @@ const RegisterScreen: React.FC = () => {
                   onPress={() => Alert.alert('Instagram', 'Instagram sign up')}
                 >
                   <Image
-                    source={require('../../assets/images/icons/icons8-instagram-50.png')}
+                    source={require('@src/assets/images/icons/icons8-instagram-50.png')}
                     style={styles.socialIcon}
                   />
                 </TouchableOpacity>
@@ -319,7 +338,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: THEME_COLORS.background,
+    backgroundColor: '#FFF',
   },
   scrollContent: {
     flexGrow: 1,
@@ -335,11 +354,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 10,
     textAlign: 'center',
-    color: THEME_COLORS.text,
+    color: '#1F2937',
   },
   subtitle: {
     fontSize: 16,
-    color: THEME_COLORS.textGray,
+    color: '#6B7280',
     marginBottom: 30,
     textAlign: 'center',
   },
@@ -349,7 +368,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: THEME_COLORS.text,
+    color: '#1F2937',
     marginTop: 10,
     marginBottom: 15,
   },
@@ -368,7 +387,7 @@ const styles = StyleSheet.create({
   },
   socialLoginText: {
     fontSize: 14,
-    color: THEME_COLORS.textGray,
+    color: '#6B7280',
     marginBottom: 12,
   },
   socialIconsRow: {
@@ -396,6 +415,9 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 200,
     marginBottom: 20,
+  },
+  createAccountButton: {
+    marginBottom: STYLE.spacing.mh,
   },
 });
 

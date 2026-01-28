@@ -13,7 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../constants/navigation';
 import Input from '../../components/widgets/Input';
-import FontelloIcon from '../../utils/FontelloIcons';
+import FontelloIcon from '../../services/FontelloIcons';
 import BackButton from '../../components/widgets/BackButton';
 
 export default function ChangePasswordScreen() {

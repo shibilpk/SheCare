@@ -1,48 +1,44 @@
 import React from 'react';
-import { TextInput, StyleSheet, Text, View } from 'react-native';
+import {
+  TextInput,
+  StyleSheet,
+  Text,
+  View,
+  TextInputProps,
+} from 'react-native';
 import { THEME_COLORS } from '../../constants/colors';
 
-interface InputProps {
+interface InputProps extends TextInputProps {
   label: string;
-  value: string;
-  onChangeText: (text: string) => void;
-  placeholder?: string;
-  secureTextEntry?: boolean;
-  keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
-  error?: string;
-  multiline?: boolean;
-  numberOfLines?: number;
-  editable?: boolean;
+  error?: string | string[];
 }
 
-const Input: React.FC<InputProps> = ({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  secureTextEntry = false,
-  keyboardType = 'default',
-  multiline = false,
-  numberOfLines = 1,
-  error,
-  editable = true,
-}) => {
+const createErrorMessage = (error: string | string[]): React.ReactNode => {
+  if (!error) return null;
+
+  if (Array.isArray(error)) {
+    return error.map((msg, index) => (
+      <Text key={index} style={styles.errorText}>
+        • {msg}
+      </Text>
+    ));
+  }
+
+  return <Text style={styles.errorText}>{error}</Text>;
+};
+
+const Input: React.FC<InputProps> = ({ label, error, style, ...rest }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.label}>{label}</Text>
+
       <TextInput
-        style={[styles.input, error ? styles.inputError : null]}
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        secureTextEntry={secureTextEntry}
-        keyboardType={keyboardType}
+        {...rest}
+        style={[styles.input, error ? styles.inputError : null, style]}
         autoCapitalize="none"
-        multiline={multiline}
-        numberOfLines={numberOfLines}
-        editable={editable}
       />
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+      {error && createErrorMessage(error)}
     </View>
   );
 };
@@ -55,13 +51,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 8,
     fontWeight: '500',
+    color: THEME_COLORS.text,
   },
   input: {
     borderWidth: 1,
     borderColor: THEME_COLORS.primaryLight,
     borderRadius: 8,
-    padding: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     fontSize: 16,
+    color: THEME_COLORS.text,
   },
   inputError: {
     borderColor: 'red',

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, FlatList, Modal, TouchableWithoutFeedback, StyleSheet } from 'react-native';
 import ModalTopIcon from './ModalTopIcon';
-import FontelloIcon from '../../utils/FontelloIcons';
+import FontelloIcon from '../../services/FontelloIcons';
 import { THEME_COLORS } from '../../constants/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 

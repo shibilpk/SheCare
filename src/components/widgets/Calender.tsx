@@ -13,7 +13,7 @@ import {
   FlatList,
 } from 'react-native';
 import { THEME_COLORS } from '../../constants/colors';
-import FontelloIcon from '../../utils/FontelloIcons';
+import FontelloIcon from '../../services/FontelloIcons';
 
 export type CalendarHandle = {
   goToToday: () => void;
