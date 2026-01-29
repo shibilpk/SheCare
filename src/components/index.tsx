@@ -4,3 +4,4 @@ export { default as QuickActions } from './common/QuickActions';
 export { default as KeyboardAvoidingModal } from './common/KeyboardAvoidingModal';
 export { default as PopupWizard } from './common/PopupWizard';
 export { default as AdBanner } from './common/AdBanner';
+export { default as DatePicker } from './common/DatePicker';

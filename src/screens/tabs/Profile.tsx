@@ -22,8 +22,7 @@ import FontelloIcon from '../../services/FontelloIcons';
 import { useNavigation } from '@react-navigation/native';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
 import { SCREENS, RootStackParamList } from '../../constants/navigation';
-import DateTimePickerModal from 'react-native-modal-datetime-picker';
-import { KeyboardAvoidingModal } from '../../components';
+import { Input, KeyboardAvoidingModal, DatePicker } from '../../components';
 import { PopupScreen } from '../../components/common/PopupWizard';
 import { usePopupWizard } from '../../services/PopupWizardManager';
 import {
@@ -37,11 +36,24 @@ import { APIS } from '../../constants/apis';
 import AdBanner from '../../components/common/AdBanner';
 import { SAMPLE_ADS, AD_PLACEMENTS, trackAdClick } from '../../constants/ads';
 import { STYLE } from '../../constants/app';
+import { Toast } from 'react-native-toast-notifications';
+import { useToastMessage } from '@src/utils/toastMessage';
+import {
+  clearFieldError,
+  FormErrors,
+  parseValidationErrors,
+  validateRequiredFields,
+} from '@src/utils/formUtils';
 
 export default function Profile() {
   const clearToken = useStore(state => state.clearToken);
   const navigation = useNavigation<DrawerNavigationProp<RootStackParamList>>();
   const { showWizard } = usePopupWizard();
+
+  interface WeightResponse {
+    weight: string;
+    unit: string;
+  }
 
   interface ProfileResponse {
     email: string;
@@ -49,9 +61,10 @@ export default function Profile() {
     phone?: string;
     photo?: string;
     age?: number;
+    date_of_birth?: string;
     address?: string;
     height?: number;
-    weight?: number;
+    weight?: WeightResponse;
     cycleLength?: number;
     cycle_length?: number;
     periodLength?: number;
@@ -64,32 +77,41 @@ export default function Profile() {
     user?: {
       first_name?: string;
     };
+    name?: string;
     email?: string;
     phone?: string;
     date_of_birth?: string;
     address?: string;
     height?: number;
     height_unit?: string;
-    weight?: number;
-    weight_unit?: string;
     cycle_length?: number;
     period_length?: number;
     luteal_phase?: number;
   }
+  interface WeightData {
+    weight?: string;
+    weight_unit?: string;
+    weight_date?: string;
+  }
+  type ProfileErrorKey = {
+    height?: string;
+    weight?: string;
+    weight_unit?: string;
+    weight_date?: string;
+  };
+  type ProfileErrors = FormErrors<ProfileErrorKey>;
 
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [profileUpdate, setProfileUpdate] = useState<ProfileUpdate>({});
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState(true);
-  const [weight, setWeight] = useState('');
+  const [weightData, setWeightData] = useState<WeightData>({});
   const [height, setHeight] = useState('');
-  const [age, setAge] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [unit, setUnit] = useState('kg');
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [editField, setEditField] = useState<string | null>(null);
+  const [errors, setErrors] = useState<ProfileErrors>({});
 
   // Cycle Information States
   const [cycleLength, setCycleLength] = useState('');
@@ -98,7 +120,7 @@ export default function Profile() {
   const [useCycleAverage, setUseCycleAverage] = useState(false);
   const [usePeriodAverage, setUsePeriodAverage] = useState(false);
   const [useLutealAverage, setUseLutealAverage] = useState(false);
-
+  const { showToast } = useToastMessage();
   type AvatarFile = {
     uri: string;
     name: string;
@@ -136,18 +158,43 @@ export default function Profile() {
     });
   };
 
+  const validateWeightForm = (): boolean => {
+    let newErrors: FormErrors<WeightData> = {};
+
+    // Required fields
+    newErrors = {
+      ...newErrors,
+      ...validateRequiredFields(weightData, [
+        'weight',
+        'weight_unit',
+        'weight_date',
+      ]),
+    };
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSave = async () => {
     try {
       setLoading(true);
-      let dataToUpdate: any = {};
-      const formData = new FormData();
 
+      let dataToUpdate: ProfileUpdate = {};
+      const formData = new FormData();
+      let update_api = APIS.V1.CUSTOMER.PROFILE;
       if (editField === 'age') {
-        dataToUpdate.age = parseInt(String(profile?.age ?? 0), 10);
+        if (profileUpdate.date_of_birth) {
+          formData.append(
+            'date_of_birth',
+            new Date(profileUpdate.date_of_birth).toISOString().split('T')[0],
+          );
+        }
       } else if (editField === 'weight') {
-        dataToUpdate.weight = parseFloat(weight);
+        if (!validateWeightForm()) return;
+        appendFormDataRecursively(formData, weightData);
+        update_api = APIS.V1.CUSTOMER.WEIGHT_ENTRY;
       } else if (editField === 'height') {
-        dataToUpdate.height = parseFloat(height);
+        formData.append('height', height);
       } else if (editField === 'name') {
         dataToUpdate.name = name;
       } else if (editField === 'phone') {
@@ -160,25 +207,39 @@ export default function Profile() {
 
       // Use recursive function to handle deeply nested objects
       appendFormDataRecursively(formData, profileUpdate);
+      console.log(formData);
 
-      const response = await apiClient.patch<any>(
-        APIS.V1.CUSTOMER.PROFILE,
-        formData,
-      );
+      const response = await apiClient.patch<any>(update_api, formData);
 
       if (response.profile) {
         setProfile(response.profile);
         setEditField(null);
-        Alert.alert('Success', 'Profile updated successfully');
+        showToast(response.detail?.message || 'Profile updated successfully');
+        setErrors({});
       } else {
-        Alert.alert('Error', 'Failed to update profile');
+        showToast('Failed to update profile', { type: 'danger' });
       }
     } catch (error) {
       const apiError = error as APIError;
-      Alert.alert('Error', apiError.message);
+      if (apiError.statusCode === 422 && apiError.data) {
+        // Same behavior as Register screen
+        setErrors(parseValidationErrors(apiError.data));
+      } else {
+        Alert.alert(
+          apiError.normalizedError.title,
+          apiError.normalizedError.message,
+        );
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleWightChange = (field: keyof WeightData, value: string) => {
+    // setLoginData(prev => ({ ...prev, [field]: value }));
+    // setWeightData({ ...weightData, weight: text })
+    setWeightData(prev => ({ ...prev, [field]: value }));
+    setErrors(prev => clearFieldError(prev, field));
   };
 
   const fetchProfile = async () => {
@@ -190,8 +251,6 @@ export default function Profile() {
         setProfile(response.profile);
         setName(response.profile.name || '');
         setPhone(response.profile.phone || '');
-        setAge(response.profile.age?.toString() || '');
-        setWeight(response.profile.weight?.toString() || '');
         setHeight(response.profile.height?.toString() || '');
         setCycleLength(
           (
@@ -236,7 +295,7 @@ export default function Profile() {
         { headers: { 'Content-Type': 'multipart/form-data' } },
       );
 
-      if ( response.profile) {
+      if (response.profile) {
         setProfile(response.profile);
         setAvatar(null);
         Alert.alert('Success', 'Profile picture updated');
@@ -260,11 +319,6 @@ export default function Profile() {
     setRefreshing(true);
     await fetchProfile();
     setRefreshing(false);
-  };
-
-  const handleConfirm = date => {
-    setSelectedDate(date);
-    setDatePickerVisible(false);
   };
 
   // PopupWizard Demo Configuration
@@ -462,7 +516,10 @@ export default function Profile() {
           <TouchableOpacity
             style={styles.statCard}
             onPress={() => {
-              setAge(profile?.age?.toString() || '');
+              setProfileUpdate({
+                date_of_birth:
+                  profile?.date_of_birth || new Date().toISOString(),
+              });
               setEditField('age');
             }}
           >
@@ -483,7 +540,11 @@ export default function Profile() {
           <TouchableOpacity
             style={styles.statCard}
             onPress={() => {
-              setWeight(profile?.weight?.toString() || '');
+              setWeightData({
+                weight: '',
+                weight_unit: 'kg',
+                weight_date: new Date().toISOString().split('T')[0],
+              });
               setEditField('weight');
             }}
           >
@@ -494,8 +555,12 @@ export default function Profile() {
                 color={THEME_COLORS.primary}
               />
             </View>
-            <Text style={styles.statValue}>{profile?.weight || '--'}</Text>
-            <Text style={styles.statLabel}>Weight (kg)</Text>
+            <Text style={styles.statValue}>
+              {profile?.weight?.weight || '--'}
+            </Text>
+            <Text style={styles.statLabel}>
+              Weight ({profile?.weight?.unit || 'kg'})
+            </Text>
             <View style={styles.editBtn}>
               <FontelloIcon name="pencil" size={12} color="#999" />
             </View>
@@ -1076,7 +1141,10 @@ export default function Profile() {
       {/* Edit Modal */}
       <KeyboardAvoidingModal
         visible={editField !== null}
-        onClose={() => setEditField(null)}
+        onClose={() => {
+          setEditField(null);
+          setProfileUpdate({});
+        }}
         showScrollView={true}
         title={
           (editField &&
@@ -1136,13 +1204,15 @@ export default function Profile() {
         {editField === 'weight' && (
           <>
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Weight</Text>
-              <TextInput
+              <Input
+                label="Weight"
                 style={styles.input}
+                labelStyle={styles.inputLabel}
                 placeholder="Enter weight"
                 keyboardType="numeric"
-                value={weight}
-                onChangeText={setWeight}
+                value={weightData.weight}
+                onChangeText={text => handleWightChange('weight', text)}
+                error={errors.weight}
               />
             </View>
 
@@ -1150,32 +1220,36 @@ export default function Profile() {
               <Text style={styles.inputLabel}>Unit</Text>
               <View style={styles.unitRow}>
                 <TouchableOpacity
-                  onPress={() => setUnit('kg')}
+                  onPress={() =>
+                    setWeightData({ ...weightData, weight_unit: 'kg' })
+                  }
                   style={[
                     styles.unitBtn,
-                    unit === 'kg' && styles.unitBtnActive,
+                    weightData.weight_unit === 'kg' && styles.unitBtnActive,
                   ]}
                 >
                   <Text
                     style={[
                       styles.unitText,
-                      unit === 'kg' && styles.unitTextActive,
+                      weightData.weight_unit === 'kg' && styles.unitTextActive,
                     ]}
                   >
                     kg
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  onPress={() => setUnit('lb')}
+                  onPress={() =>
+                    setWeightData({ ...weightData, weight_unit: 'lb' })
+                  }
                   style={[
                     styles.unitBtn,
-                    unit === 'lb' && styles.unitBtnActive,
+                    weightData.weight_unit === 'lb' && styles.unitBtnActive,
                   ]}
                 >
                   <Text
                     style={[
                       styles.unitText,
-                      unit === 'lb' && styles.unitTextActive,
+                      weightData.weight_unit === 'lb' && styles.unitTextActive,
                     ]}
                   >
                     lb
@@ -1184,52 +1258,58 @@ export default function Profile() {
               </View>
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Date</Text>
-              <TouchableOpacity
-                onPress={() => setDatePickerVisible(true)}
-                style={styles.dateBtn}
-              >
-                <Text style={styles.dateText}>
-                  {selectedDate.toLocaleDateString()}
-                </Text>
-                <FontelloIcon name="calendar" size={20} color="#999" />
-              </TouchableOpacity>
-              <DateTimePickerModal
-                isVisible={datePickerVisible}
-                mode="date"
-                date={selectedDate}
-                onConfirm={handleConfirm}
-                onCancel={() => setDatePickerVisible(false)}
-              />
-            </View>
+            <DatePicker
+              label="Date"
+              value={
+                weightData.weight_date
+                  ? new Date(weightData.weight_date)
+                  : new Date()
+              }
+              onChange={date => {
+                setWeightData({
+                  ...weightData,
+                  weight_date: date.toISOString().split('T')[0],
+                });
+              }}
+              mode="date"
+              maximumDate={new Date()}
+            />
           </>
         )}
 
         {editField === 'height' && (
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Height (cm)</Text>
-            <TextInput
+            <Input
+              label="Height (cm)"
               style={styles.input}
               placeholder="Enter height"
               keyboardType="numeric"
               value={height}
               onChangeText={setHeight}
+              error={errors.height}
             />
           </View>
         )}
 
         {editField === 'age' && (
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Age</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter age"
-              keyboardType="numeric"
-              value={age}
-              onChangeText={setAge}
-            />
-          </View>
+          <DatePicker
+            label="Date of Birth"
+            value={
+              profileUpdate.date_of_birth
+                ? new Date(profileUpdate.date_of_birth)
+                : profile?.date_of_birth
+                  ? new Date(profile.date_of_birth)
+                  : new Date()
+            }
+            onChange={date =>
+              setProfileUpdate(prev => ({
+                ...prev,
+                date_of_birth: date.toISOString(),
+              }))
+            }
+            mode="date"
+            maximumDate={new Date()}
+          />
         )}
 
         {editField === 'cycle' && (
@@ -1776,19 +1856,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#fff',
-  },
-  dateBtn: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    padding: 12,
-  },
-  dateText: {
-    fontSize: 15,
-    color: '#333',
   },
   unitRow: {
     flexDirection: 'row',

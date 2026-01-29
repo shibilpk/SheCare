@@ -1,6 +1,7 @@
 // constants/apis.ts
-// export const BASE_URL = 'http://192.168.108.149:7865';
-export const BASE_URL = 'http://192.168.1.5:7865';
+export const BASE_URL = 'http://192.168.108.149:7865';
+// export const BASE_URL = 'http://192.168.1.17:7865';
+// export const BASE_URL = 'http://localhost:7865';
 const API_VERSION = 'v1';
 
 const AUTH_API = {
@@ -14,6 +15,8 @@ const AUTH_API = {
 const CUSTOMER_API = {
   REGISTER: `/api/${API_VERSION}/customer/register/`,
   PROFILE: `/api/${API_VERSION}/customer/profile/`,
+  WEIGHT_ENTRY: `/api/${API_VERSION}/customer/profile/wight-entry/`,
+  HEALTH_ANALYSIS: `/api/${API_VERSION}/customer/health-analysis/`,
   getProfile: (id: string | number) =>
     `/api/${API_VERSION}/customer/profile/${id}/`, // dynamic
 };

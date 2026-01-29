@@ -10,6 +10,7 @@ import { THEME_COLORS } from '../../constants/colors';
 
 interface InputProps extends TextInputProps {
   label: string;
+  labelStyle?: object;
   error?: string | string[];
 }
 
@@ -27,10 +28,10 @@ const createErrorMessage = (error: string | string[]): React.ReactNode => {
   return <Text style={styles.errorText}>{error}</Text>;
 };
 
-const Input: React.FC<InputProps> = ({ label, error, style, ...rest }) => {
+const Input: React.FC<InputProps> = ({ label, labelStyle, error, style, ...rest }) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={[styles.label, labelStyle]}>{label}</Text>
 
       <TextInput
         {...rest}

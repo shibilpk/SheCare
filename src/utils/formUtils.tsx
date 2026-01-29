@@ -1,6 +1,6 @@
 // utils/formUtils.ts
 
-export type FormErrors<T extends Record<string, string>> =
+export type FormErrors<T> =
   Partial<Record<keyof T, string>>;
 
 type BackendValidationError = {
@@ -20,14 +20,16 @@ export const clearFieldError = <T extends Record<string, string>>(
 };
 
 // Generic validation for required fields
-export const validateRequiredFields = <T extends Record<string, string>>(
+export const validateRequiredFields = <T extends object>(
   data: T,
   requiredFields: (keyof T)[]
 ): Partial<Record<keyof T, string>> => {
   const errors: Partial<Record<keyof T, string>> = {};
 
-  requiredFields.forEach(field => {
-    if (!data[field] || data[field].trim() === '') {
+  requiredFields.forEach((field) => {
+    const value = data[field];
+
+    if (typeof value !== 'string' || value.trim() === '') {
       errors[field] = 'This field is required';
     }
   });

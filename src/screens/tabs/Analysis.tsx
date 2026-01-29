@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,12 +6,16 @@ import {
   Dimensions,
   ScrollView,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { LineChart, BarChart, ProgressChart } from 'react-native-chart-kit';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { THEME_COLORS } from '../../constants/colors';
+import apiClient, { APIError } from '@src/services/ApiClient';
+import { APIS } from '@src/constants/apis';
+import { useFocusEffect } from '@react-navigation/native';
 
-// Dummy data
+// // Dummy data
 const bmiAnalysis = {
   age: 28,
   weight: 68,
@@ -21,6 +25,15 @@ const bmiAnalysis = {
   advice:
     'Great job! Your BMI is within the normal range. Maintain your healthy lifestyle with regular exercise and a balanced diet.',
 };
+
+interface HealthAnalysisApiResponse {
+  bmi: {
+    bmi: number;
+    notes: Array<string>;
+    new_bmi: number;
+    status: string;
+  };
+}
 
 const healthMetrics = {
   hydration: 0.75,
@@ -111,6 +124,30 @@ const AnalysisScreen = () => {
       },
     ],
   };
+  const [loading, setLoading] = useState(true);
+  const [healthAnalysis, setHealthAnalysis] =
+    useState<HealthAnalysisApiResponse | null>(null);
+
+  const fetchHealthAnalysis = async () => {
+    try {
+      setLoading(true);
+      const response = await apiClient.get<any>(
+        APIS.V1.CUSTOMER.HEALTH_ANALYSIS,
+      );
+      setHealthAnalysis(response);
+    } catch (error) {
+      const apiError = error as APIError;
+      Alert.alert('Error', apiError.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchHealthAnalysis();
+    }, []),
+  );
 
   const currentWeight =
     weightProgressData.datasets[0].data[
@@ -151,7 +188,9 @@ const AnalysisScreen = () => {
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>💪 BMI Analysis</Text>
             <View style={styles.statusBadge}>
-              <Text style={styles.statusBadgeText}>{bmiAnalysis.category}</Text>
+              <Text style={styles.statusBadgeText}>
+                {healthAnalysis?.bmi.status}
+              </Text>
             </View>
           </View>
 
@@ -173,12 +212,19 @@ const AnalysisScreen = () => {
             </View>
             <View style={[styles.bmiMetricItem, styles.bmiHighlight]}>
               <Text style={styles.bmiMetricLabel}>BMI</Text>
-              <Text style={styles.bmiMetricValueLarge}>{bmiAnalysis.bmi}</Text>
+              <Text style={styles.bmiMetricValueLarge}>
+                {healthAnalysis?.bmi.new_bmi}
+              </Text>
             </View>
           </View>
 
           <View style={styles.adviceBox}>
-            <Text style={styles.adviceText}>{bmiAnalysis.advice}</Text>
+            {healthAnalysis?.bmi.notes.map((note, index) => (
+              <View key={index} style={styles.tipRow}>
+                <View style={styles.tipBullet} />
+                <Text style={styles.adviceText}>{note}</Text>
+              </View>
+            ))}
           </View>
         </View>
 
@@ -442,8 +488,6 @@ const AnalysisScreen = () => {
             Your activity score for each day. Keep up the consistency!
           </Text>
         </View>
-
-
 
         {/* Action Button */}
         <TouchableOpacity style={styles.actionButton}>
