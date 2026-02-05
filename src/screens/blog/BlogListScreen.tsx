@@ -79,7 +79,7 @@ Foods to Include:
 - Iron-rich foods: Spinach, lentils, red meat, fortified cereals
 - Magnesium: Dark chocolate, nuts, seeds, avocado
 - Omega-3s: Salmon, walnuts, flaxseeds
-- Calcium: Dairy, leafy greens, fortified plant milk
+- Calcium: Diary, leafy greens, fortified plant milk
 - Vitamin B6: Bananas, chickpeas, potatoes
 - Complex carbs: Whole grains, sweet potatoes
 

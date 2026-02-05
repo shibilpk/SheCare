@@ -26,14 +26,20 @@ export const SCREENS = {
   TIPS_SCREEN: 'TipsScreen',
   BLOG_LIST: 'BlogList',
   BLOG_DETAIL: 'BlogDetail',
+  PERIODS_LIST: 'PeriodsList',
 } as const;
 
 // Define screens that need params and their types
 type ScreenParams = {
-  OTPVerification: {
+  [SCREENS.OTP_VERIFICATION]: {
     id?: string;
     email?: string;
     isLoginFlow?: boolean;
+  };
+  [SCREENS.PERIOD_SELECTOR]?: {
+    startDate?: Date | null;
+    endDate?: Date | null;
+    rangeDays?: number | null;
   };
 };
 

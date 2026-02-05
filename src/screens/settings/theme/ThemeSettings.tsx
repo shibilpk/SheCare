@@ -15,6 +15,7 @@ import { THEME_COLORS } from '../../../constants/colors';
 import useStore from '../../../hooks/useStore';
 import { useIsDarkMode, isUserSetTheme } from '../../../services/theme';
 import { STYLE } from '../../../constants/app';
+import { Button } from '@src/components';
 
 type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -81,7 +82,7 @@ const ThemeSettingsScreen: React.FC = () => {
                 styles.toggleButton,
                 isActive && styles.toggleButtonActive,
               ]}
-              onPress={() => handleThemeSelect(opt.mode)}
+              onPress={() => setSelectedTheme(opt.mode)}
               activeOpacity={0.8}
             >
               <FontelloIcon
@@ -110,10 +111,10 @@ const ThemeSettingsScreen: React.FC = () => {
                 selectedTheme === 'dark'
                   ? '#1A1A1A'
                   : selectedTheme === 'light'
-                  ? '#FFFFFF'
-                  : systemTheme === 'dark'
-                  ? '#1A1A1A'
-                  : '#FFFFFF',
+                    ? '#FFFFFF'
+                    : systemTheme === 'dark'
+                      ? '#1A1A1A'
+                      : '#FFFFFF',
             },
           ]}
         >
@@ -125,10 +126,10 @@ const ThemeSettingsScreen: React.FC = () => {
                   selectedTheme === 'dark'
                     ? '#2D2D2D'
                     : selectedTheme === 'light'
-                    ? '#F8F9FA'
-                    : systemTheme === 'dark'
-                    ? '#2D2D2D'
-                    : '#F8F9FA',
+                      ? '#F8F9FA'
+                      : systemTheme === 'dark'
+                        ? '#2D2D2D'
+                        : '#F8F9FA',
               },
             ]}
           />
@@ -157,6 +158,17 @@ const ThemeSettingsScreen: React.FC = () => {
             </Text>
           </View>
         </View>
+      </View>
+      <View style={styles.saveButton}>
+        <Button
+          title="Save"
+          onPress={() => {
+            handleThemeSelect(selectedTheme)
+            navigation.goBack();
+          }}
+          loading={false}
+          disabled={false}
+        />
       </View>
     </SafeAreaView>
   );
@@ -279,6 +291,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     lineHeight: 16,
+  },
+  saveButton: {
+    marginTop: 30,
+    marginHorizontal: STYLE.spacing.mh,
   },
 });
 

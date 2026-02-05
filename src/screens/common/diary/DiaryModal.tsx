@@ -22,6 +22,7 @@ interface DiaryModalProps {
   initialDate?: Date;
   initialText?: string;
   onSave?: (date: Date, text: string) => void;
+  onDateChange?: (date: Date) => void; // 👈 NEW
 }
 
 const DiaryModal: React.FC<DiaryModalProps> = ({
@@ -30,6 +31,7 @@ const DiaryModal: React.FC<DiaryModalProps> = ({
   initialDate,
   initialText = '',
   onSave,
+  onDateChange,
 }) => {
   const insets = useSafeAreaInsets();
   const [diaryText, setDiaryText] = useState(initialText);
@@ -98,6 +100,7 @@ const DiaryModal: React.FC<DiaryModalProps> = ({
               onConfirm={date => {
                 setDiaryDate(date);
                 setShowDiaryDatePicker(false);
+                onDateChange?.(date); // 👈 notify parent
               }}
               onCancel={() => setShowDiaryDatePicker(false)}
             />
@@ -156,9 +159,9 @@ const DiaryModal: React.FC<DiaryModalProps> = ({
 
 const styles = StyleSheet.create({
   scrollContent: {
-  flexGrow: 1,
-  paddingBottom: 24,
-},
+    flexGrow: 1,
+    paddingBottom: 24,
+  },
   modalContainer: {
     flex: 1,
     backgroundColor: THEME_COLORS.background,

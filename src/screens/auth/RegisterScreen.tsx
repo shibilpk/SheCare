@@ -27,12 +27,9 @@ import {
 } from '@src/utils/formUtils';
 import { useToastMessage } from '@src/utils/toastMessage';
 
-
-
 // Types for registration
 type RegistrationData = {
   first_name: string;
-  last_name: string;
   email: string;
   password: string;
   address: string;
@@ -42,12 +39,15 @@ type RegistrationData = {
   zip_code: string;
 };
 
-type RegistrationErrors = FormErrors<RegistrationData & { confirmPassword: string }>;
+type RegistrationErrors = FormErrors<
+  RegistrationData & { confirmPassword: string }
+>;
 
 const RegisterScreen: React.FC = () => {
-  const [registrationData, setRegistrationData] = useState<RegistrationData & { confirmPassword: string }>({
+  const [registrationData, setRegistrationData] = useState<
+    RegistrationData & { confirmPassword: string }
+  >({
     first_name: '',
-    last_name: '',
     email: '',
     password: '',
     confirmPassword: '',
@@ -65,11 +65,9 @@ const RegisterScreen: React.FC = () => {
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { showToast } = useToastMessage();
 
-
   const resetForm = () => {
     setRegistrationData({
       first_name: '',
-      last_name: '',
       email: '',
       password: '',
       confirmPassword: '',
@@ -82,7 +80,10 @@ const RegisterScreen: React.FC = () => {
     setErrors({});
   };
 
-  const handleChange = (field: keyof (RegistrationData & { confirmPassword: string }), value: string) => {
+  const handleChange = (
+    field: keyof (RegistrationData & { confirmPassword: string }),
+    value: string,
+  ) => {
     setRegistrationData(prev => ({ ...prev, [field]: value }));
     setErrors(prev => clearFieldError(prev, field));
   };
@@ -93,7 +94,12 @@ const RegisterScreen: React.FC = () => {
     // Required fields
     newErrors = {
       ...newErrors,
-      ...validateRequiredFields(registrationData, ['first_name', 'email', 'password', 'confirmPassword']),
+      ...validateRequiredFields(registrationData, [
+        'first_name',
+        'email',
+        'password',
+        'confirmPassword',
+      ]),
     };
 
     // Email validation
@@ -108,7 +114,10 @@ const RegisterScreen: React.FC = () => {
     }
 
     // Confirm password match
-    if (!newErrors.confirmPassword && registrationData.password !== registrationData.confirmPassword) {
+    if (
+      !newErrors.confirmPassword &&
+      registrationData.password !== registrationData.confirmPassword
+    ) {
       newErrors.confirmPassword = 'Passwords do not match';
     }
 
@@ -142,7 +151,7 @@ const RegisterScreen: React.FC = () => {
 
       if (apiError.statusCode === 422 && apiError.data) {
         setErrors(parseValidationErrors(apiError.data));
-        showToast('Validation Error', { type: 'danger', duration: 1000 });
+        showToast('Validation Error', { type: 'danger' });
       } else {
         Alert.alert(
           apiError.normalizedError.title,
@@ -185,13 +194,6 @@ const RegisterScreen: React.FC = () => {
                 onChangeText={text => handleChange('first_name', text)}
                 placeholder="Enter your first name"
                 error={errors.first_name}
-              />
-
-              <Input
-                label="Last Name"
-                value={registrationData.last_name}
-                onChangeText={text => handleChange('last_name', text)}
-                placeholder="Enter your last name (optional)"
               />
 
               <Input

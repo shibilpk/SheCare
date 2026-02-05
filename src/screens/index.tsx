@@ -31,3 +31,4 @@ export { default as PregnancySettings } from './settings/pregnancy/PregnancySett
 export { default as TipsScreen } from './common/TipsScreen';
 export { default as BlogListScreen } from './blog/BlogListScreen';
 export { default as BlogDetailScreen } from './blog/BlogDetailScreen';
+export { default as PeriodsListScreen } from './screens/PeriodsList';

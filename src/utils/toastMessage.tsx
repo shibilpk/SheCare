@@ -15,7 +15,7 @@ export const useToastMessage = () => {
       toast.hideAll();
     }
 
-    toast.show(message, { ...toastOptions });
+    toast.show(message, { duration: 1000, ...toastOptions });
   };
 
   return { showToast };

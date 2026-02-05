@@ -11,16 +11,32 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CalendarWidget, DateRange } from '../../components/widgets/Calender';
 import { HOME_CARD_PASTEL, THEME_COLORS } from '../../constants/colors';
 import FontelloIcon from '../../services/FontelloIcons';
-import { useNavigation } from '@react-navigation/native';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import LinearGradient from 'react-native-linear-gradient';
 import { STYLE } from '../../constants/app';
+import { RootStackParamList, SCREENS } from '@src/constants/navigation';
+import { APIS } from '@src/constants/apis';
+import apiClient, { APIError } from '@src/services/ApiClient';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
+type ScreenRouteProp = RouteProp<
+  RootStackParamList,
+  typeof SCREENS.PERIOD_SELECTOR
+>;
 const PeriodSelector: React.FC = () => {
-  const navigation = useNavigation();
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const route = useRoute<ScreenRouteProp>();
+  const {
+    startDate = null,
+    endDate = null,
+    rangeDays = null,
+  } = route.params || {};
+
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [range, setRange] = useState<DateRange>({
-    startDate: null,
-    endDate: null,
+    startDate: startDate,
+    endDate: endDate,
   });
   const [pickerType, setPickerType] = useState<'start' | 'end' | null>(null);
 
@@ -48,7 +64,7 @@ const PeriodSelector: React.FC = () => {
     });
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (!range.startDate || !range.endDate) {
       Alert.alert(
         'Incomplete Selection',
@@ -56,14 +72,24 @@ const PeriodSelector: React.FC = () => {
       );
       return;
     }
-
-    Alert.alert(
-      'Period Selected',
-      `Start: ${formatDate(range.startDate)}\nEnd: ${formatDate(
-        range.endDate,
-      )}\nDuration: ${calculateDuration()} days`,
-      [{ text: 'OK', onPress: () => console.log('Period confirmed', range) }],
-    );
+    try {
+      const payload = {
+        start_date: range.startDate.toISOString().split('T')[0],
+        end_date: range.endDate.toISOString().split('T')[0],
+      };
+      const response = await apiClient.post<any>(
+        APIS.V1.PERIOD.CREATE,
+        payload,
+      );
+      navigation.navigate(SCREENS.LANDING);
+    } catch (error) {
+      const apiError = error as APIError;
+      Alert.alert(
+        apiError.normalizedError.title,
+        apiError.normalizedError.message,
+      );
+      return;
+    }
   };
 
   const handleClear = () => {
@@ -220,62 +246,16 @@ const PeriodSelector: React.FC = () => {
           onCancel={() => setPickerType(null)}
         />
 
-        {/* Month Navigation */}
-        <View style={styles.monthHeader}>
-          <TouchableOpacity
-            onPress={() => {
-              const newMonth = new Date(
-                currentMonth.getFullYear(),
-                currentMonth.getMonth() - 1,
-                1,
-              );
-              setCurrentMonth(newMonth);
-            }}
-            style={styles.navBtn}
-          >
-            <FontelloIcon
-              name="left-open-mini"
-              size={24}
-              color={THEME_COLORS.primary}
-            />
-          </TouchableOpacity>
-          <View style={styles.monthTitleContainer}>
-            <Text style={styles.monthTitle}>
-              {currentMonth.toLocaleDateString('en-US', { month: 'long' })}
-            </Text>
-            <Text style={styles.yearSubtitle}>
-              {currentMonth.getFullYear()}
-            </Text>
-          </View>
-          <TouchableOpacity
-            onPress={() => {
-              const newMonth = new Date(
-                currentMonth.getFullYear(),
-                currentMonth.getMonth() + 1,
-                1,
-              );
-              setCurrentMonth(newMonth);
-            }}
-            style={styles.navBtn}
-          >
-            <FontelloIcon
-              name="right-open-mini"
-              size={24}
-              color={THEME_COLORS.primary}
-            />
-          </TouchableOpacity>
-        </View>
-
         {/* Calendar */}
         <View style={styles.calendarContainer}>
           <CalendarWidget
             selectionMode="range"
-            outsideMonthVisible
+            showMonthNavigation
             scrollable
             selectedRange={range}
             onDayPress={handleDayPress}
-            initialDate={currentMonth}
             calendarStyle={{ dayText: { fontSize: 16 } }}
+            rangeDays={rangeDays !== null ? rangeDays : undefined}
           />
         </View>
 
@@ -423,31 +403,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 2,
     elevation: 1,
-  },
-  monthHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    marginTop: 20,
-    backgroundColor: '#fff',
-  },
-  navBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-  },
-  monthTitleContainer: {
-    alignItems: 'center',
-  },
-  monthTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#333',
-  },
-  yearSubtitle: {
-    fontSize: 14,
-    color: '#999',
   },
   calendarContainer: {
     backgroundColor: '#fff',

@@ -106,6 +106,7 @@ type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
 interface ApiOptions {
   method?: HttpMethod;
   data?: unknown;
+  params?: Record<string, string | number | boolean | undefined>;
   is_auth?: boolean;
   abortPrevious?: boolean;
   headers?: Record<string, string>;
@@ -355,8 +356,21 @@ class ApiClient {
         requestOptions,
       );
 
+      let finalUrl = intercepted.url;
+
+      if (options.params && Object.keys(options.params).length > 0) {
+        const query = new URLSearchParams();
+        Object.entries(options.params).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            query.append(key, String(value));
+          }
+        });
+
+        finalUrl += `?${query.toString()}`;
+      }
+
       // Execute fetch
-      let response = await fetch(intercepted.url, intercepted.options);
+      let response = await fetch(finalUrl, intercepted.options);
 
       // Apply response interceptors
       response = await this.applyResponseInterceptors(response);
@@ -544,6 +558,9 @@ class ApiClient {
 const apiClient = new ApiClient(BASE_URL);
 
 export default apiClient;
+
+// Export the class for creating new instances
+export { ApiClient };
 
 // Export types for external use
 export type { ApiOptions, HttpMethod, TokenResponse };

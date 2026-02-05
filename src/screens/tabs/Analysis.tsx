@@ -14,6 +14,9 @@ import { THEME_COLORS } from '../../constants/colors';
 import apiClient, { APIError } from '@src/services/ApiClient';
 import { APIS } from '@src/constants/apis';
 import { useFocusEffect } from '@react-navigation/native';
+import { ProfileResponse } from '@src/constants/types';
+import { InfoCard } from '@src/components';
+import { useToastMessage } from '@src/utils/toastMessage';
 
 // // Dummy data
 const bmiAnalysis = {
@@ -32,7 +35,9 @@ interface HealthAnalysisApiResponse {
     notes: Array<string>;
     new_bmi: number;
     status: string;
+    status_badge_color: string;
   };
+  profile: ProfileResponse;
 }
 
 const healthMetrics = {
@@ -43,7 +48,7 @@ const healthMetrics = {
 
 const AnalysisScreen = () => {
   const screenWidth = Dimensions.get('window').width;
-
+  const { showToast } = useToastMessage();
   // Chart configurations
   const baseChartConfig = {
     backgroundGradientFrom: '#ffffff',
@@ -137,7 +142,7 @@ const AnalysisScreen = () => {
       setHealthAnalysis(response);
     } catch (error) {
       const apiError = error as APIError;
-      Alert.alert('Error', apiError.message);
+      showToast(apiError.message);
     } finally {
       setLoading(false);
     }
@@ -187,9 +192,17 @@ const AnalysisScreen = () => {
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>💪 BMI Analysis</Text>
-            <View style={styles.statusBadge}>
+            <View
+              style={[
+                styles.statusBadge,
+                {
+                  backgroundColor:
+                    healthAnalysis?.bmi.status_badge_color || '#4BB543',
+                },
+              ]}
+            >
               <Text style={styles.statusBadgeText}>
-                {healthAnalysis?.bmi.status}
+                {healthAnalysis?.bmi.status || 'Loading...'}
               </Text>
             </View>
           </View>
@@ -197,18 +210,26 @@ const AnalysisScreen = () => {
           <View style={styles.bmiMetricsGrid}>
             <View style={styles.bmiMetricItem}>
               <Text style={styles.bmiMetricLabel}>Age</Text>
-              <Text style={styles.bmiMetricValue}>{bmiAnalysis.age}</Text>
+              <Text style={styles.bmiMetricValue}>
+                {healthAnalysis?.profile.age}
+              </Text>
               <Text style={styles.bmiMetricUnit}>years</Text>
             </View>
             <View style={styles.bmiMetricItem}>
               <Text style={styles.bmiMetricLabel}>Weight</Text>
-              <Text style={styles.bmiMetricValue}>{bmiAnalysis.weight}</Text>
-              <Text style={styles.bmiMetricUnit}>kg</Text>
+              <Text style={styles.bmiMetricValue}>
+                {healthAnalysis?.profile.weight?.weight}
+              </Text>
+              <Text style={styles.bmiMetricUnit}>
+                {healthAnalysis?.profile.weight?.unit}
+              </Text>
             </View>
             <View style={styles.bmiMetricItem}>
               <Text style={styles.bmiMetricLabel}>Height</Text>
-              <Text style={styles.bmiMetricValue}>{bmiAnalysis.height}</Text>
-              <Text style={styles.bmiMetricUnit}>m</Text>
+              <Text style={styles.bmiMetricValue}>
+                {healthAnalysis?.profile.height}
+              </Text>
+              <Text style={styles.bmiMetricUnit}>cm</Text>
             </View>
             <View style={[styles.bmiMetricItem, styles.bmiHighlight]}>
               <Text style={styles.bmiMetricLabel}>BMI</Text>
@@ -217,15 +238,7 @@ const AnalysisScreen = () => {
               </Text>
             </View>
           </View>
-
-          <View style={styles.adviceBox}>
-            {healthAnalysis?.bmi.notes.map((note, index) => (
-              <View key={index} style={styles.tipRow}>
-                <View style={styles.tipBullet} />
-                <Text style={styles.adviceText}>{note}</Text>
-              </View>
-            ))}
-          </View>
+          <InfoCard insights={healthAnalysis?.bmi.notes || []} />
         </View>
 
         {/* Health Metrics Progress */}
@@ -272,41 +285,18 @@ const AnalysisScreen = () => {
         </View>
 
         {/* Insights & Tips */}
-        <View style={[styles.card, styles.insightsCard]}>
-          <Text style={styles.cardTitle}>💡 Insights & Tips</Text>
-          <View style={styles.insightsList}>
-            <View style={styles.insightItem}>
-              <View style={styles.insightBullet} />
-              <Text style={styles.insightText}>
-                You are on <Text style={styles.bold}>day 20</Text> of your cycle
-              </Text>
-            </View>
-            <View style={styles.insightItem}>
-              <View style={styles.insightBullet} />
-              <Text style={styles.insightText}>
-                <Text style={styles.bold}>Medium chance</Text> of pregnancy
-              </Text>
-            </View>
-            <View style={styles.insightItem}>
-              <View style={styles.insightBullet} />
-              <Text style={styles.insightText}>
-                Next period in <Text style={styles.bold}>12 days</Text>
-              </Text>
-            </View>
-            <View style={styles.insightItem}>
-              <View style={styles.insightBullet} />
-              <Text style={styles.insightText}>
-                Log symptoms daily for accurate tracking
-              </Text>
-            </View>
-            <View style={styles.insightItem}>
-              <View style={styles.insightBullet} />
-              <Text style={styles.insightText}>
-                Stay hydrated and maintain good sleep
-              </Text>
-            </View>
-          </View>
-        </View>
+        <InfoCard
+          title="Insights & Tips"
+          emoji="💡"
+          // highlightColor="#6C63FF"
+          insights={[
+            'You are on "day 20" of your cycle',
+            '"Medium chance" of pregnancy',
+            'Next period in "12 days"',
+            'Log symptoms daily for accurate tracking',
+            'Stay hydrated and maintain good sleep',
+          ]}
+        />
 
         {/* Weight Progress Chart */}
         <View style={styles.card}>

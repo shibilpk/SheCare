@@ -518,6 +518,10 @@ export default function RootNavigation() {
                     name={SCREENS.BLOG_DETAIL}
                     component={Screens.BlogDetailScreen}
                   />
+                  <Stack.Screen
+                    name={SCREENS.PERIODS_LIST}
+                    component={Screens.PeriodsListScreen}
+                  />
                 </Stack.Navigator>
                 <Modal
                   visible={modalVisible}

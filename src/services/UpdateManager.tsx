@@ -1,10 +1,11 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DeviceInfo from 'react-native-device-info';
 import UpdateScreen from '../screens/common/update/UpdateScreen';
 import { APIS } from '../constants/apis';
-import { Platform } from 'react-native';
-import apiClient from './ApiClient';
+import { Alert, Platform } from 'react-native';
+import apiClient, { APIError } from './ApiClient';
+import { NetworkErrorModal } from '@src/components';
 
 // Constants
 const UPDATE_CHECK_KEY = 'last_update_check';
@@ -100,17 +101,17 @@ const compareVersions = (current: string, latest: string): boolean => {
 
 /**
  * Main function to check for app updates
- * Only makes API call once per day
+ * Checks on every app launch
  */
 const checkForUpdates = async (): Promise<UpdateInfo> => {
   try {
     // Check if we should make the API call (once per day)
-    const shouldCheck = await shouldCheckForUpdates();
+    // const shouldCheck = await shouldCheckForUpdates();
 
-    if (!shouldCheck) {
-      console.log('Update check skipped - checked within last 24 hours');
-      return { shouldUpdate: false };
-    }
+    // if (!shouldCheck) {
+    //   console.log('Update check skipped - checked within last 24 hours');
+    //   return { shouldUpdate: false };
+    // }
 
     console.log('Checking for app updates...');
 
@@ -134,7 +135,7 @@ const checkForUpdates = async (): Promise<UpdateInfo> => {
     } = data;
 
     // Update the last check timestamp
-    await updateLastCheckTime();
+    // await updateLastCheckTime();
 
     // Check if update is needed
     const hasUpdate = compareVersions(currentVersion, latestVersion);
@@ -159,7 +160,8 @@ const checkForUpdates = async (): Promise<UpdateInfo> => {
   } catch (error) {
     console.error('Update check failed:', error);
     // Don't update timestamp on error, so it will retry next time
-    return { shouldUpdate: false };
+    // Throw error to be handled by caller
+    throw error;
   }
 };
 
@@ -210,14 +212,21 @@ export function UpdateProvider({ children }: UpdateProviderProps) {
     'Enhanced medication reminders',
     'Better UI/UX experience',
   ]);
+  const [showNetworkError, setShowNetworkError] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
+  const hasCheckedRef = useRef(false);
 
-  // Check for updates on app start (only once per day)
+  // Check for updates on app start (only once per app session)
   useEffect(() => {
-    performUpdateCheck();
+    if (!hasCheckedRef.current) {
+      hasCheckedRef.current = true;
+      performUpdateCheck();
+    }
   }, []);
 
   const performUpdateCheck = async () => {
     try {
+      setIsRetrying(true);
       const updateInfo = await checkForUpdates();
 
       if (updateInfo.shouldUpdate) {
@@ -230,8 +239,16 @@ export function UpdateProvider({ children }: UpdateProviderProps) {
 
         setVisible(true);
       }
+      setShowNetworkError(false);
     } catch (error) {
-      console.error('Error checking for updates:', error);
+      const apiError = error as APIError;
+      if (apiError.statusCode === 0) {
+        setShowNetworkError(true);
+      } else {
+        console.error('Error checking for updates:', error);
+      }
+    } finally {
+      setIsRetrying(false);
     }
   };
 
@@ -273,6 +290,11 @@ export function UpdateProvider({ children }: UpdateProviderProps) {
         version={currentVersion}
         isRequired={isRequired}
         updateNotes={updateNotes}
+      />
+      <NetworkErrorModal
+        visible={showNetworkError}
+        onRetry={performUpdateCheck}
+        isRetrying={isRetrying}
       />
     </UpdateContext.Provider>
   );

@@ -131,7 +131,7 @@ const LifestyleDetailsScreen = () => {
             onPress={() => setEditField('weight')}
           >
             <View style={[styles.statIcon, { backgroundColor: '#E0E7FF' }]}>
-              <FontelloIcon name="balanceScale" size={24} color="#6366F1" />
+              <FontelloIcon name="balance-scale" size={24} color="#6366F1" />
             </View>
             <Text style={styles.statLabel}>Weight</Text>
             <Text style={styles.statValue}>

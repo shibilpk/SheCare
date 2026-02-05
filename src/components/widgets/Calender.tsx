@@ -45,6 +45,7 @@ type Props = {
   hideWeekDays?: boolean;
   onMonthChange?: (date: Date) => void;
   showMonthNavigation?: boolean;
+  rangeDays?: number;
 };
 
 const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -63,8 +64,12 @@ const CalendarWidgetBase = forwardRef<CalendarHandle, Props>(
       hideWeekDays = false,
       onMonthChange,
       showMonthNavigation = false,
+      rangeDays,
     } = props;
 
+    const originalMonthRef = useRef(
+      new Date(initialDate.getFullYear(), initialDate.getMonth(), 1),
+    );
     const [currentMonth, setCurrentMonth] = useState(
       new Date(initialDate.getFullYear(), initialDate.getMonth(), 1),
     );
@@ -76,17 +81,25 @@ const CalendarWidgetBase = forwardRef<CalendarHandle, Props>(
       endDate: selectedRangeProp?.endDate ?? null,
     });
     const [containerWidth, setContainerWidth] = useState(0);
+
+    // Extract values for dependency tracking
+    const initialYear = initialDate.getFullYear();
+    const initialMonth = initialDate.getMonth();
+    const selectedDateTimestamp = selectedDateProp?.getTime();
+    const rangeStartTimestamp = selectedRangeProp?.startDate?.getTime();
+    const rangeEndTimestamp = selectedRangeProp?.endDate?.getTime();
+
     useEffect(() => {
-      setCurrentMonth(
-        new Date(initialDate.getFullYear(), initialDate.getMonth(), 1),
-      );
-    }, [initialDate]);
+      const newMonth = new Date(initialYear, initialMonth, 1);
+      originalMonthRef.current = newMonth;
+      setCurrentMonth(newMonth);
+    }, [initialYear, initialMonth]);
 
     useEffect(() => {
       if (selectedDateProp) {
         setSelectedDate(selectedDateProp);
       }
-    }, [selectedDateProp]);
+    }, [selectedDateProp, selectedDateTimestamp]);
 
     useEffect(() => {
       if (selectedRangeProp) {
@@ -95,12 +108,14 @@ const CalendarWidgetBase = forwardRef<CalendarHandle, Props>(
           endDate: selectedRangeProp.endDate,
         });
       }
-    }, [selectedRangeProp]);
+    }, [selectedRangeProp, rangeStartTimestamp, rangeEndTimestamp]);
 
     useImperativeHandle(ref, () => ({
       goToToday: () => {
         const today = new Date();
-        setCurrentMonth(new Date(today.getFullYear(), today.getMonth(), 1));
+        const newMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        originalMonthRef.current = newMonth;
+        setCurrentMonth(newMonth);
         if (selectionMode === 'range') {
           setSelectedRange({ startDate: today, endDate: null });
           onDayPress?.({ startDate: today, endDate: null });
@@ -212,12 +227,20 @@ const CalendarWidgetBase = forwardRef<CalendarHandle, Props>(
       if (selectionMode === 'range') {
         // First click: set start date
         if (!selectedRange.startDate) {
-          const newRange = { startDate: date, endDate: null };
+          let newRange: DateRange;
+          if (rangeDays !== undefined) {
+            // Auto-calculate end date based on rangeDays
+            const endDate = new Date(date);
+            endDate.setDate(endDate.getDate() + rangeDays);
+            newRange = { startDate: date, endDate: endDate };
+          } else {
+            newRange = { startDate: date, endDate: null };
+          }
           setSelectedRange(newRange);
           onDayPress?.(newRange);
         }
-        // Second click: set end date
-        else if (selectedRange.startDate && !selectedRange.endDate) {
+        // Second click: set end date (only if rangeDays is not set)
+        else if (selectedRange.startDate && !selectedRange.endDate && rangeDays === undefined) {
           const newRange = {
             startDate: selectedRange.startDate,
             endDate: date,
@@ -301,6 +324,7 @@ const CalendarWidgetBase = forwardRef<CalendarHandle, Props>(
                     currentMonth.getMonth() - 1,
                     1,
                   );
+                  originalMonthRef.current = newMonth;
                   setCurrentMonth(newMonth);
                   onMonthChange?.(newMonth);
                 }}
@@ -314,10 +338,10 @@ const CalendarWidgetBase = forwardRef<CalendarHandle, Props>(
               </TouchableOpacity>
               <View style={styles.monthTitleContainer}>
                 <Text style={styles.monthTitle}>
-                  {monthNames[currentMonth.getMonth()]}
+                  {monthNames[date.getMonth()]}
                 </Text>
                 <Text style={styles.yearSubtitle}>
-                  {currentMonth.getFullYear()}
+                  {date.getFullYear()}
                 </Text>
               </View>
               <TouchableOpacity
@@ -327,6 +351,7 @@ const CalendarWidgetBase = forwardRef<CalendarHandle, Props>(
                     currentMonth.getMonth() + 1,
                     1,
                   );
+                  originalMonthRef.current = newMonth;
                   setCurrentMonth(newMonth);
                   onMonthChange?.(newMonth);
                 }}
@@ -439,9 +464,9 @@ const CalendarWidgetBase = forwardRef<CalendarHandle, Props>(
 
     if (scrollable) {
       const months = [
-        getMonthDate(currentMonth, -1),
-        currentMonth,
-        getMonthDate(currentMonth, 1),
+        getMonthDate(originalMonthRef.current, -1),
+        originalMonthRef.current,
+        getMonthDate(originalMonthRef.current, 1),
       ];
       const flatListProps = {
         horizontal: true,
@@ -457,11 +482,12 @@ const CalendarWidgetBase = forwardRef<CalendarHandle, Props>(
         decelerationRate: 'fast' as const,
         onMomentumScrollEnd: (e: any) => {
           const idx = Math.round(e.nativeEvent.contentOffset.x / containerWidth);
-          let newMonth = currentMonth;
-          if (idx === 0) newMonth = getMonthDate(currentMonth, -1);
-          else if (idx === 2) newMonth = getMonthDate(currentMonth, 1);
+          let newMonth = originalMonthRef.current;
+          if (idx === 0) newMonth = getMonthDate(originalMonthRef.current, -1);
+          else if (idx === 2) newMonth = getMonthDate(originalMonthRef.current, 1);
 
-          if (newMonth !== currentMonth) {
+          if (newMonth.getTime() !== originalMonthRef.current.getTime()) {
+            originalMonthRef.current = newMonth;
             setCurrentMonth(newMonth);
             onMonthChange?.(newMonth);
           }

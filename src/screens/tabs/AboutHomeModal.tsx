@@ -1,10 +1,11 @@
-import React, { useContext, useRef, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import GlobalModalContext from '../../services/GlobalContext';
@@ -15,8 +16,12 @@ import { THEME_COLORS } from '../../constants/colors';
 import { useNavigation } from '@react-navigation/native';
 import { RootStackParamList } from '../../constants/navigation';
 import { StackNavigationProp } from '@react-navigation/stack';
-import DiaryModal from '../common/dairy/DiaryModal';
+import DiaryModal from '../common/diary/DiaryModal';
 import { STYLE } from '../../constants/app';
+import { fetchDiaryEntry, saveDiaryEntry } from '../common/diary/service';
+import { parseValidationErrors } from '@src/utils/formUtils';
+import { APIError } from '@src/services/ApiClient';
+import { useToastMessage } from '@src/utils/toastMessage';
 
 const moods = [
   { name: 'Happy', emoji: '😊', color: '#FFE0B2' },
@@ -94,8 +99,46 @@ export default function AboutHomeModal() {
   const [activeTab, setActiveTab] = useState<'tracking' | 'ratings'>(
     'tracking',
   );
+  const { showToast } = useToastMessage();
+
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const [showDiaryModal, setShowDiaryModal] = useState(false);
+  const [diaryText, setDiaryText] = useState<string>('');
+
+  useEffect(() => {
+    if (showDiaryModal) {
+      loadDiary(new Date());
+    }
+  }, [showDiaryModal]);
+
+  async function loadDiary(date: Date) {
+    try {
+      const entry = await fetchDiaryEntry(date);
+      setDiaryText(entry?.content ?? '');
+    } catch (error) {
+      console.error('Failed to fetch diary entry', error);
+      setDiaryText('');
+    }
+  }
+
+  async function handleDiarySave(date: Date, text: string) {
+    try {
+      const message = await saveDiaryEntry(date, text);
+      showToast(message);
+      setShowDiaryModal(false);
+    } catch (error) {
+      const apiError = error as APIError;
+
+      if (apiError.statusCode === 422 && apiError.data) {
+        console.log(parseValidationErrors(apiError.data));
+      } else {
+        Alert.alert(
+          apiError.normalizedError.title,
+          apiError.normalizedError.message,
+        );
+      }
+    }
+  }
 
   const toggleMood = (mood: string) => {
     setSelectedMoods(prev =>
@@ -383,9 +426,13 @@ export default function AboutHomeModal() {
                 visible={showDiaryModal}
                 onClose={() => setShowDiaryModal(false)}
                 initialDate={new Date()}
+                initialText={diaryText}
                 onSave={(date, text) => {
                   // Handle save logic here
-                  console.log('Diary saved:', { date, text });
+                  handleDiarySave(date, text);
+                }}
+                onDateChange={date => {
+                  loadDiary(date);
                 }}
               />
             </View>

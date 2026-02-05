@@ -36,7 +36,6 @@ import { APIS } from '../../constants/apis';
 import AdBanner from '../../components/common/AdBanner';
 import { SAMPLE_ADS, AD_PLACEMENTS, trackAdClick } from '../../constants/ads';
 import { STYLE } from '../../constants/app';
-import { Toast } from 'react-native-toast-notifications';
 import { useToastMessage } from '@src/utils/toastMessage';
 import {
   clearFieldError,
@@ -96,6 +95,7 @@ export default function Profile() {
   type ProfileErrorKey = {
     height?: string;
     weight?: string;
+    phone?: string;
     weight_unit?: string;
     weight_date?: string;
   };
@@ -268,11 +268,11 @@ export default function Profile() {
           )?.toString() || '',
         );
       } else {
-        Alert.alert('Error', 'Failed to load profile data');
+        showToast('Failed to load profile data');
       }
     } catch (error) {
       const apiError = error as APIError;
-      Alert.alert('Error', apiError.message);
+      showToast(apiError.message);
     } finally {
       setLoading(false);
     }
@@ -354,7 +354,7 @@ export default function Profile() {
     },
     {
       id: 'goalWeight',
-      icon: 'balanceScale',
+      icon: 'balance-scale',
       title: 'Health Goal',
       message: 'What is your target weight? (Optional)',
       formType: 'input',
@@ -490,7 +490,7 @@ export default function Profile() {
                 style={styles.avatar}
               />
               <View style={styles.cameraBadge}>
-                <FontelloIcon name="camera" size={14} color="#fff" />
+                <FontelloIcon name="camera-outline" size={14} color="#fff" />
               </View>
             </TouchableOpacity>
 
@@ -503,7 +503,7 @@ export default function Profile() {
 
             <TouchableOpacity
               style={styles.editProfileBtn}
-              onPress={() => setEditField('name')}
+              onPress={() => setEditField('profile')}
             >
               <FontelloIcon name="pencil" size={16} color="#fff" />
               <Text style={styles.editProfileBtnText}>Edit Profile</Text>
@@ -550,7 +550,7 @@ export default function Profile() {
           >
             <View style={styles.statIconContainer}>
               <FontelloIcon
-                name="balanceScale"
+                name="balance-scale"
                 size={24}
                 color={THEME_COLORS.primary}
               />
@@ -816,32 +816,7 @@ export default function Profile() {
           </View>
           {/* Info Rows if profile?.address exists */}
 
-          <TouchableOpacity
-            style={styles.infoRow}
-            onPress={() => {
-              setName(profile?.name || '');
-              setEditField('profile');
-            }}
-          >
-            <View style={styles.infoLeft}>
-              <View style={styles.infoIconBox}>
-                <FontelloIcon
-                  name="user"
-                  size={18}
-                  color={THEME_COLORS.primary}
-                />
-              </View>
-              <View style={styles.infoTextContainer}>
-                <Text style={styles.infoLabel}>Address</Text>
-                <Text style={styles.infoValue}>
-                  {profile?.address || 'Not set'}
-                </Text>
-              </View>
-            </View>
-            <FontelloIcon name="pencil" size={16} color="#999" />
-          </TouchableOpacity>
-
-          <View style={styles.divider} />
+          {/* <View style={styles.divider} /> */}
 
           <TouchableOpacity
             style={styles.infoRow}
@@ -867,24 +842,6 @@ export default function Profile() {
             </View>
             <FontelloIcon name="pencil" size={16} color="#999" />
           </TouchableOpacity>
-
-          <View style={styles.divider} />
-
-          <View style={styles.infoRow}>
-            <View style={styles.infoLeft}>
-              <View style={styles.infoIconBox}>
-                <FontelloIcon
-                  name="mail"
-                  size={18}
-                  color={THEME_COLORS.primary}
-                />
-              </View>
-              <View style={styles.infoTextContainer}>
-                <Text style={styles.infoLabel}>Email</Text>
-                <Text style={styles.infoValue}>{profile?.email || ''}</Text>
-              </View>
-            </View>
-          </View>
         </View>
 
         {/* Banner Ad - Before Preferences */}
@@ -1190,13 +1147,23 @@ export default function Profile() {
 
         {editField === 'phone' && (
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Phone Number</Text>
-            <TextInput
+            <Input
+              label="Phone Number"
+              labelStyle={styles.inputLabel}
               style={styles.input}
               placeholder="Enter phone number"
               keyboardType="phone-pad"
-              value={phone}
-              onChangeText={setPhone}
+              value={profileUpdate.phone ?? profile?.phone ?? ''}
+              onChangeText={text =>
+                setProfileUpdate(prev => ({
+                  ...prev,
+                  user: {
+                    ...prev.user,
+                    phone: text,
+                  },
+                }))
+              }
+              error={errors.phone}
             />
           </View>
         )}
@@ -1793,7 +1760,6 @@ const styles = StyleSheet.create({
   versionContainer: {
     alignItems: 'center',
     marginTop: 32,
-    marginBottom: 16,
   },
   versionText: {
     fontSize: 13,

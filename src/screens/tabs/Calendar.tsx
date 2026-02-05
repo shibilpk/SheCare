@@ -17,7 +17,7 @@ import { CalendarWidget, DateRange } from '../../components/widgets/Calender';
 import ModalTopIcon from '../../components/common/ModalTopIcon';
 import { ScrollView } from 'react-native-gesture-handler';
 import { monthNames } from '../../constants/common';
-import DiaryModal from '../common/dairy/DiaryModal';
+import DiaryModal from '../common/diary/DiaryModal';
 
 // Memoized MonthCard component for better performance in year view
 const MonthCard = React.memo<{
@@ -90,7 +90,7 @@ const CalendarScreen: React.FC = () => {
         return <FontelloIcon name="med-kit" color="#b5651d" size={12} />;
       case 'love':
         return <FontelloIcon name="heart" color="red" size={12} />;
-      case 'dairy':
+      case 'diary':
         return <FontelloIcon name="book" color="#555" size={12} />;
 
       default:
@@ -560,7 +560,7 @@ const CalendarScreen: React.FC = () => {
                       ? [
                           {
                             date: new Date('2025-12-10'),
-                            icon: getMarkedIcon('dairy'),
+                            icon: getMarkedIcon('diary'),
                           },
                         ]
                       : []),

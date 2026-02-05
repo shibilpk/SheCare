@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { use, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import FontelloIcon from '../../services/FontelloIcons';
@@ -17,14 +19,51 @@ import { DrawerNavigationProp } from '@react-navigation/drawer';
 import { RootStackParamList, SCREENS } from '../../constants/navigation';
 import { monthNamesShort } from '../../constants/common';
 import QuickActions from '../../components/common/QuickActions';
-import DiaryModal from '../common/dairy/DiaryModal';
+import DiaryModal from '../common/diary/DiaryModal';
 import { blogPosts } from '../blog/BlogListScreen';
 import { STYLE } from '../../constants/app';
+import apiClient, { APIError } from '@src/services/ApiClient';
+import { APIS } from '@src/constants/apis';
+import { parseValidationErrors } from '@src/utils/formUtils';
+import { useToastMessage } from '@src/utils/toastMessage';
+import { fetchDiaryEntry, saveDiaryEntry } from '../common/diary/service';
+import HomeQuickActions from '../common/quickAction/HomeQuickActions';
+import { DateRange } from '@src/components/widgets/Calender';
 
 export default function HomeScreen() {
   const navigation = useNavigation<DrawerNavigationProp<RootStackParamList>>();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showDiaryModal, setShowDiaryModal] = useState(false);
+  const { showToast } = useToastMessage();
+  const [diaryText, setDiaryText] = useState<string>('');
+  const [isLoadingPeriod, setIsLoadingPeriod] = useState<boolean>(true);
+  const [periodStarted, setPeriodStarted] = useState<boolean>(false);
+  const [range, setRange] = useState<DateRange>({
+    startDate: null,
+    endDate: null,
+  });
+
+  async function loadActivePeriod() {
+    try {
+      const response = await apiClient.get<any>(APIS.V1.PERIOD.ACTIVE);
+      console.log(response);
+
+      setRange({
+        startDate: new Date(response.start_date),
+        endDate: new Date(response.end_date),
+      });
+      setPeriodStarted(true);
+      console.log(range, 'range');
+    } catch (error) {
+      console.error('Failed to fetch diary entry', error);
+    } finally {
+      setIsLoadingPeriod(false);
+    }
+  }
+
+  useEffect(() => {
+    console.log(range, 'range updated');
+  }, [range]);
 
   const dummyNotifications = [
     {
@@ -78,6 +117,7 @@ export default function HomeScreen() {
       iconColor: '#9333EA',
       bgColor: ['#E9D5FF', '#C084FC'],
       contentType: 'value',
+      screen: SCREENS.PERIODS_LIST,
     },
     {
       id: 2,
@@ -89,6 +129,7 @@ export default function HomeScreen() {
       levelColor: '#DC2626',
       bgColor: ['#FECACA', '#F87171'],
       contentType: 'value',
+      screen: null,
     },
     {
       id: 3,
@@ -98,6 +139,7 @@ export default function HomeScreen() {
       iconColor: '#0284C7',
       bgColor: ['#BAE6FD', '#38BDF8'],
       contentType: 'emoji',
+      screen: null,
     },
     {
       id: 4,
@@ -107,6 +149,7 @@ export default function HomeScreen() {
       iconColor: '#EA580C',
       bgColor: ['#FED7AA', '#FB923C'],
       contentType: 'emoji',
+      screen: null,
     },
     {
       id: 5,
@@ -118,6 +161,7 @@ export default function HomeScreen() {
       levelColor: '#10B981',
       bgColor: ['#DBEAFE', '#60A5FA'],
       contentType: 'value',
+      screen: null,
     },
     {
       id: 6,
@@ -127,6 +171,7 @@ export default function HomeScreen() {
       iconColor: '#CA8A04',
       bgColor: ['#FDE68A', '#FBBF24'],
       contentType: 'value',
+      screen: null,
     },
     {
       id: 7,
@@ -136,6 +181,7 @@ export default function HomeScreen() {
       iconColor: '#7C3AED',
       bgColor: ['#DDD6FE', '#A78BFA'],
       contentType: 'emoji',
+      screen: SCREENS.SLEEP_LOG,
     },
   ];
 
@@ -168,6 +214,50 @@ export default function HomeScreen() {
     },
   ];
 
+  useEffect(() => {
+    if (showDiaryModal) {
+      loadDiary(new Date());
+    }
+  }, [showDiaryModal]);
+
+  useEffect(() => {
+    loadActivePeriod();
+  }, []);
+
+  async function loadDiary(date: Date) {
+    try {
+      const entry = await fetchDiaryEntry(date);
+      setDiaryText(entry?.content ?? '');
+    } catch (error) {
+      console.error('Failed to fetch diary entry', error);
+      setDiaryText('');
+    }
+  }
+
+  async function handleDiarySave(date: Date, text: string) {
+    try {
+      const message = await saveDiaryEntry(date, text);
+      showToast(message);
+      setShowDiaryModal(false);
+    } catch (error) {
+      const apiError = error as APIError;
+
+      if (apiError.statusCode === 422 && apiError.data) {
+        console.log(parseValidationErrors(apiError.data));
+      } else {
+        Alert.alert(
+          apiError.normalizedError.title,
+          apiError.normalizedError.message,
+        );
+      }
+    }
+  }
+  const goToPeriodSelector = (range?: DateRange) => {
+    navigation.navigate(SCREENS.PERIOD_SELECTOR, {
+      ...range,
+      rangeDays: 6,
+    });
+  };
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
@@ -199,9 +289,7 @@ export default function HomeScreen() {
         onClose={closeModal}
       />
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView showsVerticalScrollIndicator={false}>
         {/* Main Period Card */}
         <LinearGradient
           colors={[
@@ -223,10 +311,25 @@ export default function HomeScreen() {
             <TouchableOpacity
               style={styles.periodBtn}
               onPress={() => {
-                navigation.navigate(SCREENS.PERIOD_SELECTOR);
+                if (periodStarted) {
+                  goToPeriodSelector(range);
+                } else {
+                  goToPeriodSelector();
+                }
               }}
             >
-              <Text style={styles.periodBtnText}>Period Starts</Text>
+              {isLoadingPeriod ? (
+                <>
+                  <ActivityIndicator
+                    size="small"
+                    color={THEME_COLORS.secondary}
+                  />
+                </>
+              ) : (
+                <Text style={styles.periodBtnText}>
+                  {periodStarted ? 'End Period' : 'Start Period'}
+                </Text>
+              )}
             </TouchableOpacity>
 
             <Image
@@ -243,7 +346,15 @@ export default function HomeScreen() {
           contentContainerStyle={styles.statsScroll}
         >
           {quickStats.map(stat => (
-            <TouchableOpacity key={stat.id} activeOpacity={0.7}>
+            <TouchableOpacity
+              key={stat.id}
+              activeOpacity={0.7}
+              onPress={() => {
+                if (stat.screen) {
+                  navigation.navigate(stat.screen);
+                }
+              }}
+            >
               <LinearGradient
                 colors={stat.bgColor}
                 start={{ x: 0, y: 0 }}
@@ -360,49 +471,7 @@ export default function HomeScreen() {
         </View>
 
         {/* Quick Actions */}
-        <QuickActions
-          actions={[
-            {
-              icon: 'bell-alt',
-              label: 'Reminders',
-              color: '#6366F1',
-              bg: '#E0E7FF',
-              onPress: () => navigation.navigate(SCREENS.REMINDERS),
-            },
-            {
-              icon: 'heart',
-              label: 'Symptoms',
-              color: '#EC4899',
-              bg: '#FCE7F3',
-            },
-            {
-              icon: 'glass',
-              label: 'Hydration',
-              color: '#3B82F6',
-              bg: '#DBEAFE',
-              onPress: () => navigation.navigate(SCREENS.HYDRATION),
-            },
-            {
-              icon: 'pitch',
-              label: 'Nutrition',
-              color: '#10B981',
-              bg: '#D1FAE5',
-              onPress: () => navigation.navigate(SCREENS.NUTRITION),
-            },
-            {
-              icon: 'pharmacy',
-              label: 'Medications',
-              color: '#F59E0B',
-              bg: '#FDE68A',
-            },
-            {
-              icon: 'calendar',
-              label: 'Calendar',
-              color: '#EF4444',
-              bg: '#FEE2E2',
-            },
-          ]}
-        />
+        <HomeQuickActions />
 
         {/* Latest Blogs */}
         <View style={styles.blogsHeader}>
@@ -447,9 +516,13 @@ export default function HomeScreen() {
         visible={showDiaryModal}
         onClose={() => setShowDiaryModal(false)}
         initialDate={new Date()}
+        initialText={diaryText}
         onSave={(date, text) => {
           // Handle save logic here
-          console.log('Diary saved:', { date, text });
+          handleDiarySave(date, text);
+        }}
+        onDateChange={date => {
+          loadDiary(date);
         }}
       />
     </SafeAreaView>
@@ -509,9 +582,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
   },
-  scrollContent: {
-    marginVertical: STYLE.spacing.mv,
-  },
+
   mainCard: {
     marginHorizontal: STYLE.spacing.mh,
     borderRadius: 24,

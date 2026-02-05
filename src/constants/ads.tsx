@@ -3,19 +3,19 @@ import { AdData } from '../components/common/AdBanner';
 // Sample ads data - Replace with your actual ad management system
 export const SAMPLE_ADS: AdData[] = [
   // Banner Ads (Long horizontal banners)
-  {
-    id: 'banner_1',
-    imageUrl: 'https://www.webfx.com/wp-content/uploads/2023/11/brita-banner-ad-example.png',
-    link: 'https://www.example.com/product1',
-    size: 'banner',
-    title: 'Brita Water Filter',
-  },
-  {
-    id: 'banner_2',
-    imageUrl: 'https://www.webfx.com/wp-content/uploads/2010/06/cera-ve-banner-ad.png',
-    size: 'banner',
-    title: 'Brita Water Filter',
-  },
+  // {
+  //   id: 'banner_1',
+  //   imageUrl: 'https://www.webfx.com/wp-content/uploads/2023/11/brita-banner-ad-example.png',
+  //   link: 'https://www.example.com/product1',
+  //   size: 'banner',
+  //   title: 'Brita Water Filter',
+  // },
+  // {
+  //   id: 'banner_2',
+  //   imageUrl: 'https://www.webfx.com/wp-content/uploads/2010/06/cera-ve-banner-ad.png',
+  //   size: 'banner',
+  //   title: 'Brita Water Filter',
+  // },
 
 
   // Full Page Ads
@@ -35,20 +35,20 @@ export const SAMPLE_ADS: AdData[] = [
   // },
 
   // Half Page Ads
-  {
-    id: 'halfpage_1',
-    imageUrl: 'https://static-cse.canva.com/blob/2193110/Febreeze_magazinead.jpg',
-    link: 'https://www.example.com/halfpage1',
-    size: 'halfpage',
-    title: 'Health Products',
-  },
-  {
-    id: 'halfpage_2',
-    imageUrl: 'https://static-cse.canva.com/blob/2193110/Febreeze_magazinead.jpg',
-    link: 'https://www.example.com/halfpage1',
-    size: 'halfpage',
-    title: 'Health Products',
-  },
+  // {
+  //   id: 'halfpage_1',
+  //   imageUrl: 'https://static-cse.canva.com/blob/2193110/Febreeze_magazinead.jpg',
+  //   link: 'https://www.example.com/halfpage1',
+  //   size: 'halfpage',
+  //   title: 'Health Products',
+  // },
+  // {
+  //   id: 'halfpage_2',
+  //   imageUrl: 'https://static-cse.canva.com/blob/2193110/Febreeze_magazinead.jpg',
+  //   link: 'https://www.example.com/halfpage1',
+  //   size: 'halfpage',
+  //   title: 'Health Products',
+  // },
 ];
 
 // Ad placement configuration

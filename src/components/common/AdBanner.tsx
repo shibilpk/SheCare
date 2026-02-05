@@ -220,7 +220,13 @@ export default function AdBanner({
 
   return null;
 }
-
+const absoluteFill = {
+  position: 'absolute' as const,
+  top: 0,
+  right: 0,
+  bottom: 0,
+  left: 0,
+};
 const styles = StyleSheet.create({
   // Banner Ad Styles
   bannerContainer: {

@@ -10,6 +10,7 @@ import {
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import FontelloIcon from '../../services/FontelloIcons';
 import { THEME_COLORS } from '../../constants/colors';
+import { useIsDarkMode } from '@src/services/theme';
 
 interface DatePickerProps {
   label?: string;
@@ -43,6 +44,7 @@ export default function DatePicker({
   disabled = false,
 }: DatePickerProps) {
   const [isPickerVisible, setPickerVisible] = useState(false);
+  const checkDarkMode = useIsDarkMode();
 
   const showPicker = () => {
     if (!disabled) {
@@ -65,7 +67,10 @@ export default function DatePicker({
     }
 
     if (mode === 'time') {
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return date.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
     }
 
     if (mode === 'datetime') {
@@ -107,6 +112,8 @@ export default function DatePicker({
         onCancel={hidePicker}
         minimumDate={minimumDate}
         maximumDate={maximumDate}
+        themeVariant={checkDarkMode ? 'dark' : 'light'}
+        isDarkModeEnabled={checkDarkMode}
       />
     </View>
   );

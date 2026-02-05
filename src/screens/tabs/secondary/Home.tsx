@@ -17,6 +17,7 @@ import { useNavigation } from '@react-navigation/native';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
 import { RootStackParamList, SCREENS } from '../../../constants/navigation';
 import { STYLE } from '../../../constants/app';
+import HomeQuickActions from '@src/screens/common/quickAction/HomeQuickActions';
 
 export default function PregnancyScreen() {
   const navigation = useNavigation<DrawerNavigationProp<RootStackParamList>>();
@@ -327,59 +328,7 @@ export default function PregnancyScreen() {
         </LinearGradient>
 
         {/* Pregnancy Essentials */}
-        <QuickActions
-          actions={[
-            {
-              icon: 'calendar',
-              label: 'Appointments',
-              color: '#8B5CF6',
-              bg: '#EDE9FE',
-              onPress: () => navigation.navigate(SCREENS.APPOINTMENTS),
-            },
-            {
-              icon: 'pharmacy',
-              label: 'Medications',
-              color: '#EC4899',
-              bg: '#FCE7F3',
-              onPress: () => navigation.navigate(SCREENS.MEDICATIONS),
-            },
-            {
-              icon: 'glass',
-              label: 'Hydration',
-              color: '#3B82F6',
-              bg: '#DBEAFE',
-              onPress: () => navigation.navigate(SCREENS.HYDRATION),
-            },
-            {
-              icon: 'pitch',
-              label: 'Nutrition',
-              color: '#10B981',
-              bg: '#D1FAE5',
-              onPress: () => navigation.navigate(SCREENS.NUTRITION),
-            },
-            {
-              icon: 'heart',
-              label: 'Exercise',
-              color: '#F59E0B',
-              bg: '#FEF3C7',
-              onPress: () => navigation.navigate(SCREENS.EXERCISE),
-            },
-            {
-              icon: 'moon',
-              label: 'Sleep Log',
-              color: '#8B5CF6',
-              bg: '#EDE9FE',
-              onPress: () => navigation.navigate(SCREENS.SLEEP_LOG),
-            },
-            {
-              icon: 'chart-line',
-              label: 'Baby Weight',
-              color: '#EF4444',
-              bg: '#FEE2E2',
-              onPress: () => navigation.navigate(SCREENS.WEIGHT_TRACK),
-            },
-          ]}
-        />
+        <HomeQuickActions />
 
         {/* Hospital Bag Checklist */}
         <View style={styles.checklistCard}>

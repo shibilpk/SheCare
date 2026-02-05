@@ -268,7 +268,13 @@ export default function UpdateScreen({
     </Modal>
   );
 }
-
+const absoluteFill = {
+  position: 'absolute' as const,
+  top: 0,
+  right: 0,
+  bottom: 0,
+  left: 0,
+};
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
@@ -306,7 +312,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   shapesContainer: {
-    ...StyleSheet.absoluteFillObject,
+    ...absoluteFill,
   },
   shape: {
     position: 'absolute',
