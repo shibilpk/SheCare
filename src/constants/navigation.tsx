@@ -40,6 +40,7 @@ type ScreenParams = {
     startDate?: Date | null;
     endDate?: Date | null;
     rangeDays?: number | null;
+    periodId?: string | null;
   };
 };
 

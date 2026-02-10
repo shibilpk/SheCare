@@ -450,7 +450,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   mainCardValue: {
-    fontSize: 42,
+    fontSize: 35,
     fontWeight: '800',
     color: THEME_COLORS.text,
     marginBottom: 8,

@@ -197,12 +197,12 @@ const AnalysisScreen = () => {
                 styles.statusBadge,
                 {
                   backgroundColor:
-                    healthAnalysis?.bmi.status_badge_color || '#4BB543',
+                    healthAnalysis?.bmi?.status_badge_color || '#4BB543',
                 },
               ]}
             >
               <Text style={styles.statusBadgeText}>
-                {healthAnalysis?.bmi.status || 'Loading...'}
+                {healthAnalysis?.bmi?.status || 'Loading...'}
               </Text>
             </View>
           </View>
@@ -234,11 +234,11 @@ const AnalysisScreen = () => {
             <View style={[styles.bmiMetricItem, styles.bmiHighlight]}>
               <Text style={styles.bmiMetricLabel}>BMI</Text>
               <Text style={styles.bmiMetricValueLarge}>
-                {healthAnalysis?.bmi.new_bmi}
+                {healthAnalysis?.bmi?.new_bmi ?? '--'}
               </Text>
             </View>
           </View>
-          <InfoCard insights={healthAnalysis?.bmi.notes || []} />
+          <InfoCard insights={healthAnalysis?.bmi?.notes || []} />
         </View>
 
         {/* Health Metrics Progress */}

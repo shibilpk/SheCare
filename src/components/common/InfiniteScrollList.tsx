@@ -9,8 +9,6 @@ import {
   FlatListProps,
 } from 'react-native';
 import { THEME_COLORS } from '../../constants/colors';
-import NetworkErrorModal from './NetworkErrorModal';
-import { APIError } from '../../services/ApiClient';
 
 interface PaginatedResponse<T> {
   count: number;
@@ -55,8 +53,6 @@ export default function InfiniteScrollList<T>({
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [initialLoad, setInitialLoad] = useState(true);
-  const [showNetworkError, setShowNetworkError] = useState(false);
-  const [isRetrying, setIsRetrying] = useState(false);
   const loadData = useCallback(
     async (pageNum: number, isRefresh = false) => {
       if (loading || (!hasMore && !isRefresh)) return;
@@ -83,14 +79,7 @@ export default function InfiniteScrollList<T>({
         setInitialLoad(false);
       } catch (err: any) {
         console.error('Error loading data:', err);
-        const apiError = err as APIError;
-        if (apiError.statusCode === 0) {
-          console.log("NetworkErrorModal");
-
-          setShowNetworkError(true);
-        } else {
-          setError(err?.message || 'Failed to load data');
-        }
+        setError(err?.message || 'Failed to load data');
         setInitialLoad(false);
       } finally {
         setLoading(false);
@@ -120,14 +109,6 @@ export default function InfiniteScrollList<T>({
     setHasMore(true);
     loadData(1, true);
   }, [loadData]);
-
-  const handleRetry = useCallback(async () => {
-    setIsRetrying(true);
-    setShowNetworkError(false);
-    setError(null);
-    await loadData(page, data.length === 0);
-    setIsRetrying(false);
-  }, [loadData, page, data.length]);
 
   const renderFooter = () => {
     if (!loading || refreshing) return null;
@@ -195,11 +176,6 @@ export default function InfiniteScrollList<T>({
             colors={[THEME_COLORS.primary]}
           />
         }
-      />
-      <NetworkErrorModal
-        visible={showNetworkError}
-        onRetry={handleRetry}
-        isRetrying={isRetrying}
       />
     </>
   );

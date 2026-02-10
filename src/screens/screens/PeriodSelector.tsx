@@ -30,6 +30,7 @@ const PeriodSelector: React.FC = () => {
     startDate = null,
     endDate = null,
     rangeDays = null,
+    periodId = null,
   } = route.params || {};
 
   const navigation =
@@ -49,10 +50,20 @@ const PeriodSelector: React.FC = () => {
 
   const calculateDuration = () => {
     if (!range.startDate || !range.endDate) return 0;
-    const diffTime = Math.abs(
-      range.endDate.getTime() - range.startDate.getTime(),
-    );
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+    // Normalize dates to midnight to avoid time zone issues
+    const start = new Date(range.startDate);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(range.endDate);
+    end.setHours(0, 0, 0, 0);
+
+    // Calculate difference in days (inclusive of both start and end dates)
+    const diffTime = end.getTime() - start.getTime();
+    const days = Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+    // Ensure we return a positive number
+    return Math.max(days, 0);
   };
 
   const formatDate = (date: Date | null) => {
@@ -65,6 +76,7 @@ const PeriodSelector: React.FC = () => {
   };
 
   const handleConfirm = async () => {
+    // Both start and end dates are required
     if (!range.startDate || !range.endDate) {
       Alert.alert(
         'Incomplete Selection',
@@ -72,15 +84,35 @@ const PeriodSelector: React.FC = () => {
       );
       return;
     }
-    try {
-      const payload = {
-        start_date: range.startDate.toISOString().split('T')[0],
-        end_date: range.endDate.toISOString().split('T')[0],
-      };
-      const response = await apiClient.post<any>(
-        APIS.V1.PERIOD.CREATE,
-        payload,
+
+    // Validate that end date is not before start date
+    if (range.startDate && range.endDate && range.endDate < range.startDate) {
+      Alert.alert(
+        'Invalid Date Range',
+        'End date cannot be before start date',
       );
+      return;
+    }
+
+    try {
+      console.log(periodId,"periodId");
+
+      if (periodId) {
+        // Updating an existing period - send period_id, start_date and end_date
+        const payload = {
+          period_id: periodId,
+          start_date: range.startDate!.toISOString().split('T')[0],
+          end_date: range.endDate!.toISOString().split('T')[0],
+        };
+        await apiClient.post<any>(APIS.V1.PERIOD.END, payload);
+      } else {
+        // Starting a new period - send both dates
+        const payload = {
+          start_date: range.startDate!.toISOString().split('T')[0],
+          end_date: range.endDate!.toISOString().split('T')[0],
+        };
+        await apiClient.post<any>(APIS.V1.PERIOD.START, payload);
+      }
       navigation.navigate(SCREENS.LANDING);
     } catch (error) {
       const apiError = error as APIError;
@@ -93,10 +125,12 @@ const PeriodSelector: React.FC = () => {
   };
 
   const handleClear = () => {
+    // Clear both dates for both new and existing periods
     setRange({ startDate: null, endDate: null });
   };
 
-  const isComplete = range.startDate && range.endDate;
+  // Both new and updating periods need both dates
+  const isComplete = !!(range.startDate && range.endDate);
   const duration = calculateDuration();
 
   return (
@@ -109,7 +143,9 @@ const PeriodSelector: React.FC = () => {
         >
           <FontelloIcon name="left-open-mini" size={26} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Select Period</Text>
+        <Text style={styles.headerTitle}>
+          {periodId ? 'Update Period' : 'Select Period'}
+        </Text>
         <TouchableOpacity style={styles.clearBtn} onPress={handleClear}>
           <Text style={styles.clearBtnText}>Clear</Text>
         </TouchableOpacity>
@@ -290,8 +326,9 @@ const PeriodSelector: React.FC = () => {
             />
           </View>
           <Text style={styles.infoText}>
-            Select your period start date first, then choose the end date to
-            complete your selection.
+            {periodId
+              ? 'Update your period dates by selecting both start and end dates.'
+              : 'Select your period start date first, then choose the end date to complete your selection.'}
           </Text>
         </View>
       </ScrollView>

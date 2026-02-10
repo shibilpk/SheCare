@@ -405,7 +405,7 @@ export default function AboutHomeModal() {
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <FontelloIcon
-                  name="edit"
+                  name="book"
                   size={20}
                   color={THEME_COLORS.primary}
                 />

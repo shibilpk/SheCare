@@ -18,7 +18,6 @@ import { useNavigation } from '@react-navigation/native';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
 import { RootStackParamList, SCREENS } from '../../constants/navigation';
 import { monthNamesShort } from '../../constants/common';
-import QuickActions from '../../components/common/QuickActions';
 import DiaryModal from '../common/diary/DiaryModal';
 import { blogPosts } from '../blog/BlogListScreen';
 import { STYLE } from '../../constants/app';
@@ -30,6 +29,32 @@ import { fetchDiaryEntry, saveDiaryEntry } from '../common/diary/service';
 import HomeQuickActions from '../common/quickAction/HomeQuickActions';
 import { DateRange } from '@src/components/widgets/Calender';
 
+interface PeriodRange {
+  id: string;
+  start_date: string;
+  end_date: string;
+  cycle_length: number;
+}
+interface CustomerPeriodData {
+  active_period: PeriodRange;
+  is_fertile: boolean;
+  pregnancy_chance: 'low' | 'medium' | 'high';
+  next_period_date: string | null;
+  ovulation_date: string | null;
+  fertile_window_start: string | null;
+  fertile_window_end: string | null;
+  avg_cycle_length: number;
+  avg_period_length: number;
+  late_period_days: number;
+
+  // Main card display data (from server)
+  card_status: string;
+  card_label: string;
+  card_value: string;
+  card_subtitle: string;
+  card_button_text: string;
+}
+
 export default function HomeScreen() {
   const navigation = useNavigation<DrawerNavigationProp<RootStackParamList>>();
   const [showNotifications, setShowNotifications] = useState(false);
@@ -37,25 +62,43 @@ export default function HomeScreen() {
   const { showToast } = useToastMessage();
   const [diaryText, setDiaryText] = useState<string>('');
   const [isLoadingPeriod, setIsLoadingPeriod] = useState<boolean>(true);
-  const [periodStarted, setPeriodStarted] = useState<boolean>(false);
   const [range, setRange] = useState<DateRange>({
     startDate: null,
     endDate: null,
   });
+  const [customerPeriodData, setCustomerPeriodData] =
+    useState<CustomerPeriodData | null>(null);
 
-  async function loadActivePeriod() {
+  const [activePeriodId, setActivePeriodId] = useState<string | null>(null);
+
+  async function setActivePeriod(response: PeriodRange) {
     try {
-      const response = await apiClient.get<any>(APIS.V1.PERIOD.ACTIVE);
-      console.log(response);
+      console.log('Active period:', response);
 
       setRange({
         startDate: new Date(response.start_date),
         endDate: new Date(response.end_date),
       });
-      setPeriodStarted(true);
-      console.log(range, 'range');
+      setActivePeriodId(response.id);
     } catch (error) {
-      console.error('Failed to fetch diary entry', error);
+      console.error('Failed to fetch active period', error);
+      setActivePeriodId(null);
+    }
+  }
+
+  async function loadCustomerPeriodData() {
+    try {
+      const response = await apiClient.get<CustomerPeriodData>(
+        APIS.V1.PERIOD.CUSTOMER_DATA,
+      );
+      console.log('Customer period data:', response);
+      setCustomerPeriodData(response);
+
+      if (response.active_period) {
+        setActivePeriod(response.active_period);
+      }
+    } catch (error) {
+      console.warn('Failed to fetch customer period data', error);
     } finally {
       setIsLoadingPeriod(false);
     }
@@ -108,41 +151,94 @@ export default function HomeScreen() {
     },
   ];
 
+  const getPregnancyChanceDisplay = () => {
+    if (!customerPeriodData?.pregnancy_chance)
+      return { value: 'Low', icon: 'down-open', color: '#DC2626' };
+
+    const chance = customerPeriodData.pregnancy_chance;
+    switch (chance) {
+      case 'high':
+        return { value: 'M', icon: 'resize-vertical', color: '#ffa200' };
+      case 'medium':
+        return { value: 'H', icon: 'up', color: '#10B981' };
+      case 'low':
+      default:
+        return { value: 'L', icon: 'down', color: '#DC2626' };
+    }
+  };
+
+  const pregnancyDisplay = getPregnancyChanceDisplay();
+
+  const getDaysUntilNextPeriod = () => {
+    if (!customerPeriodData?.next_period_date) return null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const nextPeriodDate = new Date(customerPeriodData.next_period_date);
+    nextPeriodDate.setHours(0, 0, 0, 0);
+    const days = Math.ceil(
+      (nextPeriodDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+    );
+    return days > 0 ? days : null;
+  };
+
+  const getDaysUntilOvulation = () => {
+    if (!customerPeriodData?.ovulation_date) return null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const ovulationDate = new Date(customerPeriodData.ovulation_date);
+    ovulationDate.setHours(0, 0, 0, 0);
+    const days = Math.ceil(
+      (ovulationDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+    );
+    return days > 0 ? days : null;
+  };
+
   const quickStats = [
     {
-      id: 1,
-      label: 'Cycle Day',
-      value: '20',
-      icon: 'calendar',
+      id: 'next_period',
+      label: 'Next Period',
+      value: getDaysUntilNextPeriod(),
+      icon: 'frown',
       iconColor: '#9333EA',
       bgColor: ['#E9D5FF', '#C084FC'],
       contentType: 'value',
       screen: SCREENS.PERIODS_LIST,
     },
     {
-      id: 2,
+      id: 'pregnancy_chance',
       label: 'Pregnancy',
-      value: 'Low',
-      icon: 'heart',
-      iconColor: '#DC2626',
-      levelIcon: 'down-open',
-      levelColor: '#DC2626',
-      bgColor: ['#FECACA', '#F87171'],
+      value: pregnancyDisplay.value,
+      icon: 'venus-mars',
+      iconColor: '#cc40ab',
+      levelIcon: pregnancyDisplay.icon,
+      levelColor: pregnancyDisplay.color,
+      bgColor: ['#ee7cd4', '#cc40ab'],
       contentType: 'value',
       screen: null,
     },
     {
-      id: 3,
+      id: 'ovulation',
       label: 'Ovulation',
-      emoji: '🎯',
-      icon: 'target',
+      // emoji: '😊',
+      value: getDaysUntilOvulation(),
+      icon: 'water',
+      iconColor: '#0284C7',
+      bgColor: ['#BAE6FD', '#38BDF8'],
+      contentType: 'value',
+      screen: null,
+    },
+    {
+      id: 'history',
+      label: 'History',
+      icon: 'history',
+      emoji: '🗓️',
       iconColor: '#0284C7',
       bgColor: ['#BAE6FD', '#38BDF8'],
       contentType: 'emoji',
       screen: null,
     },
     {
-      id: 4,
+      id: 'mood',
       label: 'Mood',
       emoji: '😊',
       icon: 'heart',
@@ -152,7 +248,7 @@ export default function HomeScreen() {
       screen: null,
     },
     {
-      id: 5,
+      id: 'energy',
       label: 'Energy',
       value: '85%',
       icon: 'flash',
@@ -164,7 +260,7 @@ export default function HomeScreen() {
       screen: null,
     },
     {
-      id: 6,
+      id: 'symptoms',
       label: 'Symptoms',
       value: '2',
       icon: 'attention',
@@ -174,7 +270,7 @@ export default function HomeScreen() {
       screen: null,
     },
     {
-      id: 7,
+      id: 'sleep',
       label: 'Sleep',
       emoji: '😴',
       icon: 'moon',
@@ -221,7 +317,7 @@ export default function HomeScreen() {
   }, [showDiaryModal]);
 
   useEffect(() => {
-    loadActivePeriod();
+    loadCustomerPeriodData();
   }, []);
 
   async function loadDiary(date: Date) {
@@ -252,12 +348,183 @@ export default function HomeScreen() {
       }
     }
   }
-  const goToPeriodSelector = (range?: DateRange) => {
+
+  const isInFertileWindow = () => {
+    if (
+      !customerPeriodData?.fertile_window_start ||
+      !customerPeriodData?.fertile_window_end
+    ) {
+      return false;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const fertileStart = new Date(customerPeriodData.fertile_window_start);
+    fertileStart.setHours(0, 0, 0, 0);
+
+    const fertileEnd = new Date(customerPeriodData.fertile_window_end);
+    fertileEnd.setHours(0, 0, 0, 0);
+
+    return today >= fertileStart && today <= fertileEnd;
+  };
+
+  const handleStartPeriod = async () => {
+    const rangeDays = customerPeriodData?.avg_period_length || 7;
     navigation.navigate(SCREENS.PERIOD_SELECTOR, {
-      ...range,
-      rangeDays: 6,
+      startDate: null,
+      endDate: null,
+      rangeDays: rangeDays,
     });
   };
+
+  const handleViewHistory = () => {
+    navigation.navigate(SCREENS.PERIODS_LIST);
+  };
+
+  const handleEndPeriod = async () => {
+    const rangeDays = customerPeriodData?.avg_period_length || 5;
+    console.log(activePeriodId);
+
+    navigation.navigate(SCREENS.PERIOD_SELECTOR, {
+      ...range,
+      rangeDays: rangeDays,
+      periodId: activePeriodId,
+    });
+  };
+
+  const getDaysToNextEvent = () => {
+    if (!customerPeriodData) return null;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let minDays = null;
+    let eventType = null;
+
+    // Check days to ovulation
+    if (customerPeriodData.ovulation_date) {
+      const ovulationDate = new Date(customerPeriodData.ovulation_date);
+      ovulationDate.setHours(0, 0, 0, 0);
+      const daysToOvulation = Math.ceil(
+        (ovulationDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+      );
+
+      if (daysToOvulation > 0) {
+        minDays = daysToOvulation;
+        eventType = 'Ovulation';
+      }
+    }
+
+    // Check days to next period
+    if (customerPeriodData.next_period_date) {
+      const nextPeriodDate = new Date(customerPeriodData.next_period_date);
+      nextPeriodDate.setHours(0, 0, 0, 0);
+      const daysToPeriod = Math.ceil(
+        (nextPeriodDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+      );
+
+      if (daysToPeriod > 0 && (minDays === null || daysToPeriod < minDays)) {
+        minDays = daysToPeriod;
+        eventType = 'Next Period';
+      }
+    }
+
+    // Check days to end of fertile window if currently in it
+    if (isInFertileWindow() && customerPeriodData.fertile_window_end) {
+      const fertileEnd = new Date(customerPeriodData.fertile_window_end);
+      fertileEnd.setHours(0, 0, 0, 0);
+      const daysToFertileEnd = Math.ceil(
+        (fertileEnd.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+      );
+
+      if (daysToFertileEnd >= 0) {
+        minDays = daysToFertileEnd;
+        eventType = 'Fertile Window Ends';
+      }
+    }
+
+    return { days: minDays, eventType };
+  };
+
+  const getNextEventLabel = () => {
+    const nextEvent = getDaysToNextEvent();
+    return nextEvent?.eventType || 'Next Event';
+  };
+
+  const getNextEventDate = () => {
+    if (!customerPeriodData) return null;
+
+    const today = new Date();
+    let targetDate = null;
+
+    if (customerPeriodData.ovulation_date) {
+      const ovulationDate = new Date(customerPeriodData.ovulation_date);
+      const daysToOvulation = Math.ceil(
+        (ovulationDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+      );
+
+      if (customerPeriodData.next_period_date) {
+        const nextPeriodDate = new Date(customerPeriodData.next_period_date);
+        const daysToPeriod = Math.ceil(
+          (nextPeriodDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+        );
+
+        if (daysToOvulation > 0 && daysToOvulation < daysToPeriod) {
+          targetDate = ovulationDate;
+        } else {
+          targetDate = nextPeriodDate;
+        }
+      } else if (daysToOvulation > 0) {
+        targetDate = ovulationDate;
+      }
+    } else if (customerPeriodData.next_period_date) {
+      targetDate = new Date(customerPeriodData.next_period_date);
+    }
+
+    return targetDate
+      ? targetDate.toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        })
+      : null;
+  };
+
+  // Simple helper functions using server-calculated data
+  const getCardLabel = () => {
+    if (isLoadingPeriod) return '';
+    return customerPeriodData?.card_label || 'Next Event';
+  };
+
+  const getCardValue = () => {
+    if (isLoadingPeriod) return 'Loading...';
+    return customerPeriodData?.card_value || 'Not Available';
+  };
+
+  const getCardSubtitle = () => {
+    if (isLoadingPeriod) return '';
+    return customerPeriodData?.card_subtitle || 'Start tracking your periods';
+  };
+
+  const getCardButtonText = () => {
+    return customerPeriodData?.card_button_text || 'Start Period';
+  };
+
+  const handleCardButtonPress = () => {
+    const status = customerPeriodData?.card_status;
+
+    // Use server's status to determine action
+    if (status === 'period_active') {
+      handleEndPeriod();
+    } else if (status === 'fertile_window') {
+      handleViewHistory();
+    } else {
+      // period_late, upcoming_ovulation, upcoming_period, no_data
+      handleStartPeriod();
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
@@ -302,33 +569,24 @@ export default function HomeScreen() {
           style={styles.mainCard}
         >
           <View style={styles.mainCardContent}>
-            <Text style={styles.mainCardLabel}>Next Period</Text>
-            <Text style={styles.mainCardValue}>12 Days Left</Text>
-            <Text style={styles.mainCardSubtitle}>
-              Expected date: Jan 26, 2026
-            </Text>
+            <Text style={styles.mainCardLabel}>{getCardLabel()}</Text>
+
+            <Text style={styles.mainCardValue}>{getCardValue()}</Text>
+
+            <Text style={styles.mainCardSubtitle}>{getCardSubtitle()}</Text>
 
             <TouchableOpacity
               style={styles.periodBtn}
-              onPress={() => {
-                if (periodStarted) {
-                  goToPeriodSelector(range);
-                } else {
-                  goToPeriodSelector();
-                }
-              }}
+              onPress={handleCardButtonPress}
+              disabled={isLoadingPeriod}
             >
               {isLoadingPeriod ? (
-                <>
-                  <ActivityIndicator
-                    size="small"
-                    color={THEME_COLORS.secondary}
-                  />
-                </>
+                <ActivityIndicator
+                  size="small"
+                  color={THEME_COLORS.secondary}
+                />
               ) : (
-                <Text style={styles.periodBtnText}>
-                  {periodStarted ? 'End Period' : 'Start Period'}
-                </Text>
+                <Text style={styles.periodBtnText}>{getCardButtonText()}</Text>
               )}
             </TouchableOpacity>
 
@@ -372,7 +630,6 @@ export default function HomeScreen() {
                       />
                     </View>
                   )}
-
                   {/* Label */}
                   <Text style={styles.statLabel}>{stat.label}</Text>
 
@@ -606,7 +863,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   mainCardValue: {
-    fontSize: 42,
+    fontSize: 35,
     fontWeight: '800',
     color: THEME_COLORS.text,
     marginBottom: 8,
@@ -895,5 +1152,8 @@ const styles = StyleSheet.create({
   },
   statEmoji: {
     fontSize: 25,
+  },
+  iconEmoji: {
+    fontSize: 14,
   },
 });
