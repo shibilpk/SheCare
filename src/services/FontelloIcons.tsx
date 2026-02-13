@@ -74,7 +74,8 @@ const glyphMap = {
   'credit-card': 0xe835,
   'money': 0xf0d6,
   'box': 0xe836,
-
+  'flash':0xe837,
+  'attention':0xe838,
 };
 
 const FontelloIcon = createIconSet(glyphMap, 'fontello', 'fontello.ttf');

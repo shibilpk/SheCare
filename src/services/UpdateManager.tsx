@@ -121,7 +121,7 @@ const checkForUpdates = async (): Promise<UpdateInfo> => {
     // Make API call to check for updates
 
     const response = await apiClient.get<any>(
-      `${APIS.V1.APP.getVersion(Platform.OS || 'android')}`,
+      `${APIS.V1.GENERAL.getVersion(Platform.OS || 'android')}`,
     );
 
     const data: VersionResponse = response;

@@ -17,6 +17,7 @@ export { default as SecondaryAnalysisScreen } from './tabs/secondary/Analysis';
 export { default as HospitalChecklist } from './screens/HospitalChecklist';
 
 export { default as ThemeSettings } from './settings/theme/ThemeSettings';
+export { default as PreferencesScreen } from './settings/preferences/PreferencesScreen';
 export { default as PeriodSelector } from './screens/PeriodSelector';
 
 export { default as Medications } from './screens/Medications';
@@ -29,6 +30,7 @@ export { default as SleepLog } from './screens/SleepLog';
 export { default as UpdateScreen } from './common/update/UpdateScreen';
 export { default as PregnancySettings } from './settings/pregnancy/PregnancySettings';
 export { default as TipsScreen } from './common/TipsScreen';
+export { default as DailyTipScreen } from './common/DailyTipScreen';
 export { default as BlogListScreen } from './blog/BlogListScreen';
 export { default as BlogDetailScreen } from './blog/BlogDetailScreen';
 export { default as PeriodsListScreen } from './screens/PeriodsList';

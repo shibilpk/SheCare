@@ -13,6 +13,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import FontelloIcon from '../../services/FontelloIcons';
 import { THEME_COLORS } from '../../constants/colors';
 import { RootStackParamList } from '../../constants/navigation';
+import { STYLE } from '../../constants/app';
 import { BlogPost } from './BlogListScreen';
 
 type BlogDetailRouteProp = RouteProp<RootStackParamList, 'BlogDetail'>;
@@ -136,22 +137,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: THEME_COLORS.textLight,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    ...STYLE.header,
   },
   backBtn: {
     padding: 4,
   },
   headerTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: THEME_COLORS.text,
+    ...STYLE.headerTitle,
     flex: 1,
     textAlign: 'center',
     marginHorizontal: 12,

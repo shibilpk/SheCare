@@ -24,7 +24,7 @@ import GlobalModalContext from './GlobalContext';
 import { SCREENS, type RootStackParamList } from '../constants/navigation';
 import * as Screens from '../screens';
 import { tabOptions, todayTabBarIcon } from '../components/widgets/TabIcon';
-import useStore from '../hooks/useStore';
+import useStore from '../store/useStore';
 import { useIsDarkMode } from './theme';
 import { THEME_COLORS } from '../constants/colors';
 import AboutHomeModal from '../screens/tabs/AboutHomeModal';
@@ -33,6 +33,8 @@ import ModalTopIcon from '../components/common/ModalTopIcon';
 import { UpdateProvider, useUpdate } from './UpdateManager';
 import { PopupWizardProvider } from './PopupWizardManager';
 import { STYLE } from '../constants/app';
+import { useDailyActionData } from '../hooks/useDailyActionData';
+import { useRatingData } from '../hooks/useRatingData';
 
 // Create navigation ref for accessing navigation outside React components
 export const navigationRef = createNavigationContainerRef<RootStackParamList>();
@@ -159,7 +161,7 @@ function CustomDrawerContent(props: any) {
     {
       icon: 'home',
       label: 'Home',
-      onPress: () => props.navigation.navigate(SCREENS.HOME),
+      onPress: () => props.navigation.navigate(SCREENS.MAIN_TABS),
       color: '#8B5CF6',
     },
   ];
@@ -418,7 +420,7 @@ function DrawerNavigator() {
     >
       {/* Main Tab Navigation (Home, Calendar, Today, etc.) */}
       <Drawer.Screen
-        name={SCREENS.HOME}
+        name={SCREENS.MAIN_TABS}
         component={isPregnant ? SecondaryTabNavigator : TabNavigator}
       />
     </Drawer.Navigator>
@@ -432,6 +434,10 @@ export default function RootNavigation() {
   const [modalVisible, setModalVisible] = useState(false);
   const open = () => setModalVisible(true);
   const close = () => setModalVisible(false);
+
+  // Fetch daily action data once at root level to avoid re-fetching on every modal open
+  const dailyActionData = useDailyActionData();
+  const ratingData = useRatingData();
 
   return (
     <SafeAreaProvider>
@@ -469,6 +475,10 @@ export default function RootNavigation() {
                   <Stack.Screen
                     name={SCREENS.THEME_SETTINGS}
                     component={Screens.ThemeSettings}
+                  />
+                  <Stack.Screen
+                    name={SCREENS.PREFERENCES}
+                    component={Screens.PreferencesScreen}
                   />
                   <Stack.Screen
                     name={SCREENS.PERIOD_SELECTOR}
@@ -511,6 +521,10 @@ export default function RootNavigation() {
                     component={Screens.TipsScreen}
                   />
                   <Stack.Screen
+                    name={SCREENS.DAILY_TIP}
+                    component={Screens.DailyTipScreen}
+                  />
+                  <Stack.Screen
                     name={SCREENS.BLOG_LIST}
                     component={Screens.BlogListScreen}
                   />
@@ -529,7 +543,7 @@ export default function RootNavigation() {
                   transparent
                   onRequestClose={close}
                 >
-                  <AboutHomeModal />
+                  <AboutHomeModal dailyActionData={dailyActionData} ratingData={ratingData} />
                 </Modal>
               </GlobalModalContext.Provider>
             ) : (

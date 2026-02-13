@@ -13,6 +13,7 @@ import { THEME_COLORS } from '../../constants/colors';
 import { useNavigation } from '@react-navigation/native';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
 import { RootStackParamList } from '../../constants/navigation';
+import { STYLE } from '../../constants/app';
 
 const initialCategories = [
   {
@@ -122,7 +123,7 @@ export default function HospitalChecklistScreen() {
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <FontelloIcon name="left-open-mini" size={24} color={THEME_COLORS.primary} />
+          <FontelloIcon name="left-open-mini" size={24} color="#333" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Hospital Bag Checklist</Text>
         <View style={styles.headerRight} />
@@ -247,20 +248,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    paddingBottom: 16,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    ...STYLE.header,
   },
   backButton: {
     padding: 4,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: THEME_COLORS.primary,
-    letterSpacing: -0.5,
+    ...STYLE.headerTitle,
   },
   headerRight: {
     width: 32,

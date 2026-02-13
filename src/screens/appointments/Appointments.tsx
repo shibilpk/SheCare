@@ -77,12 +77,15 @@ export default function AppointmentsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f9fa' },
   header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingVertical: 12, backgroundColor: THEME_COLORS.textLight,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    ...STYLE.header,
   },
   headerBtn: { padding: 4, width: 32 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: THEME_COLORS.text },
+  headerTitle: {
+    ...STYLE.headerTitle,
+  },
   card: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: THEME_COLORS.textLight,
     marginHorizontal: STYLE.spacing.mh, marginTop: 14, padding: 16, borderRadius: 16,

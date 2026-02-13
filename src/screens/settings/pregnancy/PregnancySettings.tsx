@@ -17,8 +17,9 @@ import LinearGradient from 'react-native-linear-gradient';
 import FontelloIcon from '../../../services/FontelloIcons';
 import { THEME_COLORS } from '../../../constants/colors';
 import { RootStackParamList } from '../../../constants/navigation';
-import useStore from '../../../hooks/useStore';
+import useStore from '../../../store/useStore';
 import { KeyboardAvoidingModal } from '../../../components';
+import { STYLE } from '../../../constants/app';
 
 export default function PregnancySettings() {
   const navigation =
@@ -730,16 +731,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    ...STYLE.header,
   },
   backButton: {
     padding: 4,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#fff',
+    ...STYLE.headerTitle,
   },
   placeholder: {
     width: 32,

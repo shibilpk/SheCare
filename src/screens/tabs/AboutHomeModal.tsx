@@ -13,56 +13,35 @@ import DaysScroller from '../../components/widgets/DaysScroller';
 import ModalTopIcon from '../../components/common/ModalTopIcon';
 import FontelloIcon from '../../services/FontelloIcons';
 import { THEME_COLORS } from '../../constants/colors';
-import { useNavigation } from '@react-navigation/native';
-import { RootStackParamList } from '../../constants/navigation';
-import { StackNavigationProp } from '@react-navigation/stack';
 import DiaryModal from '../common/diary/DiaryModal';
 import { STYLE } from '../../constants/app';
 import { fetchDiaryEntry, saveDiaryEntry } from '../common/diary/service';
 import { parseValidationErrors } from '@src/utils/formUtils';
 import { APIError } from '@src/services/ApiClient';
 import { useToastMessage } from '@src/utils/toastMessage';
+import { DailyActionData } from '@src/hooks/useDailyActionData';
+import { RatingData } from '@src/hooks/useRatingData';
 
-const moods = [
-  { name: 'Happy', emoji: '😊', color: '#FFE0B2' },
-  { name: 'Sad', emoji: '😢', color: '#BBDEFB' },
-  { name: 'Angry', emoji: '😠', color: '#FFCDD2' },
-  { name: 'In Love', emoji: '😍', color: '#F8BBD0' },
-  { name: 'Anxious', emoji: '😰', color: '#D1C4E9' },
-  { name: 'Calm', emoji: '😌', color: '#C8E6C9' },
-  { name: 'Tired', emoji: '😴', color: '#E1BEE7' },
-  { name: 'Excited', emoji: '🤩', color: '#FFF9C4' },
-];
+interface AboutHomeModalProps {
+  dailyActionData: DailyActionData;
+  ratingData: RatingData;
+}
 
-const symptoms = [
-  { name: 'Headache', icon: 'head', color: '#FFCDD2' },
-  { name: 'Cramps', icon: 'body', color: '#F8BBD0' },
-  { name: 'Bloating', icon: 'circle', color: '#E1BEE7' },
-  { name: 'Nausea', icon: 'sad', color: '#C5CAE9' },
-  { name: 'Fatigue', icon: 'sleep', color: '#BBDEFB' },
-  { name: 'Back Pain', icon: 'back', color: '#B2DFDB' },
-  { name: 'Tender Breasts', icon: 'heart', color: '#F0F4C3' },
-  { name: 'Acne', icon: 'face', color: '#FFCCBC' },
-];
-
-export default function AboutHomeModal() {
+export default function AboutHomeModal({ dailyActionData, ratingData }: AboutHomeModalProps) {
   // Save entry to API
   const handleSave = async () => {
     const payload = {
-      date: selectedDate,
+      date: diaryModalDate.toISOString().split('T')[0],
       ratings: itemRatings,
       moods: selectedMoods,
       symptoms: selectedSymptoms,
       flow: selectedFlow,
+      intimacy: selectedIntimacy,
+      activities: selectedActivities,
       // add other fields as needed
     };
     try {
-      // const response = await fetch('https://your-api-endpoint.com/entry', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(payload),
-      // });
-      // const result = await response.json();
+      // TODO: Replace with actual API call
       console.log('Save result:', payload);
       // Optionally show success message or close modal
     } catch (error) {
@@ -96,21 +75,45 @@ export default function AboutHomeModal() {
   const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
   const [selectedFlow, setSelectedFlow] = useState<string | null>(null);
+  const [selectedIntimacy, setSelectedIntimacy] = useState<string | null>(null);
+  const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'tracking' | 'ratings'>(
     'tracking',
   );
   const { showToast } = useToastMessage();
 
-  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const [showDiaryModal, setShowDiaryModal] = useState(false);
   const [diaryText, setDiaryText] = useState<string>('');
+  const [diaryModalDate, setDiaryModalDate] = useState<Date>(selectedDate);
 
+  // Get daily action data from props (fetched at parent level)
+  const {
+    moods,
+    symptoms,
+    activities,
+    intimacyOptions,
+    flowOptions,
+    isLoading,
+    error,
+  } = dailyActionData;
+
+  // Only load diary for diaryModalDate when modal is open or diaryModalDate changes
   useEffect(() => {
-    if (showDiaryModal) {
-      loadDiary(new Date());
+    if (showDiaryModal && diaryModalDate) {
+      loadDiary(diaryModalDate);
     }
-  }, [showDiaryModal]);
+  }, [showDiaryModal, diaryModalDate]);
 
+  // Helper to open diary modal for a specific date
+  const openDiaryModalForDate = (date: Date) => {
+    setDiaryModalDate(date);
+    setShowDiaryModal(true);
+  };
+
+  const closeDiaryModal = date => {
+    setShowDiaryModal(false);
+    setSelectedDate(date);
+  };
   async function loadDiary(date: Date) {
     try {
       const entry = await fetchDiaryEntry(date);
@@ -140,18 +143,30 @@ export default function AboutHomeModal() {
     }
   }
 
-  const toggleMood = (mood: string) => {
+  const toggleMood = (id: string) => {
     setSelectedMoods(prev =>
-      prev.includes(mood) ? prev.filter(m => m !== mood) : [...prev, mood],
+      prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id],
     );
   };
 
-  const toggleSymptom = (symptom: string) => {
+  const toggleSymptom = (id: string) => {
     setSelectedSymptoms(prev =>
-      prev.includes(symptom)
-        ? prev.filter(s => s !== symptom)
-        : [...prev, symptom],
+      prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id],
     );
+  };
+
+  const toggleActivity = (id: string) => {
+    setSelectedActivities(prev =>
+      prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id],
+    );
+  };
+
+  const selectIntimacy = (id: string) => {
+    setSelectedIntimacy(prev => (prev === id ? null : id));
+  };
+
+  const toggleFlow = (id: string) => {
+    setSelectedFlow(prev => (prev === id ? null : id));
   };
 
   return (
@@ -237,7 +252,21 @@ export default function AboutHomeModal() {
           </TouchableOpacity>
         </View>
 
-        {activeTab === 'tracking' ? (
+        {/* Loading State */}
+        {isLoading && (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Loading...</Text>
+          </View>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
+
+        {!isLoading && !error && activeTab === 'tracking' ? (
           <>
             {/* Moods Section */}
             <View style={styles.section}>
@@ -250,20 +279,19 @@ export default function AboutHomeModal() {
                 <Text style={styles.sectionTitle}>How are you feeling?</Text>
               </View>
               <View style={styles.moodsGrid}>
-                {moods.map((mood, index) => (
+                {moods.map(mood => (
                   <TouchableOpacity
-                    key={index}
+                    key={mood.id}
                     style={[
                       styles.moodCard,
                       { backgroundColor: mood.color },
-                      selectedMoods.includes(mood.name) &&
-                        styles.moodCardSelected,
+                      selectedMoods.includes(mood.id) && styles.cardSelected,
                     ]}
-                    onPress={() => toggleMood(mood.name)}
+                    onPress={() => toggleMood(mood.id)}
                   >
                     <Text style={styles.moodEmoji}>{mood.emoji}</Text>
                     <Text style={styles.moodLabel}>{mood.name}</Text>
-                    {selectedMoods.includes(mood.name) && (
+                    {selectedMoods.includes(mood.id) && (
                       <View style={styles.selectedBadge}>
                         <FontelloIcon name="check" size={12} color="#fff" />
                       </View>
@@ -284,19 +312,19 @@ export default function AboutHomeModal() {
                 <Text style={styles.sectionTitle}>Any symptoms?</Text>
               </View>
               <View style={styles.symptomsGrid}>
-                {symptoms.map((symptom, index) => (
+                {symptoms.map(symptom => (
                   <TouchableOpacity
-                    key={index}
+                    key={symptom.id}
                     style={[
                       styles.symptomChip,
                       { backgroundColor: symptom.color },
-                      selectedSymptoms.includes(symptom.name) &&
+                      selectedSymptoms.includes(symptom.id) &&
                         styles.symptomChipSelected,
                     ]}
-                    onPress={() => toggleSymptom(symptom.name)}
+                    onPress={() => toggleSymptom(symptom.id)}
                   >
                     <Text style={styles.symptomText}>{symptom.name}</Text>
-                    {selectedSymptoms.includes(symptom.name) && (
+                    {selectedSymptoms.includes(symptom.id) && (
                       <FontelloIcon name="check" size={14} color="#333" />
                     )}
                   </TouchableOpacity>
@@ -315,25 +343,19 @@ export default function AboutHomeModal() {
                 <Text style={styles.sectionTitle}>Period Flow</Text>
               </View>
               <View style={styles.flowGrid}>
-                {[
-                  { label: 'Light', emoji: '🌸', color: '#FFE0F0' },
-                  { label: 'Medium', emoji: '💧', color: '#E1F5FE' },
-                  { label: 'Heavy', emoji: '💦', color: '#C5CAE9' },
-                  { label: 'Spotting', emoji: '🩸', color: '#FFCDD2' },
-                  { label: 'None', emoji: '🚫', color: '#EEEEEE' },
-                ].map((flow, index) => (
+                {flowOptions.map(flow => (
                   <TouchableOpacity
-                    key={index}
+                    key={flow.id}
                     style={[
                       styles.flowCard,
                       { backgroundColor: flow.color },
-                      selectedFlow === flow.label && styles.flowCardSelected,
+                      selectedFlow === flow.id && styles.cardSelected,
                     ]}
-                    onPress={() => setSelectedFlow(flow.label)}
+                    onPress={() => toggleFlow(flow.id)}
                   >
                     <Text style={styles.flowEmoji}>{flow.emoji}</Text>
                     <Text style={styles.flowLabel}>{flow.label}</Text>
-                    {selectedFlow === flow.label && (
+                    {selectedFlow === flow.id && (
                       <View style={styles.flowCheckBadge}>
                         <FontelloIcon name="check" size={14} color="#fff" />
                       </View>
@@ -354,22 +376,26 @@ export default function AboutHomeModal() {
                 <Text style={styles.sectionTitle}>Activities</Text>
               </View>
               <View style={styles.tagsGrid}>
-                {[
-                  { label: 'Exercise', emoji: '💪', color: '#C8E6C9' },
-                  { label: 'Sleep', emoji: '😴', color: '#E1BEE7' },
-                  { label: 'Stress', emoji: '😫', color: '#FFCDD2' },
-                  { label: 'Travel', emoji: '✈️', color: '#B3E5FC' },
-                  { label: 'Party', emoji: '🎉', color: '#FFF9C4' },
-                  { label: 'Work', emoji: '💼', color: '#CFD8DC' },
-                  { label: 'Meditation', emoji: '🧘', color: '#D1C4E9' },
-                  { label: 'Shopping', emoji: '🛍️', color: '#F8BBD0' },
-                ].map((tag, index) => (
+                {activities.map(tag => (
                   <TouchableOpacity
-                    key={index}
-                    style={[styles.tagChip, { backgroundColor: tag.color }]}
+                    key={tag.id}
+                    style={[
+                      styles.tagChip,
+                      { backgroundColor: tag.color },
+                      selectedActivities.includes(tag.id) &&
+                        styles.cardSelectedBlack,
+                    ]}
+                    onPress={() => toggleActivity(tag.id)}
                   >
                     <Text style={styles.tagEmoji}>{tag.emoji}</Text>
                     <Text style={styles.tagLabel}>{tag.label}</Text>
+                    {selectedActivities.includes(tag.id) && (
+                      <FontelloIcon
+                        name="check"
+                        size={14}
+                        color={THEME_COLORS.dark}
+                      />
+                    )}
                   </TouchableOpacity>
                 ))}
               </View>
@@ -382,20 +408,23 @@ export default function AboutHomeModal() {
                 <Text style={styles.sectionTitle}>Intimacy</Text>
               </View>
               <View style={styles.intimacyGrid}>
-                {[
-                  { label: 'Protected', emoji: '🛡️', color: '#C8E6C9' },
-                  { label: 'Unprotected', emoji: '⚠️', color: '#FFCDD2' },
-                  { label: 'None', emoji: '🚫', color: '#EEEEEE' },
-                ].map((option, index) => (
+                {intimacyOptions.map(option => (
                   <TouchableOpacity
-                    key={index}
+                    key={option.id}
                     style={[
                       styles.intimacyCard,
                       { backgroundColor: option.color },
+                      selectedIntimacy === option.id && styles.cardSelected,
                     ]}
+                    onPress={() => selectIntimacy(option.id)}
                   >
                     <Text style={styles.intimacyEmoji}>{option.emoji}</Text>
                     <Text style={styles.intimacyLabel}>{option.label}</Text>
+                    {selectedIntimacy === option.id && (
+                      <View style={styles.selectedBadge}>
+                        <FontelloIcon name="check" size={14} color="#fff" />
+                      </View>
+                    )}
                   </TouchableOpacity>
                 ))}
               </View>
@@ -414,7 +443,7 @@ export default function AboutHomeModal() {
               <TouchableOpacity
                 style={styles.notesCard}
                 onPress={() => {
-                  setShowDiaryModal(true);
+                  openDiaryModalForDate(selectedDate);
                 }}
               >
                 <FontelloIcon name="plus-circled" size={24} color="#999" />
@@ -424,16 +453,15 @@ export default function AboutHomeModal() {
               </TouchableOpacity>
               <DiaryModal
                 visible={showDiaryModal}
-                onClose={() => setShowDiaryModal(false)}
-                initialDate={new Date()}
+                onClose={date => {
+                  closeDiaryModal(date);
+                }}
+                initialDate={diaryModalDate || selectedDate}
                 initialText={diaryText}
                 onSave={(date, text) => {
-                  // Handle save logic here
                   handleDiarySave(date, text);
                 }}
-                onDateChange={date => {
-                  loadDiary(date);
-                }}
+                canChangeDate={false}
               />
             </View>
           </>
@@ -443,31 +471,14 @@ export default function AboutHomeModal() {
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <FontelloIcon name="star" size={20} color="#F59E0B" />
-                <Text style={styles.sectionTitle}>Rate Your Day</Text>
+                <Text style={styles.sectionTitle}>{ratingData.heading || "Rate Your Day"}</Text>
               </View>
               <Text style={styles.ratingsSubtitle}>
-                Help us understand your wellness by rating different aspects
+                {ratingData.sub_heading || "Help us understand your wellness by rating different aspects"}
               </Text>
             </View>
 
-            {[
-              {
-                heading: 'Body & Mind',
-                items: [
-                  { id: 'stress', title: 'Stress', emoji: '😫' },
-                  { id: 'sleep', title: 'Sleep', emoji: '😴' },
-                  { id: 'exercise', title: 'Exercise', emoji: '💪' },
-                ],
-              },
-              {
-                heading: 'Emotions',
-                items: [
-                  { id: 'overallMood', title: 'Overall Mood', emoji: '😊' },
-                  { id: 'anxiety', title: 'Anxiety', emoji: '😰' },
-                  { id: 'focus', title: 'Focus', emoji: '🎯' },
-                ],
-              },
-            ].map((section, idx) => (
+            {ratingData.sections.map((section, idx) => (
               <View key={idx} style={styles.ratingSection}>
                 <Text style={styles.ratingSectionHeading}>
                   {section.heading}
@@ -509,10 +520,12 @@ export default function AboutHomeModal() {
           </>
         )}
 
-        {/* Save Button */}
-        <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-          <Text style={styles.saveBtnText}>Save Entry</Text>
-        </TouchableOpacity>
+        {/* Save Button - Only show when data is loaded */}
+        {!isLoading && !error && (
+          <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
+            <Text style={styles.saveBtnText}>Save Entry</Text>
+          </TouchableOpacity>
+        )}
 
         <View style={styles.bottomPadding} />
       </ScrollView>
@@ -548,18 +561,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
-  },
-  todayBtn: {
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  todayText: {
-    position: 'absolute',
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#666',
-    zIndex: 1,
   },
   dateBanner: {
     flexDirection: 'row',
@@ -610,9 +611,9 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
   },
-  moodCardSelected: {
-    borderWidth: 3,
-    borderColor: THEME_COLORS.primary,
+  cardSelected: {
+    outlineWidth: 2,
+    outlineColor: THEME_COLORS.borderPrimary,
   },
   moodEmoji: {
     fontSize: 32,
@@ -676,9 +677,9 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
   },
-  flowCardSelected: {
-    borderWidth: 3,
-    borderColor: THEME_COLORS.primary,
+  cardSelectedBlack: {
+    outlineWidth: 2,
+    outlineColor: THEME_COLORS.borderBlack,
   },
   flowEmoji: {
     fontSize: 28,
@@ -825,14 +826,6 @@ const styles = StyleSheet.create({
     marginTop: -8,
     marginBottom: 8,
   },
-  starsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  starButton: {
-    padding: 4,
-  },
   ratingSection: {
     marginBottom: 20,
     padding: 15,
@@ -875,5 +868,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
+  },
+  loadingContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#666',
+  },
+  errorContainer: {
+    padding: 20,
+    marginHorizontal: STYLE.spacing.mh,
+    marginTop: 20,
+    backgroundColor: '#FEE2E2',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#DC2626',
+    textAlign: 'center',
   },
 });

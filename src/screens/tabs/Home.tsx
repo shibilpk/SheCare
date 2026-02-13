@@ -1,4 +1,4 @@
-import React, { use, useEffect, useState } from 'react';
+import React, { use, useContext, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -28,6 +28,8 @@ import { useToastMessage } from '@src/utils/toastMessage';
 import { fetchDiaryEntry, saveDiaryEntry } from '../common/diary/service';
 import HomeQuickActions from '../common/quickAction/HomeQuickActions';
 import { DateRange } from '@src/components/widgets/Calender';
+import GlobalModalContext from '@src/services/GlobalContext';
+import { useDailyTip } from '@src/hooks/useDailyTip';
 
 interface PeriodRange {
   id: string;
@@ -35,10 +37,14 @@ interface PeriodRange {
   end_date: string;
   cycle_length: number;
 }
+interface pregnancyChance {
+  value: 'low' | 'medium' | 'high';
+  percent: number;
+}
 interface CustomerPeriodData {
   active_period: PeriodRange;
   is_fertile: boolean;
-  pregnancy_chance: 'low' | 'medium' | 'high';
+  pregnancy_chance: pregnancyChance | null;
   next_period_date: string | null;
   ovulation_date: string | null;
   fertile_window_start: string | null;
@@ -70,6 +76,8 @@ export default function HomeScreen() {
     useState<CustomerPeriodData | null>(null);
 
   const [activePeriodId, setActivePeriodId] = useState<string | null>(null);
+  const modal = useContext(GlobalModalContext);
+  const { tip: dailyTip, isLoading: isLoadingTip, error: tipError } = useDailyTip();
 
   async function setActivePeriod(response: PeriodRange) {
     try {
@@ -153,7 +161,7 @@ export default function HomeScreen() {
 
   const getPregnancyChanceDisplay = () => {
     if (!customerPeriodData?.pregnancy_chance)
-      return { value: 'Low', icon: 'down-open', color: '#DC2626' };
+      return { value: 'L', icon: 'down', color: '#DC2626' };
 
     const chance = customerPeriodData.pregnancy_chance;
     switch (chance) {
@@ -212,18 +220,17 @@ export default function HomeScreen() {
       iconColor: '#cc40ab',
       levelIcon: pregnancyDisplay.icon,
       levelColor: pregnancyDisplay.color,
-      bgColor: ['#ee7cd4', '#cc40ab'],
+      bgColor: ['#E9D5FF', '#fbb9d3'],
       contentType: 'value',
-      screen: null,
+      screen: SCREENS.CALENDAR,
     },
     {
       id: 'ovulation',
       label: 'Ovulation',
-      // emoji: '😊',
       value: getDaysUntilOvulation(),
       icon: 'water',
-      iconColor: '#0284C7',
-      bgColor: ['#BAE6FD', '#38BDF8'],
+      iconColor: '#ff5c9d',
+      bgColor: ['#e7a6cc', '#f995bd'],
       contentType: 'value',
       screen: null,
     },
@@ -232,10 +239,10 @@ export default function HomeScreen() {
       label: 'History',
       icon: 'history',
       emoji: '🗓️',
-      iconColor: '#0284C7',
+      iconColor: '#18b8fd',
       bgColor: ['#BAE6FD', '#38BDF8'],
       contentType: 'emoji',
-      screen: null,
+      screen: SCREENS.PERIODS_LIST,
     },
     {
       id: 'mood',
@@ -279,7 +286,15 @@ export default function HomeScreen() {
       contentType: 'emoji',
       screen: SCREENS.SLEEP_LOG,
     },
-  ];
+  ].filter(stat => {
+    if (stat.id === 'ovulation') {
+      return getDaysUntilOvulation() !== null; // or !== undefined
+    }
+    if (stat.id === 'next_period') {
+      return getDaysUntilNextPeriod() !== null; // or !== undefined
+    }
+    return true;
+  });
 
   const openModal = () => {
     setShowNotifications(true);
@@ -664,7 +679,7 @@ export default function HomeScreen() {
           </View>
           <TouchableOpacity
             style={styles.checkInBtn}
-            onPress={() => setShowDiaryModal(true)}
+            onPress={() => modal.open()}
           >
             <FontelloIcon
               name="plus"
@@ -702,29 +717,47 @@ export default function HomeScreen() {
           </View>
         ))}
 
-        {/* Tips Card */}
+        {/* Daily Tips Card */}
         <View style={styles.tipsCard}>
           <View style={styles.tipsHeader}>
             <View style={styles.tipsIconBox}>
               <Text style={styles.tipsIcon}>💡</Text>
             </View>
-            <Text style={styles.tipsTitle}>Daily Health Tips</Text>
+            <Text style={styles.tipsTitle}>Daily Health Tip</Text>
           </View>
-          <Text style={styles.tipsText}>
-            Stay hydrated and get 7-8 hours of sleep for optimal health. Regular
-            exercise can help regulate your cycle and improve mood.
-          </Text>
-          <TouchableOpacity
-            style={styles.tipsBtn}
-            onPress={() => navigation.navigate(SCREENS.TIPS_SCREEN)}
-          >
-            <Text style={styles.tipsBtnText}>Learn More</Text>
-            <FontelloIcon
-              name="right-open-mini"
-              size={16}
-              color={THEME_COLORS.primary}
-            />
-          </TouchableOpacity>
+          {isLoadingTip ? (
+            <View style={styles.tipLoadingContainer}>
+              <ActivityIndicator size="small" color={THEME_COLORS.primary} />
+              <Text style={styles.tipLoadingText}>Loading today's tip...</Text>
+            </View>
+          ) : tipError ? (
+            <Text style={styles.tipsText}>
+              Stay hydrated and get 7-8 hours of sleep for optimal health. Regular exercise can help regulate your cycle and improve mood.
+            </Text>
+          ) : dailyTip ? (
+            <>
+              <Text style={styles.tipsText}>
+                {dailyTip.short_description}
+              </Text>
+              <TouchableOpacity
+                style={styles.tipsBtn}
+                onPress={() => {
+                  navigation.navigate(SCREENS.DAILY_TIP);
+                }}
+              >
+                <Text style={styles.tipsBtnText}>Read More</Text>
+                <FontelloIcon
+                  name="right-open-mini"
+                  size={16}
+                  color={THEME_COLORS.primary}
+                />
+              </TouchableOpacity>
+            </>
+          ) : (
+            <Text style={styles.tipsText}>
+              Stay hydrated and get 7-8 hours of sleep for optimal health.
+            </Text>
+          )}
         </View>
 
         {/* Quick Actions */}
@@ -1096,6 +1129,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: THEME_COLORS.primary,
     marginRight: 4,
+  },
+  tipLoadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    gap: 12,
+  },
+  tipLoadingText: {
+    fontSize: 14,
+    color: '#999',
   },
   statsScroll: {
     paddingHorizontal: STYLE.spacing.ph,

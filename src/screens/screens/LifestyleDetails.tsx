@@ -15,6 +15,7 @@ import { LineChart } from 'react-native-chart-kit';
 import { THEME_COLORS } from '../../constants/colors';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import FontelloIcon from '../../services/FontelloIcons';
+import { STYLE } from '../../constants/app';
 
 const LifestyleDetailsScreen = () => {
   const navigation = useNavigation();
@@ -72,7 +73,7 @@ const LifestyleDetailsScreen = () => {
           style={styles.backBtn}
           onPress={() => navigation.goBack()}
         >
-          <FontelloIcon name="left-open-mini" size={28} color="#333" />
+          <FontelloIcon name="left-open-mini" size={26} color="#333" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Lifestyle Details</Text>
         <View style={styles.headerPlaceholder} />
@@ -322,23 +323,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    ...STYLE.header,
   },
   backBtn: {
     padding: 4,
     width: 36,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#333',
+    ...STYLE.headerTitle,
   },
   headerPlaceholder: {
     width: 36,

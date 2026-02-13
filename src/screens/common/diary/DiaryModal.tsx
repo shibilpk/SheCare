@@ -18,11 +18,12 @@ import FontelloIcon from '../../../services/FontelloIcons';
 
 interface DiaryModalProps {
   visible: boolean;
-  onClose: () => void;
+  onClose: (date?: Date) => void;
   initialDate?: Date;
   initialText?: string;
   onSave?: (date: Date, text: string) => void;
-  onDateChange?: (date: Date) => void; // 👈 NEW
+  onDateChange?: (date: Date) => void;
+  canChangeDate?: boolean;
 }
 
 const DiaryModal: React.FC<DiaryModalProps> = ({
@@ -32,6 +33,7 @@ const DiaryModal: React.FC<DiaryModalProps> = ({
   initialText = '',
   onSave,
   onDateChange,
+  canChangeDate = true
 }) => {
   const insets = useSafeAreaInsets();
   const [diaryText, setDiaryText] = useState(initialText);
@@ -40,6 +42,7 @@ const DiaryModal: React.FC<DiaryModalProps> = ({
 
   // Update state when props change
   useEffect(() => {
+
     if (visible) {
       setDiaryText(initialText);
       setDiaryDate(initialDate || new Date());
@@ -50,13 +53,13 @@ const DiaryModal: React.FC<DiaryModalProps> = ({
     if (onSave) {
       onSave(diaryDate, diaryText);
     }
-    onClose();
+    onClose(diaryDate);
   };
 
   const handleCancel = () => {
     setDiaryText(initialText);
     setDiaryDate(initialDate || new Date());
-    onClose();
+    onClose(diaryDate);
   };
 
   return (
@@ -76,7 +79,7 @@ const DiaryModal: React.FC<DiaryModalProps> = ({
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
             <ModalTopIcon iconName="cancel" onPress={handleCancel} />
-            <TouchableOpacity onPress={() => setShowDiaryDatePicker(true)}>
+            {canChangeDate ? <TouchableOpacity onPress={() => setShowDiaryDatePicker(true)}>
               <View style={styles.dateBox}>
                 <FontelloIcon
                   name="calendar"
@@ -92,7 +95,23 @@ const DiaryModal: React.FC<DiaryModalProps> = ({
                   })}
                 </Text>
               </View>
-            </TouchableOpacity>
+            </TouchableOpacity>:
+              <View style={styles.dateBox}>
+                <FontelloIcon
+                  name="calendar"
+                  size={16}
+                  color={THEME_COLORS.primary}
+                />
+                <Text style={styles.headerDate}>
+                  {diaryDate.toLocaleDateString('en-US', {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })}
+                </Text>
+              </View>
+            }
             <DateTimePickerModal
               isVisible={showDiaryDatePicker}
               mode="date"

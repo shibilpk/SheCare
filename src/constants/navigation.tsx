@@ -9,6 +9,7 @@ export const SCREENS = {
   ANALYSIS: 'Analysis',
   LIFESTYLE_DETAILS: 'LifestyleDetails',
   LANDING: 'Landing',
+  MAIN_TABS: 'MainTabs',
   CHANGE_PASSWORD: 'ChangePassword',
   DELETE_ACCOUNT: 'DeleteAccount',
   HOSPITAL_CHECKLIST: 'HospitalChecklist',
@@ -27,6 +28,8 @@ export const SCREENS = {
   BLOG_LIST: 'BlogList',
   BLOG_DETAIL: 'BlogDetail',
   PERIODS_LIST: 'PeriodsList',
+  DAILY_TIP: 'DailyTip',
+  PREFERENCES: 'Preferences',
 } as const;
 
 // Define screens that need params and their types

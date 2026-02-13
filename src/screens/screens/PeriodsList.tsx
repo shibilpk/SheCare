@@ -16,6 +16,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import InfiniteScrollList from '../../components/common/InfiniteScrollList';
 import apiClient from '../../services/ApiClient';
 import { APIS } from '../../constants/apis';
+import { STYLE } from '../../constants/app';
 
 interface PeriodData {
   start_date: string;
@@ -199,20 +200,19 @@ export default function PeriodsListScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <LinearGradient colors={[THEME_COLORS.primary, THEME_COLORS.primary]}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          >
-            <FontelloIcon name="left-open" size={24} color="#fff" />
-          </TouchableOpacity>
-          <Text style={styles.headerText}>Periods List</Text>
-          <TouchableOpacity style={styles.addButton}>
-            <FontelloIcon name="plus" size={24} color="#fff" />
-          </TouchableOpacity>
-        </View>
-      </LinearGradient>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
+          <FontelloIcon name="left-open-mini" size={26} color="#333" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Periods List</Text>
+        <TouchableOpacity style={styles.addButton}>
+          <FontelloIcon name="plus" size={22} color="#333" />
+        </TouchableOpacity>
+      </View>
 
       <InfiniteScrollList<PeriodData>
         fetchData={fetchPeriods}
@@ -232,21 +232,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
 
-  headerContent: {
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
+    ...STYLE.header,
   },
 
   backButton: {
     padding: 4,
   },
-  headerText: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#fff',
+  headerTitle: {
+    ...STYLE.headerTitle,
   },
   addButton: {
     padding: 4,

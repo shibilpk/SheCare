@@ -1,5 +1,5 @@
 import { APIS, BASE_URL } from '../constants/apis';
-import useStore from '../hooks/useStore';
+import useStore from '../store/useStore';
 
 type NormalizedError = {
   title: string;
@@ -141,7 +141,6 @@ class ApiClient {
   private readonly abortControllers: Map<string, AbortController> = new Map();
 
   // Refresh token logic
-  private isRefreshing: boolean = false;
   private refreshQueue: QueuedRequest[] = [];
   private refreshPromise: Promise<void> | null = null;
 
@@ -176,15 +175,16 @@ class ApiClient {
     if (is_auth) {
       try {
         const token = useStore.getState().token;
-
         if (token) {
           restOptions.headers = {
             ...restOptions.headers,
             Authorization: `Bearer ${token}`,
           };
+        } else {
+          console.warn('⚠️ No token found in store - request will fail if endpoint requires auth');
         }
       } catch (error) {
-        console.error('Error retrieving token:', error);
+        console.error('❌ Error retrieving token:', error);
       }
     }
 
@@ -227,10 +227,14 @@ class ApiClient {
       const refreshToken = useStore.getState().refreshToken;
 
       if (!refreshToken) {
+        console.error('❌ No refresh token available');
         throw new Error('No refresh token available');
       }
 
-      const response = await fetch(`${this.baseURL}${APIS.V1.AUTH.REFRESH}`, {
+      const refreshUrl = `${this.baseURL}${APIS.V1.AUTH.REFRESH}`;
+      console.log('🔄 Refreshing token...');
+
+      const response = await fetch(refreshUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -239,6 +243,8 @@ class ApiClient {
       });
 
       if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('❌ Refresh failed with status:', response.status, 'Data:', errorData);
         throw new Error('Refresh token failed');
       }
 
@@ -254,24 +260,30 @@ class ApiClient {
       }
 
       useStore.getState().setToken(newAccessToken, newRefreshToken);
+      console.log('✅ Token refresh successful');
     } catch (error) {
+      // Log detailed error information
+      if (error instanceof TypeError) {
+        console.error('❌ Network error during token refresh - BASE_URL might be incorrect:', this.baseURL);
+        console.error('💡 Tip: Use your computer\'s IP address instead of localhost for physical devices/emulators');
+      } else {
+        console.error('❌ Token refresh error:', error);
+      }
+
       // Clear storage and redirect to login
       await this.handleRefreshFailure();
+
+      // Re-throw to signal that refresh failed
+      // This will be caught by the 401 handler which will process queued requests with error
       throw error;
     }
   }
 
   // Handle refresh token failure
   private async handleRefreshFailure(): Promise<void> {
-    /**
-    Clear all auth-related storage - this will trigger Zustand to update isLoggedIn.
-    The navigation container will automatically show the Login screen
-    because isLoggedIn will be false after clearing tokens
-    */
-
+    // Clear all auth-related storage - this will trigger Zustand to update isLoggedIn.
+    // The navigation container will automatically show the Login screen
     useStore.getState().clearToken();
-    // Small delay to ensure storage is cleared and state is updated
-    await new Promise<void>(resolve => setTimeout(resolve, 100));
   }
 
   // Process queued requests after token refresh
@@ -279,10 +291,13 @@ class ApiClient {
     const queue = [...this.refreshQueue];
     this.refreshQueue = [];
 
-    for (const request of queue) {
-      if (error) {
-        request.reject(error);
-      } else {
+    if (error) {
+      console.log('❌ Rejecting', queue.length, 'queued requests due to failed refresh');
+      queue.forEach(request => request.reject(error));
+    } else {
+      console.log('✨ Retrying', queue.length, 'queued request(s) with fresh token...');
+
+      const promises = queue.map(async request => {
         try {
           const result = await this.executeRequest(
             request.endpoint,
@@ -292,7 +307,9 @@ class ApiClient {
         } catch (err) {
           request.reject(err);
         }
-      }
+      });
+
+      await Promise.allSettled(promises);
     }
   }
 
@@ -308,6 +325,20 @@ class ApiClient {
       abortPrevious = false,
       headers = {},
     } = options;
+
+    // If token refresh is already in progress, queue this request immediately
+    // This prevents unnecessary API preparation when we know we'll need to retry anyway
+    if (is_auth && this.refreshPromise) {
+      console.log('⏸️  Refresh in progress, queuing request:', endpoint);
+      return new Promise<T>((resolve, reject) => {
+        this.refreshQueue.push({
+          resolve: resolve as (value: unknown) => void,
+          reject,
+          endpoint,
+          options,
+        });
+      });
+    }
 
     const url = endpoint.startsWith('http')
       ? endpoint
@@ -377,8 +408,12 @@ class ApiClient {
 
       // Handle 401 Unauthorized
       if (response.status === 401 && is_auth) {
-        // If already refreshing, queue this request
-        if (this.isRefreshing) {
+        console.log('🔴 401 Unauthorized received for:', endpoint);
+
+        // Use refreshPromise as the primary lock to prevent race conditions
+        // If refresh is already in progress, queue this request
+        if (this.refreshPromise) {
+          console.log('⏸️  Refresh already in progress, queuing request:', endpoint);
           return new Promise<T>((resolve, reject) => {
             this.refreshQueue.push({
               resolve: resolve as (value: unknown) => void,
@@ -389,52 +424,48 @@ class ApiClient {
           });
         }
 
-        // Start refresh process
-        this.isRefreshing = true;
+        // Start refresh process - create promise immediately to lock
+        console.log('🔄 Starting token refresh for request:', endpoint);
+        this.refreshPromise = this.refreshAccessToken();
 
         try {
-          // Single refresh call
-          if (!this.refreshPromise) {
-            this.refreshPromise = this.refreshAccessToken();
-          }
-
           await this.refreshPromise;
+
+          // Clear promise IMMEDIATELY after refresh succeeds, before retrying any requests
           this.refreshPromise = null;
 
-          // Retry the original request with new token
-          const retryResult = await this.executeRequest<T>(endpoint, options);
+          console.log('✅ Token refreshed, processing queued requests...');
+          const queuePromise = this.processQueue();
 
-          // Process queued requests
-          await this.processQueue();
+          const retryPromise = this.executeRequest<T>(endpoint, options);
+
+          const [retryResult] = await Promise.all([retryPromise, queuePromise]);
 
           return retryResult;
-        } catch (refreshError) {
-          console.error('Token refresh failed:', refreshError);
-          // Process queue with error
-          await this.processQueue(refreshError as Error);
-          throw refreshError;
+        } catch (_error) {
+          console.log('🔒 Session expired, logging out...');
+
+          // Process queue with error to reject all pending requests
+          const logoutError = new APIError(
+            {
+              title: 'Session Expired',
+              message: 'Your session has expired. Please login again.'
+            },
+            'server',
+            401
+          );
+          await this.processQueue(_error instanceof APIError ? _error : logoutError);
+
+          throw logoutError;
         } finally {
-          this.isRefreshing = false;
+          this.refreshPromise = null;
         }
       }
 
       // Handle other error status codes
       if (!response.ok) {
-        console.log('response.ok', response.ok);
-
         const errorData = await response.json().catch(() => ({}));
-
-        let errorMessage = normalizeError(response.status, errorData);
-
-        console.log(
-          'errorMessage',
-          errorMessage,
-          'response.status',
-          response.status,
-          'errorData',
-          errorData,
-        );
-
+        const errorMessage = normalizeError(response.status, errorData);
         throw new APIError(errorMessage, 'server', response.status, errorData);
       }
 

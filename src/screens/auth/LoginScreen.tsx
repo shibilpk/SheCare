@@ -13,7 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Input, Button } from '../../components';
 import apiClient, { APIError } from '../../services/ApiClient';
-import useStore from '../../hooks/useStore';
+import useStore from '../../store/useStore';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList, SCREENS } from '../../constants/navigation';

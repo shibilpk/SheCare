@@ -15,6 +15,7 @@ import { RootStackParamList } from '../../constants/navigation';
 import Input from '../../components/widgets/Input';
 import FontelloIcon from '../../services/FontelloIcons';
 import BackButton from '../../components/widgets/BackButton';
+import { STYLE } from '../../constants/app';
 
 export default function ChangePasswordScreen() {
   const navigation =
@@ -256,19 +257,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    ...STYLE.header,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#333',
+    ...STYLE.headerTitle,
   },
   headerPlaceholder: {
     width: 36,

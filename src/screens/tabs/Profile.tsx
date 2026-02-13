@@ -30,7 +30,7 @@ import {
   ImageLibraryOptions,
   Asset,
 } from 'react-native-image-picker';
-import useStore from '../../hooks/useStore';
+import useStore from '../../store/useStore';
 import apiClient, { APIError } from '../../services/ApiClient';
 import { APIS } from '../../constants/apis';
 import AdBanner from '../../components/common/AdBanner';
@@ -128,6 +128,10 @@ export default function Profile() {
   };
   const [avatar, setAvatar] = useState<AvatarFile | null>(null);
   const [scrolledPastHeader, setScrolledPastHeader] = useState(false);
+
+  // Language and Timezone states
+  const [language, setLanguage] = useState<string>('en');
+  const [timezone, setTimezone] = useState<string>('Asia/Kolkata');
 
   const [headerHeight, setHeaderHeight] = useState(0);
   const handleHeaderLayout = (event: any) => {
@@ -252,6 +256,8 @@ export default function Profile() {
         setName(response.profile.name || '');
         setPhone(response.profile.phone || '');
         setHeight(response.profile.height?.toString() || '');
+        setLanguage(response.profile.language || 'en');
+        setTimezone(response.profile.timezone || 'Asia/Kolkata');
         setCycleLength(
           (
             response.profile.cycleLength || response.profile.cycle_length
@@ -277,6 +283,8 @@ export default function Profile() {
       setLoading(false);
     }
   };
+
+
 
   const updateProfilePicture = async (imageFile: AvatarFile) => {
     try {
@@ -427,6 +435,8 @@ export default function Profile() {
   useEffect(() => {
     console.log(profileUpdate, 'profileUpdate');
   }, [profileUpdate]);
+
+
 
   const handleScroll = (event: any) => {
     const y = event.nativeEvent.contentOffset.y;
@@ -941,22 +951,19 @@ export default function Profile() {
 
           <TouchableOpacity
             style={styles.actionRow}
-            onPress={() => {
-              Alert.alert(
-                'Language Settings',
-                'Navigate to language settings screen',
-              );
-            }}
+            onPress={() => navigation.navigate(SCREENS.PREFERENCES)}
           >
             <View style={styles.actionLeft}>
               <View
-                style={[styles.actionIconBox, { backgroundColor: '#FFF3E0' }]}
+                style={[styles.actionIconBox,{ backgroundColor: '#FFF3E0' }]}
               >
                 <FontelloIcon name="language" size={18} color="#FF9800" />
               </View>
               <View>
-                <Text style={styles.actionLabel}>Language</Text>
-                <Text style={styles.preferenceSubtext}>English (US)</Text>
+                <Text style={styles.actionLabel}>Language & Timezone</Text>
+                <Text style={styles.preferenceSubtext}>
+                  {language === 'en' ? 'English' : language.toUpperCase()} • {timezone.split('/')[1]}
+                </Text>
               </View>
             </View>
             <FontelloIcon name="right-open-mini" size={20} color="#999" />

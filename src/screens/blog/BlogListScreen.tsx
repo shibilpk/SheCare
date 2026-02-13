@@ -344,7 +344,7 @@ const BlogListScreen: React.FC = () => {
           onPress={() => navigation.goBack()}
           style={styles.backBtn}
         >
-          <FontelloIcon name="left-open-mini" size={24} color="#333" />
+          <FontelloIcon name="left-open-mini" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Health Blog</Text>
         <View style={styles.placeholder} />
@@ -458,22 +458,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: THEME_COLORS.textLight,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    ...STYLE.header,
   },
   backBtn: {
     padding: 4,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: THEME_COLORS.text,
+    ...STYLE.headerTitle,
   },
   placeholder: {
     width: 32,

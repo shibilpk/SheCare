@@ -105,14 +105,14 @@ export default function WeightTrackScreen() {
           onPress={() => navigation.goBack()}
           style={styles.backBtn}
         >
-          <FontelloIcon name="left-open-mini" size={28} color="#333" />
+          <FontelloIcon name="left-open-mini" size={26} color="#333" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Child's Weight</Text>
         <TouchableOpacity
           onPress={() => setShowAddModal(true)}
           style={styles.addBtn}
         >
-          <FontelloIcon name="plus" size={24} color={THEME_COLORS.primary} />
+          <FontelloIcon name="plus" size={22} color="#333" />
         </TouchableOpacity>
       </View>
 
@@ -360,22 +360,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: THEME_COLORS.textLight,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    ...STYLE.header,
   },
   backBtn: {
     padding: 4,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: THEME_COLORS.text,
+    ...STYLE.headerTitle,
   },
   addBtn: {
     padding: 4,

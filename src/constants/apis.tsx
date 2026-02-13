@@ -1,6 +1,8 @@
 // constants/apis.ts
-export const BASE_URL = 'http://192.168.1.10:7865';
-// export const BASE_URL = 'http://localhost:7865';
+// Use your computer's IP address for physical devices/emulators
+// Find your IP: macOS: ifconfig | grep "inet " | grep -v 127.0.0.1
+// export const BASE_URL = 'http://192.168.1.10:7865';
+export const BASE_URL = 'http://localhost:7865'; // Only works in web browser
 const API_VERSION = 'v1';
 
 const AUTH_API = {
@@ -16,13 +18,13 @@ const CUSTOMER_API = {
   PROFILE: `/api/${API_VERSION}/customer/profile/`,
   WEIGHT_ENTRY: `/api/${API_VERSION}/customer/profile/wight-entry/`,
   HEALTH_ANALYSIS: `/api/${API_VERSION}/customer/health-analysis/`,
+  PREFERENCES: `/api/${API_VERSION}/customer/preferences/`,
+  PREFERENCES_OPTIONS: `/api/${API_VERSION}/customer/preferences/options/`,
   getProfile: (id: string | number) =>
     `/api/${API_VERSION}/customer/profile/${id}/`, // dynamic
 };
 
-const APP_API = {
-  getVersion: (os: string) => `/api/${API_VERSION}/general/app-version/${os}/`,
-};
+
 const DAIRY = {
   ENTRY: `/api/${API_VERSION}/diary/entry/`,
   ENTRY_FROM_DATE: `/api/${API_VERSION}/diary/entry-by-date/`,
@@ -34,12 +36,22 @@ const PERIOD = {
   LIST: `/api/${API_VERSION}/period/list/`,
   CUSTOMER_DATA: `/api/${API_VERSION}/period/customer-data/`,
 };
+const ACTIVITIES = {
+  DAILY_ACTION_LIST: `/api/${API_VERSION}/activities/daily-actions/`,
+  RATING_LIST: `/api/${API_VERSION}/activities/rating-lists/`,
+};
+const GENERAL = {
+  DAILY_TIPS: `/api/${API_VERSION}/general/daily-tips/`,
+  getVersion: (os: string) => `/api/${API_VERSION}/general/app-version/${os}/`,
+};
+
 export const APIS = {
   V1: {
     AUTH: AUTH_API,
     CUSTOMER: CUSTOMER_API,
-    APP: APP_API,
     DAIRY: DAIRY,
     PERIOD: PERIOD,
+    ACTIVITIES: ACTIVITIES,
+    GENERAL: GENERAL,
   },
 };

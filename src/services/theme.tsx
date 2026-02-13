@@ -1,5 +1,5 @@
 import { useColorScheme } from 'react-native';
-import useStore from '../hooks/useStore';
+import useStore from '../store/useStore';
 
 /**
  * Returns true if dark mode is active (user or system), false otherwise.

@@ -12,7 +12,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../constants/navigation';
 import { THEME_COLORS } from '../../../constants/colors';
-import useStore from '../../../hooks/useStore';
+import useStore from '../../../store/useStore';
 import { useIsDarkMode, isUserSetTheme } from '../../../services/theme';
 import { STYLE } from '../../../constants/app';
 import { Button } from '@src/components';
@@ -181,20 +181,15 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#fff',
-    elevation: 2,
+    justifyContent: 'space-between',
+    ...STYLE.header,
   },
   backBtn: {
     padding: 4,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#333',
+    ...STYLE.headerTitle,
   },
   descriptionBox: {
     flexDirection: 'row',

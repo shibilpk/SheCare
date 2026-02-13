@@ -5,7 +5,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { QuickActions } from '@src/components';
 import { RootStackParamList, SCREENS } from '@src/constants/navigation';
-import useStore from '@src/hooks/useStore';
+import useStore from '@src/store/useStore';
 
 /* ---------------- TYPES ---------------- */
 

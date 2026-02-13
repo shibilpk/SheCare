@@ -9,6 +9,8 @@ export const THEME_COLORS = {
   primary: '#f8909c',
   primaryLight: '#fbb9d3',
 
+  dark: '#333333',
+
   secondary: '#FF6B9D',
 
   text: '#333333',
@@ -22,6 +24,9 @@ export const THEME_COLORS = {
 
   background: '#f5f5fa',
   backgroundDark: '#fe88b7df',
+
+  borderBlack: '#333333',
+  borderPrimary: '#f8909c',
 };
 
 export const HOME_CARD_PASTEL = {

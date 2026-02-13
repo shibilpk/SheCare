@@ -19,12 +19,20 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../../components';
 import apiClient, { APIError } from '../../services/ApiClient';
 import { THEME_COLORS } from '../../constants/colors';
-import useStore from '../../hooks/useStore';
+import useStore from '../../store/useStore';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../constants/navigation';
 import { OtpInput } from 'react-native-otp-entry';
-import RNOtpVerify from 'react-native-otp-verify'; // For Android SMS auto-read
+// Conditional import to avoid NativeEventEmitter warnings on iOS
+let RNOtpVerify: any;
+if (Platform.OS === 'android') {
+  try {
+    RNOtpVerify = require('react-native-otp-verify');
+  } catch (error) {
+    console.warn('react-native-otp-verify not available:', error);
+  }
+}
 import { APIS } from '../../constants/apis';
 
 type OTPVerificationRouteProp = RouteProp<
@@ -48,7 +56,7 @@ const OTPVerificationScreen: React.FC = () => {
 
   // Auto-read SMS OTP (Android only)
   useEffect(() => {
-    if (Platform.OS === 'android') {
+    if (Platform.OS === 'android' && RNOtpVerify) {
       // Start listening for OTP
       RNOtpVerify.getOtp()
         .then(() => RNOtpVerify.addListener(otpHandler))
@@ -56,7 +64,7 @@ const OTPVerificationScreen: React.FC = () => {
 
       // Get hash for SMS (you'll need this for your backend)
       RNOtpVerify.getHash()
-        .then(hash => {
+        .then((hash: string[]) => {
           console.log('SMS Hash:', hash); // Send this to your backend
         })
         .catch(console.error);
