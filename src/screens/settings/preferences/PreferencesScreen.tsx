@@ -71,7 +71,7 @@ const PreferencesScreen: React.FC = () => {
         setTimezoneOptions(response.timezones || []);
       }
     } catch (error) {
-      console.error('Failed to fetch preference options:', error);
+      console.info('Failed to fetch preference options:', error);
     }
   };
 
@@ -177,28 +177,23 @@ const PreferencesScreen: React.FC = () => {
               return (
                 <TouchableOpacity
                   key={option.value}
-                  style={[
-                    styles.optionCard,
-                    isSelected && styles.optionCardActive,
-                  ]}
+                  style={styles.radioOption}
                   onPress={() => setLanguage(option.value)}
                   activeOpacity={0.7}
                 >
-                  <Text
-                    style={[
-                      styles.optionText,
-                      isSelected && styles.optionTextActive,
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-                  {isSelected && (
-                    <FontelloIcon
-                      name="ok"
-                      size={18}
-                      color={THEME_COLORS.primary}
-                    />
-                  )}
+                  <View style={styles.radioContainer}>
+                    <View style={[styles.radioOuter, isSelected && styles.radioOuterSelected]}>
+                      {isSelected && <View style={styles.radioInner} />}
+                    </View>
+                    <Text
+                      style={[
+                        styles.radioText,
+                        isSelected && styles.radioTextSelected,
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                  </View>
                 </TouchableOpacity>
               );
             })}
@@ -221,28 +216,23 @@ const PreferencesScreen: React.FC = () => {
               return (
                 <TouchableOpacity
                   key={option.value}
-                  style={[
-                    styles.optionCard,
-                    isSelected && styles.optionCardActive,
-                  ]}
+                  style={styles.radioOption}
                   onPress={() => setTimezone(option.value)}
                   activeOpacity={0.7}
                 >
-                  <Text
-                    style={[
-                      styles.optionText,
-                      isSelected && styles.optionTextActive,
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-                  {isSelected && (
-                    <FontelloIcon
-                      name="ok"
-                      size={18}
-                      color={THEME_COLORS.primary}
-                    />
-                  )}
+                  <View style={styles.radioContainer}>
+                    <View style={[styles.radioOuter, isSelected && styles.radioOuterSelected]}>
+                      {isSelected && <View style={styles.radioInner} />}
+                    </View>
+                    <Text
+                      style={[
+                        styles.radioText,
+                        isSelected && styles.radioTextSelected,
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                  </View>
                 </TouchableOpacity>
               );
             })}
@@ -358,28 +348,45 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   optionsContainer: {
-    gap: 10,
+    gap: 12,
   },
-  optionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  radioOption: {
     backgroundColor: '#fff',
-    padding: 16,
     borderRadius: 12,
-    borderWidth: 2,
+    padding: 16,
+    borderWidth: 1,
     borderColor: '#E5E7EB',
   },
-  optionCardActive: {
-    borderColor: THEME_COLORS.primary,
-    backgroundColor: '#FFF5F7',
+  radioContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
-  optionText: {
+  radioOuter: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: '#D1D5DB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioOuterSelected: {
+    borderColor: THEME_COLORS.primary,
+  },
+  radioInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: THEME_COLORS.primary,
+  },
+  radioText: {
     fontSize: 15,
     fontWeight: '500',
     color: '#333',
+    flex: 1,
   },
-  optionTextActive: {
+  radioTextSelected: {
     color: THEME_COLORS.primary,
     fontWeight: '600',
   },

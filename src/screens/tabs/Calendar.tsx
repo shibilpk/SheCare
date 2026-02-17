@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import {
   FlatList,
   Modal,
@@ -18,6 +18,8 @@ import ModalTopIcon from '../../components/common/ModalTopIcon';
 import { ScrollView } from 'react-native-gesture-handler';
 import { monthNames } from '../../constants/common';
 import DiaryModal from '../common/diary/DiaryModal';
+import { useDailyEntry } from '@src/hooks/useDailyEntry';
+import { useErrorToast } from '@src/utils/toastMessage';
 
 // Memoized MonthCard component for better performance in year view
 const MonthCard = React.memo<{
@@ -51,6 +53,33 @@ const CalendarScreen: React.FC = () => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   // Removed full screen activity animation logic
   const insets = useSafeAreaInsets();
+
+  // Daily entry hook
+  const { dailySummary, isLoading, error, fetchDailyDetailed } = useDailyEntry();
+
+  // Auto show errors as toast
+  useErrorToast(error);
+
+  // Fetch daily entry when current date changes
+  useEffect(() => {
+    const loadDailyEntry = async () => {
+      try {
+        const entry = await fetchDailyDetailed(currentDate);
+        console.log('📅 Daily Summary for', currentDate.toISOString().split('T')[0], ':', entry);
+
+        if (entry) {
+          console.log('  - Summary Cards:', entry.summary_cards);
+          console.log('  - Created:', entry.created_at);
+        } else {
+          console.log('  - No entry found for this date');
+        }
+      } catch (err) {
+        console.info('Error loading daily entry:', err);
+      }
+    };
+
+    loadDailyEntry();
+  }, [currentDate, fetchDailyDetailed]);
 
   // Calendar marking toggles
   const [markingToggles, setMarkingToggles] = useState({
@@ -111,218 +140,8 @@ const CalendarScreen: React.FC = () => {
     [handleDayPress],
   );
 
-  const activityData = [
-    {
-      id: 1,
-      icon: 'glass',
-      title: 'Hydration',
-      value: '8 cups',
-      color: '#2196F3',
-    },
-    {
-      id: 2,
-      icon: 'heart',
-      title: 'Exercise',
-      value: '30 min',
-      color: '#F44336',
-    },
-    {
-      id: 3,
-      icon: 'moon',
-      title: 'Sleep',
-      value: '7.5 hours',
-      color: '#9C27B0',
-    },
-    {
-      id: 4,
-      icon: 'cutlery',
-      title: 'Meals',
-      value: '3 tracked',
-      color: '#FF9800',
-    },
-    {
-      id: 5,
-      icon: 'thermometer',
-      title: 'Temperature',
-      value: '36.6°C',
-      color: '#4CAF50',
-    },
-    {
-      id: 6,
-      icon: 'pill',
-      title: 'Medications',
-      rating: 3,
-      color: '#795548',
-    },
-    {
-      id: 7,
-      icon: 'glass',
-      title: 'Hydration',
-      value: '8 cups',
-      color: '#2196F3',
-    },
-    {
-      id: 8,
-      icon: 'heart',
-      title: 'Exercise',
-      value: '30 min',
-      color: '#F44336',
-    },
-    {
-      id: 9,
-      icon: 'moon',
-      title: 'Sleep',
-      value: '7.5 hours',
-      color: '#9C27B0',
-    },
-    {
-      id: 10,
-      icon: 'cutlery',
-      title: 'Meals',
-      value: '3 tracked',
-      color: '#FF9800',
-    },
-    {
-      id: 11,
-      icon: 'thermometer',
-      title: 'Temperature',
-      value: '36.6°C',
-      color: '#4CAF50',
-    },
-    {
-      id: 12,
-      icon: 'pill',
-      title: 'Medications',
-      rating: 3,
-      color: '#795548',
-    },
-    {
-      id: 13,
-      icon: 'glass',
-      title: 'Hydration',
-      value: '8 cups',
-      color: '#2196F3',
-    },
-    {
-      id: 14,
-      icon: 'heart',
-      title: 'Exercise',
-      value: '30 min',
-      color: '#F44336',
-    },
-    {
-      id: 15,
-      icon: 'moon',
-      title: 'Sleep',
-      value: '7.5 hours',
-      color: '#9C27B0',
-    },
-    {
-      id: 16,
-      icon: 'cutlery',
-      title: 'Meals',
-      value: '3 tracked',
-      color: '#FF9800',
-    },
-    {
-      id: 17,
-      icon: 'thermometer',
-      title: 'Temperature',
-      value: '36.6°C',
-      color: '#4CAF50',
-    },
-    {
-      id: 18,
-      icon: 'pill',
-      title: 'Medications',
-      rating: 3,
-      color: '#795548',
-    },
-    {
-      id: 19,
-      icon: 'glass',
-      title: 'Hydration',
-      value: '8 cups',
-      color: '#2196F3',
-    },
-    {
-      id: 20,
-      icon: 'heart',
-      title: 'Exercise',
-      value: '30 min',
-      color: '#F44336',
-    },
-    {
-      id: 21,
-      icon: 'moon',
-      title: 'Sleep',
-      value: '7.5 hours',
-      color: '#9C27B0',
-    },
-    {
-      id: 22,
-      icon: 'cutlery',
-      title: 'Meals',
-      value: '3 tracked',
-      color: '#FF9800',
-    },
-    {
-      id: 23,
-      icon: 'thermometer',
-      title: 'Temperature',
-      value: '36.6°C',
-      color: '#4CAF50',
-    },
-    {
-      id: 24,
-      icon: 'pill',
-      title: 'Medications',
-      rating: 3,
-      color: '#795548',
-    },
-    {
-      id: 25,
-      icon: 'glass',
-      title: 'Hydration',
-      value: '8 cups',
-      color: '#2196F3',
-    },
-    {
-      id: 26,
-      icon: 'heart',
-      title: 'Exercise',
-      value: '30 min',
-      color: '#F44336',
-    },
-    {
-      id: 27,
-      icon: 'moon',
-      title: 'Sleep',
-      value: '7.5 hours',
-      color: '#9C27B0',
-    },
-    {
-      id: 28,
-      icon: 'cutlery',
-      title: 'Meals',
-      value: '3 tracked',
-      color: '#FF9800',
-    },
-    {
-      id: 29,
-      icon: 'thermometer',
-      title: 'Temperature',
-      value: '36.6°C',
-      color: '#4CAF50',
-    },
-    {
-      id: 30,
-      icon: 'pill',
-      title: 'Medications',
-      rating: 3,
-      color: '#795548',
-    },
-  ];
+  // Get summary cards from API
+  const summaryCards = dailySummary?.summary_cards || [];
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
@@ -621,9 +440,9 @@ const CalendarScreen: React.FC = () => {
                   </View>
                 </View>
                 {/* Removed expand/collapse button and icon */}
-                <View style={styles.activitiesSection}>
+                <View>
                   <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>Today's Activities</Text>
+                    <Text style={styles.sectionTitle}>Today's Summary</Text>
                     <TouchableOpacity
                       onPress={() => setShowDiaryModal(true)}
                       style={styles.activitiesAddBtn}
@@ -636,46 +455,55 @@ const CalendarScreen: React.FC = () => {
                     </TouchableOpacity>
                   </View>
 
-                  {activityData.map(activity => (
-                    <View key={activity.id} style={styles.activityCard}>
-                      <View style={styles.activityIconBox}>
-                        <FontelloIcon
-                          name={activity.icon}
-                          size={15}
-                          color={activity.color}
-                        />
+                  {/* Summary List */}
+                  {summaryCards.length > 0 ? (
+                    summaryCards.map(card => (
+                      <View key={card.id} style={styles.activityItem}>
+                        <View style={styles.activityIconCircle}>
+                          {card.icon.length === 1 || card.icon.length === 2 ? (
+                            <Text style={styles.activityEmoji}>{card.icon}</Text>
+                          ) : (
+                            <FontelloIcon
+                              name={card.icon}
+                              size={18}
+                              color={THEME_COLORS.primary}
+                            />
+                          )}
+                        </View>
+                        <View style={styles.activityInfo}>
+                          <Text style={styles.activityTitle}>{card.title}</Text>
+                          {card.value && (
+                            <Text style={styles.activityValue}>{card.value}</Text>
+                          )}
+                          {card.rating && (
+                            <View style={styles.activityRatingStars}>
+                              {[1, 2, 3, 4, 5].map(star => (
+                                <FontelloIcon
+                                  key={star}
+                                  name={
+                                    star <= Math.round(card.rating!)
+                                      ? 'star'
+                                      : 'star-empty'
+                                  }
+                                  size={14}
+                                  color={
+                                    star <= Math.round(card.rating!)
+                                      ? '#FFD700'
+                                      : '#d7d5cc'
+                                  }
+                                />
+                              ))}
+                            </View>
+                          )}
+                        </View>
                       </View>
-                      <View style={styles.activityContent}>
-                        <Text style={styles.activityTitle}>
-                          {activity.title}
-                        </Text>
-                        {activity.value ? (
-                          <Text style={styles.activityValue}>
-                            {activity.value}
-                          </Text>
-                        ) : activity.rating ? (
-                          <View style={styles.activityRatingStars}>
-                            {[1, 2, 3, 4, 5].map(star => (
-                              <FontelloIcon
-                                key={star}
-                                name={
-                                  star <= activity.rating
-                                    ? 'star'
-                                    : 'star-empty'
-                                }
-                                size={15}
-                                color={
-                                  star <= activity.rating
-                                    ? '#FFD700'
-                                    : '#d7d5cc'
-                                }
-                              />
-                            ))}
-                          </View>
-                        ) : null}
-                      </View>
+                    ))
+                  ) : (
+                    <View style={styles.emptyState}>
+                      <Text style={styles.emptyStateText}>No data for this date</Text>
+                      <Text style={styles.emptyStateSubtext}>Tap + to add activities</Text>
                     </View>
-                  ))}
+                  )}
                 </View>
               </View>
             </View>
@@ -899,10 +727,6 @@ const styles = StyleSheet.create({
     backgroundColor: THEME_COLORS.primary,
     borderRadius: 5,
   },
-  activitiesSection: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
   activitiesAddBtn: {
     paddingHorizontal: 8,
   },
@@ -917,45 +741,69 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#333',
   },
-  activityCard: {
+  activityItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
   },
-  activityIconBox: {
-    width: 15,
-    borderRadius: 12,
+  activityIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: THEME_COLORS.primary + '15',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
-  activityContent: {
+  activityInfo: {
     flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    flexDirection: 'row',
   },
   activityTitle: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '500',
     color: '#333',
+    flex: 1,
   },
   activityValue: {
-    fontSize: 13,
-    color: '#999',
+    fontSize: 12,
+    color: '#666',
+    marginLeft: 8,
   },
   activityRatingStars: {
     flexDirection: 'row',
     gap: 4,
+  },
+  categoryTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#555',
+    marginTop: 16,
+    marginBottom: 10,
+    marginLeft: 4,
+  },
+  activityEmoji: {
+    fontSize: 16,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#999',
+    marginBottom: 8,
+  },
+  emptyStateSubtext: {
+    fontSize: 14,
+    color: '#bbb',
   },
   yearHeader: {
     flexDirection: 'row',

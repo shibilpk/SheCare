@@ -60,14 +60,14 @@ const OTPVerificationScreen: React.FC = () => {
       // Start listening for OTP
       RNOtpVerify.getOtp()
         .then(() => RNOtpVerify.addListener(otpHandler))
-        .catch(console.error);
+        .catch(console.info);
 
       // Get hash for SMS (you'll need this for your backend)
       RNOtpVerify.getHash()
         .then((hash: string[]) => {
           console.log('SMS Hash:', hash); // Send this to your backend
         })
-        .catch(console.error);
+        .catch(console.info);
 
       return () => {
         RNOtpVerify.removeListener();
@@ -90,7 +90,7 @@ const OTPVerificationScreen: React.FC = () => {
         }, 500);
       }
     } catch (error) {
-      console.error('Error parsing OTP from SMS:', error);
+      console.info('Error parsing OTP from SMS:', error);
     }
   };
 
@@ -124,7 +124,7 @@ const OTPVerificationScreen: React.FC = () => {
         );
       }
     } catch (error) {
-      console.error('Error reading clipboard:', error);
+      console.info('Error reading clipboard:', error);
     }
   };
 
@@ -152,7 +152,7 @@ const OTPVerificationScreen: React.FC = () => {
         );
       }
     } catch (error) {
-      console.error('Error pasting from clipboard:', error);
+      console.info('Error pasting from clipboard:', error);
       Alert.alert('Error', 'Failed to paste from clipboard');
     }
   };

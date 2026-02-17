@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,39 +6,14 @@ import {
   Dimensions,
   ScrollView,
   TouchableOpacity,
-  Alert,
+  RefreshControl,
 } from 'react-native';
 import { LineChart, BarChart, ProgressChart } from 'react-native-chart-kit';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { THEME_COLORS } from '../../constants/colors';
-import apiClient, { APIError } from '@src/services/ApiClient';
-import { APIS } from '@src/constants/apis';
-import { useFocusEffect } from '@react-navigation/native';
-import { ProfileResponse } from '@src/constants/types';
 import { InfoCard } from '@src/components';
-import { useToastMessage } from '@src/utils/toastMessage';
-
-// // Dummy data
-const bmiAnalysis = {
-  age: 28,
-  weight: 68,
-  height: 1.65,
-  bmi: 24.9,
-  category: 'Normal',
-  advice:
-    'Great job! Your BMI is within the normal range. Maintain your healthy lifestyle with regular exercise and a balanced diet.',
-};
-
-interface HealthAnalysisApiResponse {
-  bmi: {
-    bmi: number;
-    notes: Array<string>;
-    new_bmi: number;
-    status: string;
-    status_badge_color: string;
-  };
-  profile: ProfileResponse;
-}
+import { useHealthAnalysis } from '@src/hooks/useHealthAnalysis';
+import { useErrorToast } from '@src/utils/toastMessage';
 
 const healthMetrics = {
   hydration: 0.75,
@@ -48,7 +23,11 @@ const healthMetrics = {
 
 const AnalysisScreen = () => {
   const screenWidth = Dimensions.get('window').width;
-  const { showToast } = useToastMessage();
+  const { healthAnalysis, isRefreshing, error: healthAnalysisError, refetch } = useHealthAnalysis();
+
+  // Automatically show errors as toast
+  useErrorToast(healthAnalysisError);
+
   // Chart configurations
   const baseChartConfig = {
     backgroundGradientFrom: '#ffffff',
@@ -129,30 +108,10 @@ const AnalysisScreen = () => {
       },
     ],
   };
-  const [loading, setLoading] = useState(true);
-  const [healthAnalysis, setHealthAnalysis] =
-    useState<HealthAnalysisApiResponse | null>(null);
 
-  const fetchHealthAnalysis = async () => {
-    try {
-      setLoading(true);
-      const response = await apiClient.get<any>(
-        APIS.V1.CUSTOMER.HEALTH_ANALYSIS,
-      );
-      setHealthAnalysis(response);
-    } catch (error) {
-      const apiError = error as APIError;
-      showToast(apiError.message);
-    } finally {
-      setLoading(false);
-    }
+  const onRefresh = () => {
+    refetch();
   };
-
-  useFocusEffect(
-    useCallback(() => {
-      fetchHealthAnalysis();
-    }, []),
-  );
 
   const currentWeight =
     weightProgressData.datasets[0].data[
@@ -165,6 +124,14 @@ const AnalysisScreen = () => {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={onRefresh}
+            colors={[THEME_COLORS.primary]}
+            tintColor={THEME_COLORS.primary}
+          />
+        }
       >
         {/* Header */}
         <View style={styles.header}>
@@ -628,18 +595,6 @@ const styles = StyleSheet.create({
     color: '#999',
     marginTop: 2,
   },
-  adviceBox: {
-    backgroundColor: '#f0e6ff',
-    borderRadius: 12,
-    padding: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: '#8641F4',
-  },
-  adviceText: {
-    fontSize: 14,
-    color: '#333',
-    lineHeight: 20,
-  },
   progressChartContainer: {
     alignItems: 'center',
     marginVertical: 16,
@@ -664,37 +619,6 @@ const styles = StyleSheet.create({
   legendText: {
     fontSize: 14,
     color: '#666',
-  },
-  insightsCard: {
-    backgroundColor: '#fff9f0',
-    borderLeftWidth: 4,
-    borderLeftColor: '#FFA500',
-  },
-  insightsList: {
-    marginTop: 8,
-  },
-  insightItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  insightBullet: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#8641F4',
-    marginTop: 6,
-    marginRight: 10,
-  },
-  insightText: {
-    fontSize: 15,
-    color: '#333',
-    lineHeight: 22,
-    flex: 1,
-  },
-  bold: {
-    fontWeight: '700',
-    color: '#8641F4',
   },
   chart: {
     borderRadius: 16,

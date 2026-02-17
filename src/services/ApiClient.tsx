@@ -184,7 +184,7 @@ class ApiClient {
           console.warn('⚠️ No token found in store - request will fail if endpoint requires auth');
         }
       } catch (error) {
-        console.error('❌ Error retrieving token:', error);
+        console.info('❌ Error retrieving token:', error);
       }
     }
 
@@ -227,7 +227,7 @@ class ApiClient {
       const refreshToken = useStore.getState().refreshToken;
 
       if (!refreshToken) {
-        console.error('❌ No refresh token available');
+        console.info('❌ No refresh token available');
         throw new Error('No refresh token available');
       }
 
@@ -244,7 +244,7 @@ class ApiClient {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('❌ Refresh failed with status:', response.status, 'Data:', errorData);
+        console.info('❌ Refresh failed with status:', response.status, 'Data:', errorData);
         throw new Error('Refresh token failed');
       }
 
@@ -264,10 +264,10 @@ class ApiClient {
     } catch (error) {
       // Log detailed error information
       if (error instanceof TypeError) {
-        console.error('❌ Network error during token refresh - BASE_URL might be incorrect:', this.baseURL);
-        console.error('💡 Tip: Use your computer\'s IP address instead of localhost for physical devices/emulators');
+        console.info('❌ Network error during token refresh - BASE_URL might be incorrect:', this.baseURL);
+        console.info('💡 Tip: Use your computer\'s IP address instead of localhost for physical devices/emulators');
       } else {
-        console.error('❌ Token refresh error:', error);
+        console.info('❌ Token refresh error:', error);
       }
 
       // Clear storage and redirect to login
@@ -426,40 +426,38 @@ class ApiClient {
 
         // Start refresh process - create promise immediately to lock
         console.log('🔄 Starting token refresh for request:', endpoint);
-        this.refreshPromise = this.refreshAccessToken();
+        this.refreshPromise = this.refreshAccessToken()
+          .then(async () => {
+            // Refresh succeeded - clear promise and process queue
+            this.refreshPromise = null;
+            console.log('✅ Token refreshed, processing queued requests...');
+            await this.processQueue();
+          })
+          .catch(async (refreshError) => {
+            // Refresh failed - clear tokens and logout
+            this.refreshPromise = null;
+            console.log('🔒 Session expired, clearing tokens and logging out...');
 
-        try {
-          await this.refreshPromise;
+            await this.handleRefreshFailure();
 
-          // Clear promise IMMEDIATELY after refresh succeeds, before retrying any requests
-          this.refreshPromise = null;
+            const logoutError = new APIError(
+              {
+                title: 'Session Expired',
+                message: refreshError
+              },
+              'server',
+              401
+            );
+            await this.processQueue(logoutError);
 
-          console.log('✅ Token refreshed, processing queued requests...');
-          const queuePromise = this.processQueue();
+            throw logoutError;
+          });
 
-          const retryPromise = this.executeRequest<T>(endpoint, options);
+        // Wait for refresh to complete
+        await this.refreshPromise;
 
-          const [retryResult] = await Promise.all([retryPromise, queuePromise]);
-
-          return retryResult;
-        } catch (_error) {
-          console.log('🔒 Session expired, logging out...');
-
-          // Process queue with error to reject all pending requests
-          const logoutError = new APIError(
-            {
-              title: 'Session Expired',
-              message: 'Your session has expired. Please login again.'
-            },
-            'server',
-            401
-          );
-          await this.processQueue(_error instanceof APIError ? _error : logoutError);
-
-          throw logoutError;
-        } finally {
-          this.refreshPromise = null;
-        }
+        // Retry the original request - any errors will propagate naturally
+        return this.executeRequest<T>(endpoint, options);
       }
 
       // Handle other error status codes

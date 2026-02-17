@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useToast, ToastOptions } from 'react-native-toast-notifications';
 
 export const useToastMessage = () => {
@@ -20,3 +21,19 @@ export const useToastMessage = () => {
 
   return { showToast };
 };
+
+/**
+ * Automatically shows error as toast when error value changes
+ * @param error - Error message to display
+ * @param deps - Additional dependencies to watch (optional)
+ */
+export function useErrorToast(error: string | null, deps: any[] = []) {
+  const { showToast } = useToastMessage();
+
+  useEffect(() => {
+    if (error) {
+      showToast(error);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [error, showToast, ...deps]);
+}

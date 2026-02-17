@@ -45,7 +45,7 @@ export function useRatingData(): RatingData {
         );
         setSections(res.sections || []);
       } catch (e) {
-        console.error('Failed to fetch rating data', e);
+        console.info('Failed to fetch rating data', e);
         setError('Failed to load rating data');
         setSections([]);
       } finally {

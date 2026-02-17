@@ -19,6 +19,7 @@ import { RootStackParamList, SCREENS } from '@src/constants/navigation';
 import { APIS } from '@src/constants/apis';
 import apiClient, { APIError } from '@src/services/ApiClient';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { usePeriodActions } from '@src/hooks/usePeriodActions';
 
 type ScreenRouteProp = RouteProp<
   RootStackParamList,
@@ -35,6 +36,8 @@ const PeriodSelector: React.FC = () => {
 
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { startPeriod, endPeriod } = usePeriodActions();
+
   const [range, setRange] = useState<DateRange>({
     startDate: startDate,
     endDate: endDate,
@@ -104,14 +107,14 @@ const PeriodSelector: React.FC = () => {
           start_date: range.startDate!.toISOString().split('T')[0],
           end_date: range.endDate!.toISOString().split('T')[0],
         };
-        await apiClient.post<any>(APIS.V1.PERIOD.END, payload);
+        await endPeriod(payload);
       } else {
         // Starting a new period - send both dates
         const payload = {
           start_date: range.startDate!.toISOString().split('T')[0],
           end_date: range.endDate!.toISOString().split('T')[0],
         };
-        await apiClient.post<any>(APIS.V1.PERIOD.START, payload);
+        await startPeriod(payload);
       }
       navigation.navigate(SCREENS.LANDING);
     } catch (error) {

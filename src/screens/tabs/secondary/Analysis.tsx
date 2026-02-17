@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, Dimensions, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, Dimensions, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { LineChart, BarChart, ProgressChart } from 'react-native-chart-kit';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { THEME_COLORS } from '../../../constants/colors';
@@ -32,6 +32,15 @@ const healthMetrics = {
 
 const PregnancyAnalysisScreen = () => {
   const screenWidth = Dimensions.get('window').width;
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    // Simulate data refresh
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  };
 
   // Chart configurations
   const baseChartConfig = {
@@ -114,6 +123,14 @@ const PregnancyAnalysisScreen = () => {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#EC4899']}
+            tintColor={'#EC4899'}
+          />
+        }
       >
         {/* Header */}
         <View style={styles.header}>

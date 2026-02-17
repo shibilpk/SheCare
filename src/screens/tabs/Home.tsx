@@ -25,40 +25,16 @@ import apiClient, { APIError } from '@src/services/ApiClient';
 import { APIS } from '@src/constants/apis';
 import { parseValidationErrors } from '@src/utils/formUtils';
 import { useToastMessage } from '@src/utils/toastMessage';
-import { fetchDiaryEntry, saveDiaryEntry } from '../common/diary/service';
 import HomeQuickActions from '../common/quickAction/HomeQuickActions';
 import { DateRange } from '@src/components/widgets/Calender';
 import GlobalModalContext from '@src/services/GlobalContext';
 import { useDailyTip } from '@src/hooks/useDailyTip';
+import { usePeriodData, CustomerPeriodData, PeriodRange } from '@src/hooks/usePeriodData';
+import { useDiary } from '@src/hooks/useDiary';
 
-interface PeriodRange {
-  id: string;
-  start_date: string;
-  end_date: string;
-  cycle_length: number;
-}
-interface pregnancyChance {
+interface PregnancyChance {
   value: 'low' | 'medium' | 'high';
   percent: number;
-}
-interface CustomerPeriodData {
-  active_period: PeriodRange;
-  is_fertile: boolean;
-  pregnancy_chance: pregnancyChance | null;
-  next_period_date: string | null;
-  ovulation_date: string | null;
-  fertile_window_start: string | null;
-  fertile_window_end: string | null;
-  avg_cycle_length: number;
-  avg_period_length: number;
-  late_period_days: number;
-
-  // Main card display data (from server)
-  card_status: string;
-  card_label: string;
-  card_value: string;
-  card_subtitle: string;
-  card_button_text: string;
 }
 
 export default function HomeScreen() {
@@ -67,17 +43,17 @@ export default function HomeScreen() {
   const [showDiaryModal, setShowDiaryModal] = useState(false);
   const { showToast } = useToastMessage();
   const [diaryText, setDiaryText] = useState<string>('');
-  const [isLoadingPeriod, setIsLoadingPeriod] = useState<boolean>(true);
   const [range, setRange] = useState<DateRange>({
     startDate: null,
     endDate: null,
   });
-  const [customerPeriodData, setCustomerPeriodData] =
-    useState<CustomerPeriodData | null>(null);
-
   const [activePeriodId, setActivePeriodId] = useState<string | null>(null);
   const modal = useContext(GlobalModalContext);
+
+  // Use hooks for API calls
   const { tip: dailyTip, isLoading: isLoadingTip, error: tipError } = useDailyTip();
+  const { periodData: customerPeriodData, isLoading: isLoadingPeriod, refetch: refetchPeriodData } = usePeriodData();
+  const { fetchEntry: fetchDiaryEntry, saveEntry: saveDiaryEntry } = useDiary();
 
   async function setActivePeriod(response: PeriodRange) {
     try {
@@ -89,28 +65,17 @@ export default function HomeScreen() {
       });
       setActivePeriodId(response.id);
     } catch (error) {
-      console.error('Failed to fetch active period', error);
+      console.info('Failed to fetch active period', error);
       setActivePeriodId(null);
     }
   }
 
-  async function loadCustomerPeriodData() {
-    try {
-      const response = await apiClient.get<CustomerPeriodData>(
-        APIS.V1.PERIOD.CUSTOMER_DATA,
-      );
-      console.log('Customer period data:', response);
-      setCustomerPeriodData(response);
-
-      if (response.active_period) {
-        setActivePeriod(response.active_period);
-      }
-    } catch (error) {
-      console.warn('Failed to fetch customer period data', error);
-    } finally {
-      setIsLoadingPeriod(false);
+  // Update active period when customerPeriodData changes
+  useEffect(() => {
+    if (customerPeriodData?.active_period) {
+      setActivePeriod(customerPeriodData.active_period);
     }
-  }
+  }, [customerPeriodData]);
 
   useEffect(() => {
     console.log(range, 'range updated');
@@ -331,16 +296,12 @@ export default function HomeScreen() {
     }
   }, [showDiaryModal]);
 
-  useEffect(() => {
-    loadCustomerPeriodData();
-  }, []);
-
   async function loadDiary(date: Date) {
     try {
       const entry = await fetchDiaryEntry(date);
       setDiaryText(entry?.content ?? '');
     } catch (error) {
-      console.error('Failed to fetch diary entry', error);
+      console.info('Failed to fetch diary entry', error);
       setDiaryText('');
     }
   }

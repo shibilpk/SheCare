@@ -48,7 +48,7 @@ export function useDailyActionData(): DailyActionData {
         setIntimacyOptions(res.intimacy_options || []);
         setFlowOptions(res.flow_options || []);
       } catch (e) {
-        console.error('Failed to fetch daily action data', e);
+        console.info('Failed to fetch daily action data', e);
         setError('Failed to load daily action data');
       } finally {
         setIsLoading(false);

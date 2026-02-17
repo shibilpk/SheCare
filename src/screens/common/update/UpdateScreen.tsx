@@ -95,7 +95,7 @@ export default function UpdateScreen({
         : 'https://play.google.com/store/apps/details?id=your.app.id';
 
     Linking.openURL(storeURL).catch(err =>
-      console.error('Failed to open store:', err),
+      console.info('Failed to open store:', err),
     );
     onUpdate();
   };

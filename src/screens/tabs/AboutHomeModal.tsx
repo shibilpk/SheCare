@@ -1,4 +1,11 @@
-import React, { useContext, useEffect, useRef, useState } from 'react';
+import React, {
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+  useCallback,
+} from 'react';
 import {
   View,
   Text,
@@ -15,44 +22,69 @@ import FontelloIcon from '../../services/FontelloIcons';
 import { THEME_COLORS } from '../../constants/colors';
 import DiaryModal from '../common/diary/DiaryModal';
 import { STYLE } from '../../constants/app';
-import { fetchDiaryEntry, saveDiaryEntry } from '../common/diary/service';
 import { parseValidationErrors } from '@src/utils/formUtils';
 import { APIError } from '@src/services/ApiClient';
 import { useToastMessage } from '@src/utils/toastMessage';
 import { DailyActionData } from '@src/hooks/useDailyActionData';
 import { RatingData } from '@src/hooks/useRatingData';
+import { useDailyEntry } from '@src/hooks/useDailyEntry';
+import { useDiary } from '@src/hooks/useDiary';
 
 interface AboutHomeModalProps {
   dailyActionData: DailyActionData;
   ratingData: RatingData;
 }
 
-export default function AboutHomeModal({ dailyActionData, ratingData }: AboutHomeModalProps) {
+export default function AboutHomeModal({
+  dailyActionData,
+  ratingData,
+}: AboutHomeModalProps) {
+  // Initialize hooks
+  const { saveEntry: saveDailyEntryData, fetchEntry: fetchDailyEntryData } =
+    useDailyEntry();
+  const { saveEntry: saveDiaryNote, fetchEntry: fetchDiaryEntry } = useDiary();
+  const { showToast } = useToastMessage();
+
   // Save entry to API
   const handleSave = async () => {
+    // Transform state into daily_data format with id and type
+    const daily_data = [
+      ...selectedMoods.map(id => ({ id, type: 'mood' as const })),
+      ...selectedSymptoms.map(id => ({ id, type: 'symptom' as const })),
+      ...selectedActivities.map(id => ({ id, type: 'activity' as const })),
+      ...(selectedFlow ? [{ id: selectedFlow, type: 'flow' as const }] : []),
+      ...(selectedIntimacy
+        ? [{ id: selectedIntimacy, type: 'intimacy' as const }]
+        : []),
+    ];
+
+    // Convert itemRatings Record to array format for API
+    const ratingsArray = Object.entries(itemRatings)
+      .filter(([_, rating]) => rating > 0)
+      .map(([id, rating]) => ({ id, rating }));
+
     const payload = {
-      date: diaryModalDate.toISOString().split('T')[0],
-      ratings: itemRatings,
-      moods: selectedMoods,
-      symptoms: selectedSymptoms,
-      flow: selectedFlow,
-      intimacy: selectedIntimacy,
-      activities: selectedActivities,
-      // add other fields as needed
+      date: selectedDate.toISOString().split('T')[0],
+      daily_data,
+      ratings: ratingsArray,
     };
+
     try {
-      // TODO: Replace with actual API call
-      console.log('Save result:', payload);
-      // Optionally show success message or close modal
-    } catch (error) {
-      console.error('Error saving entry:', error);
+      await saveDailyEntryData(payload);
+      showToast('Entry saved successfully!');
+    } catch (err) {
+      const apiError = err as APIError;
+      Alert.alert(
+        apiError.normalizedError?.title || 'Error',
+        apiError.normalizedError?.message || 'Failed to save entry',
+      );
     }
   };
   // Ratings state by item id
   const [itemRatings, setItemRatings] = useState<Record<string, number>>({});
 
   // Set rating for an item by id
-  const setItemRating = (id: string, value: number) => {
+  const setItemRating = useCallback((id: string, value: number) => {
     setItemRatings(prev => {
       // If first star is clicked and already selected, clear rating
       if (value === 1 && prev[id] === 1) {
@@ -60,7 +92,7 @@ export default function AboutHomeModal({ dailyActionData, ratingData }: AboutHom
       }
       return { ...prev, [id]: value };
     });
-  };
+  }, []);
 
   const today = new Date();
   const daysScrollerRef = useRef<{ goToToday: () => void } | null>(null);
@@ -80,7 +112,6 @@ export default function AboutHomeModal({ dailyActionData, ratingData }: AboutHom
   const [activeTab, setActiveTab] = useState<'tracking' | 'ratings'>(
     'tracking',
   );
-  const { showToast } = useToastMessage();
 
   const [showDiaryModal, setShowDiaryModal] = useState(false);
   const [diaryText, setDiaryText] = useState<string>('');
@@ -97,77 +128,418 @@ export default function AboutHomeModal({ dailyActionData, ratingData }: AboutHom
     error,
   } = dailyActionData;
 
+  // Load daily entry when selected date changes
+  useEffect(() => {
+    loadDailyEntry(selectedDate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate]);
+
   // Only load diary for diaryModalDate when modal is open or diaryModalDate changes
   useEffect(() => {
     if (showDiaryModal && diaryModalDate) {
       loadDiary(diaryModalDate);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showDiaryModal, diaryModalDate]);
 
   // Helper to open diary modal for a specific date
-  const openDiaryModalForDate = (date: Date) => {
+  const openDiaryModalForDate = useCallback((date: Date) => {
     setDiaryModalDate(date);
     setShowDiaryModal(true);
-  };
+  }, []);
 
-  const closeDiaryModal = date => {
+  const closeDiaryModal = useCallback((date: Date) => {
     setShowDiaryModal(false);
     setSelectedDate(date);
-  };
+  }, []);
+
+  // Load daily entry data for a specific date
+  async function loadDailyEntry(date: Date) {
+    try {
+      const entry = await fetchDailyEntryData(date);
+
+      if (entry) {
+        // Transform daily_data back to separate arrays by type
+        const savedMoods = entry.daily_data
+          .filter(item => item.type === 'mood')
+          .map(item => item.id);
+        const savedSymptoms = entry.daily_data
+          .filter(item => item.type === 'symptom')
+          .map(item => item.id);
+        const savedActivities = entry.daily_data
+          .filter(item => item.type === 'activity')
+          .map(item => item.id);
+        const savedFlow =
+          entry.daily_data.find(item => item.type === 'flow')?.id || null;
+        const savedIntimacy =
+          entry.daily_data.find(item => item.type === 'intimacy')?.id || null;
+
+        // Populate state with saved data
+        setSelectedMoods(savedMoods);
+        setSelectedSymptoms(savedSymptoms);
+        setSelectedFlow(savedFlow);
+        setSelectedIntimacy(savedIntimacy);
+        setSelectedActivities(savedActivities);
+        // Convert ratings array to Record format for state
+        const ratingsRecord = (entry.ratings || []).reduce((acc, item) => {
+          acc[item.id] = item.rating;
+          return acc;
+        }, {} as Record<string, number>);
+        setItemRatings(ratingsRecord);
+      } else {
+        // Clear state if no entry exists
+        setSelectedMoods([]);
+        setSelectedSymptoms([]);
+        setSelectedFlow(null);
+        setSelectedIntimacy(null);
+        setSelectedActivities([]);
+        setItemRatings({});
+      }
+    } catch (err) {
+      console.info('Failed to fetch daily entry', err);
+      // Clear state on error
+      setSelectedMoods([]);
+      setSelectedSymptoms([]);
+      setSelectedFlow(null);
+      setSelectedIntimacy(null);
+      setSelectedActivities([]);
+      setItemRatings({});
+    }
+  }
+
   async function loadDiary(date: Date) {
     try {
       const entry = await fetchDiaryEntry(date);
       setDiaryText(entry?.content ?? '');
-    } catch (error) {
-      console.error('Failed to fetch diary entry', error);
+    } catch (err) {
+      console.info('Failed to fetch diary entry', err);
       setDiaryText('');
     }
   }
 
-  async function handleDiarySave(date: Date, text: string) {
-    try {
-      const message = await saveDiaryEntry(date, text);
-      showToast(message);
-      setShowDiaryModal(false);
-    } catch (error) {
-      const apiError = error as APIError;
+  const handleDiarySave = useCallback(
+    async (date: Date, text: string) => {
+      try {
+        const message = await saveDiaryNote(date, text);
+        showToast(message);
+        setShowDiaryModal(false);
+      } catch (err) {
+        const apiError = err as APIError;
 
-      if (apiError.statusCode === 422 && apiError.data) {
-        console.log(parseValidationErrors(apiError.data));
-      } else {
-        Alert.alert(
-          apiError.normalizedError.title,
-          apiError.normalizedError.message,
-        );
+        if (apiError.statusCode === 422 && apiError.data) {
+          console.log(parseValidationErrors(apiError.data));
+        } else {
+          Alert.alert(
+            apiError.normalizedError.title,
+            apiError.normalizedError.message,
+          );
+        }
       }
-    }
-  }
+    },
+    [saveDiaryNote, showToast],
+  );
 
-  const toggleMood = (id: string) => {
+  const toggleMood = useCallback((id: string) => {
     setSelectedMoods(prev =>
       prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id],
     );
-  };
+  }, []);
 
-  const toggleSymptom = (id: string) => {
+  const toggleSymptom = useCallback((id: string) => {
     setSelectedSymptoms(prev =>
       prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id],
     );
-  };
+  }, []);
 
-  const toggleActivity = (id: string) => {
+  const toggleActivity = useCallback((id: string) => {
     setSelectedActivities(prev =>
       prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id],
     );
-  };
+  }, []);
 
-  const selectIntimacy = (id: string) => {
+  const selectIntimacy = useCallback((id: string) => {
     setSelectedIntimacy(prev => (prev === id ? null : id));
-  };
+  }, []);
 
-  const toggleFlow = (id: string) => {
+  const toggleFlow = useCallback((id: string) => {
     setSelectedFlow(prev => (prev === id ? null : id));
-  };
+  }, []);
+
+  // Memoize tracking tab content to prevent re-renders
+  const trackingContent = useMemo(
+    () => (
+      <>
+        {/* Moods Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <FontelloIcon name="heart" size={20} color={THEME_COLORS.primary} />
+            <Text style={styles.sectionTitle}>How are you feeling?</Text>
+          </View>
+          <View style={styles.moodsGrid}>
+            {moods.map(mood => (
+              <TouchableOpacity
+                key={mood.id}
+                style={[
+                  styles.moodCard,
+                  { backgroundColor: mood.color },
+                  selectedMoods.includes(mood.id) && styles.cardSelected,
+                ]}
+                onPress={() => toggleMood(mood.id)}
+              >
+                <Text style={styles.moodEmoji}>{mood.emoji}</Text>
+                <Text style={styles.moodLabel}>{mood.name}</Text>
+                {selectedMoods.includes(mood.id) && (
+                  <View style={styles.selectedBadge}>
+                    <FontelloIcon name="check" size={12} color="#fff" />
+                  </View>
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Symptoms Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <FontelloIcon
+              name="stethoscope"
+              size={20}
+              color={THEME_COLORS.primary}
+            />
+            <Text style={styles.sectionTitle}>Any symptoms?</Text>
+          </View>
+          <View style={styles.symptomsGrid}>
+            {symptoms.map(symptom => (
+              <TouchableOpacity
+                key={symptom.id}
+                style={[
+                  styles.symptomChip,
+                  { backgroundColor: symptom.color },
+                  selectedSymptoms.includes(symptom.id) &&
+                    styles.symptomChipSelected,
+                ]}
+                onPress={() => toggleSymptom(symptom.id)}
+              >
+                <Text style={styles.symptomText}>{symptom.name}</Text>
+                {selectedSymptoms.includes(symptom.id) && (
+                  <FontelloIcon name="check" size={14} color="#333" />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Flow Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <FontelloIcon
+              name="droplet"
+              size={20}
+              color={THEME_COLORS.primary}
+            />
+            <Text style={styles.sectionTitle}>Period Flow</Text>
+          </View>
+          <View style={styles.flowGrid}>
+            {flowOptions.map(flow => (
+              <TouchableOpacity
+                key={flow.id}
+                style={[
+                  styles.flowCard,
+                  { backgroundColor: flow.color },
+                  selectedFlow === flow.id && styles.cardSelected,
+                ]}
+                onPress={() => toggleFlow(flow.id)}
+              >
+                <Text style={styles.flowEmoji}>{flow.emoji}</Text>
+                <Text style={styles.flowLabel}>{flow.label}</Text>
+                {selectedFlow === flow.id && (
+                  <View style={styles.flowCheckBadge}>
+                    <FontelloIcon name="check" size={14} color="#fff" />
+                  </View>
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Activity Tags Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <FontelloIcon name="tag" size={20} color={THEME_COLORS.primary} />
+            <Text style={styles.sectionTitle}>Activities</Text>
+          </View>
+          <View style={styles.tagsGrid}>
+            {activities.map(tag => (
+              <TouchableOpacity
+                key={tag.id}
+                style={[
+                  styles.tagChip,
+                  { backgroundColor: tag.color },
+                  selectedActivities.includes(tag.id) &&
+                    styles.cardSelectedBlack,
+                ]}
+                onPress={() => toggleActivity(tag.id)}
+              >
+                <Text style={styles.tagEmoji}>{tag.emoji}</Text>
+                <Text style={styles.tagLabel}>{tag.label}</Text>
+                {selectedActivities.includes(tag.id) && (
+                  <FontelloIcon
+                    name="check"
+                    size={14}
+                    color={THEME_COLORS.dark}
+                  />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Intimacy Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <FontelloIcon name="heart" size={20} color="#EC4899" />
+            <Text style={styles.sectionTitle}>Intimacy</Text>
+          </View>
+          <View style={styles.intimacyGrid}>
+            {intimacyOptions.map(option => (
+              <TouchableOpacity
+                key={option.id}
+                style={[
+                  styles.intimacyCard,
+                  { backgroundColor: option.color },
+                  selectedIntimacy === option.id && styles.cardSelected,
+                ]}
+                onPress={() => selectIntimacy(option.id)}
+              >
+                <Text style={styles.intimacyEmoji}>{option.emoji}</Text>
+                <Text style={styles.intimacyLabel}>{option.label}</Text>
+                {selectedIntimacy === option.id && (
+                  <View style={styles.selectedBadge}>
+                    <FontelloIcon name="check" size={14} color="#fff" />
+                  </View>
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Notes Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <FontelloIcon name="book" size={20} color={THEME_COLORS.primary} />
+            <Text style={styles.sectionTitle}>Notes</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.notesCard}
+            onPress={() => {
+              openDiaryModalForDate(selectedDate);
+            }}
+          >
+            <FontelloIcon name="plus" size={24} color="#999" />
+            <Text style={styles.notesPlaceholder}>
+              Add notes about your day...
+            </Text>
+          </TouchableOpacity>
+          <DiaryModal
+            visible={showDiaryModal}
+            onClose={(date: Date) => {
+              closeDiaryModal(date);
+            }}
+            initialDate={diaryModalDate || selectedDate}
+            initialText={diaryText}
+            onSave={(date: Date, text: string) => {
+              handleDiarySave(date, text);
+            }}
+            canChangeDate={false}
+          />
+        </View>
+      </>
+    ),
+    [
+      selectedMoods,
+      selectedSymptoms,
+      selectedActivities,
+      selectedIntimacy,
+      selectedFlow,
+      showDiaryModal,
+      diaryModalDate,
+      diaryText,
+      moods,
+      symptoms,
+      flowOptions,
+      activities,
+      intimacyOptions,
+      toggleMood,
+      toggleSymptom,
+      toggleActivity,
+      selectIntimacy,
+      toggleFlow,
+      selectedDate,
+      openDiaryModalForDate,
+      closeDiaryModal,
+      handleDiarySave,
+    ],
+  );
+
+  // Memoize ratings tab content to prevent re-renders
+  const ratingsContent = useMemo(
+    () => (
+      <>
+        {/* Ratings Tab Content */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <FontelloIcon name="star" size={20} color="#F59E0B" />
+            <Text style={styles.sectionTitle}>
+              {ratingData.heading || 'Rate Your Day'}
+            </Text>
+          </View>
+          <Text style={styles.ratingsSubtitle}>
+            {ratingData.sub_heading ||
+              'Help us understand your wellness by rating different aspects'}
+          </Text>
+        </View>
+
+        {ratingData.sections.map((section, idx) => (
+          <View key={idx} style={styles.ratingSection}>
+            <Text style={styles.ratingSectionHeading}>{section.heading}</Text>
+            <View style={styles.ratingItems}>
+              {section.items.map(item => (
+                <View key={item.id} style={styles.ratingItemContainer}>
+                  <View style={styles.ratingItem}>
+                    <Text style={styles.ratingItemEmoji}>{item.emoji}</Text>
+                    <Text style={styles.ratingItemTitle}>{item.title}</Text>
+                  </View>
+                  <View style={styles.ratingStars}>
+                    {[1, 2, 3, 4, 5].map(star => (
+                      <TouchableOpacity
+                        key={star}
+                        onPress={() => setItemRating(item.id, star)}
+                      >
+                        <FontelloIcon
+                          name={
+                            star <= (itemRatings[item.id] || 0)
+                              ? 'star'
+                              : 'star-empty'
+                          }
+                          size={24}
+                          color={
+                            star <= (itemRatings[item.id] || 0)
+                              ? '#FFD700'
+                              : '#d7d5cc'
+                          }
+                        />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        ))}
+      </>
+    ),
+    [ratingData, itemRatings, setItemRating],
+  );
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -186,7 +558,17 @@ export default function AboutHomeModal({ dailyActionData, ratingData }: AboutHom
                 { month: 'long', year: 'numeric' },
               )}
             </Text>
-            <ModalTopIcon iconName="check" onPress={modal.close} />
+
+            {/* Save Button - Only show when data is loaded */}
+            {!isLoading && !error && (
+              <ModalTopIcon
+                iconName="check"
+                onPress={() => {
+                  modal.close();
+                  handleSave();
+                }}
+              />
+            )}
           </View>
           <DaysScroller
             ref={daysScrollerRef}
@@ -266,265 +648,9 @@ export default function AboutHomeModal({ dailyActionData, ratingData }: AboutHom
           </View>
         )}
 
-        {!isLoading && !error && activeTab === 'tracking' ? (
-          <>
-            {/* Moods Section */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <FontelloIcon
-                  name="heart"
-                  size={20}
-                  color={THEME_COLORS.primary}
-                />
-                <Text style={styles.sectionTitle}>How are you feeling?</Text>
-              </View>
-              <View style={styles.moodsGrid}>
-                {moods.map(mood => (
-                  <TouchableOpacity
-                    key={mood.id}
-                    style={[
-                      styles.moodCard,
-                      { backgroundColor: mood.color },
-                      selectedMoods.includes(mood.id) && styles.cardSelected,
-                    ]}
-                    onPress={() => toggleMood(mood.id)}
-                  >
-                    <Text style={styles.moodEmoji}>{mood.emoji}</Text>
-                    <Text style={styles.moodLabel}>{mood.name}</Text>
-                    {selectedMoods.includes(mood.id) && (
-                      <View style={styles.selectedBadge}>
-                        <FontelloIcon name="check" size={12} color="#fff" />
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            {/* Symptoms Section */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <FontelloIcon
-                  name="stethoscope"
-                  size={20}
-                  color={THEME_COLORS.primary}
-                />
-                <Text style={styles.sectionTitle}>Any symptoms?</Text>
-              </View>
-              <View style={styles.symptomsGrid}>
-                {symptoms.map(symptom => (
-                  <TouchableOpacity
-                    key={symptom.id}
-                    style={[
-                      styles.symptomChip,
-                      { backgroundColor: symptom.color },
-                      selectedSymptoms.includes(symptom.id) &&
-                        styles.symptomChipSelected,
-                    ]}
-                    onPress={() => toggleSymptom(symptom.id)}
-                  >
-                    <Text style={styles.symptomText}>{symptom.name}</Text>
-                    {selectedSymptoms.includes(symptom.id) && (
-                      <FontelloIcon name="check" size={14} color="#333" />
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            {/* Flow Section */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <FontelloIcon
-                  name="droplet"
-                  size={20}
-                  color={THEME_COLORS.primary}
-                />
-                <Text style={styles.sectionTitle}>Period Flow</Text>
-              </View>
-              <View style={styles.flowGrid}>
-                {flowOptions.map(flow => (
-                  <TouchableOpacity
-                    key={flow.id}
-                    style={[
-                      styles.flowCard,
-                      { backgroundColor: flow.color },
-                      selectedFlow === flow.id && styles.cardSelected,
-                    ]}
-                    onPress={() => toggleFlow(flow.id)}
-                  >
-                    <Text style={styles.flowEmoji}>{flow.emoji}</Text>
-                    <Text style={styles.flowLabel}>{flow.label}</Text>
-                    {selectedFlow === flow.id && (
-                      <View style={styles.flowCheckBadge}>
-                        <FontelloIcon name="check" size={14} color="#fff" />
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            {/* Activity Tags Section */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <FontelloIcon
-                  name="tag"
-                  size={20}
-                  color={THEME_COLORS.primary}
-                />
-                <Text style={styles.sectionTitle}>Activities</Text>
-              </View>
-              <View style={styles.tagsGrid}>
-                {activities.map(tag => (
-                  <TouchableOpacity
-                    key={tag.id}
-                    style={[
-                      styles.tagChip,
-                      { backgroundColor: tag.color },
-                      selectedActivities.includes(tag.id) &&
-                        styles.cardSelectedBlack,
-                    ]}
-                    onPress={() => toggleActivity(tag.id)}
-                  >
-                    <Text style={styles.tagEmoji}>{tag.emoji}</Text>
-                    <Text style={styles.tagLabel}>{tag.label}</Text>
-                    {selectedActivities.includes(tag.id) && (
-                      <FontelloIcon
-                        name="check"
-                        size={14}
-                        color={THEME_COLORS.dark}
-                      />
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            {/* Intimacy Section */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <FontelloIcon name="heart" size={20} color="#EC4899" />
-                <Text style={styles.sectionTitle}>Intimacy</Text>
-              </View>
-              <View style={styles.intimacyGrid}>
-                {intimacyOptions.map(option => (
-                  <TouchableOpacity
-                    key={option.id}
-                    style={[
-                      styles.intimacyCard,
-                      { backgroundColor: option.color },
-                      selectedIntimacy === option.id && styles.cardSelected,
-                    ]}
-                    onPress={() => selectIntimacy(option.id)}
-                  >
-                    <Text style={styles.intimacyEmoji}>{option.emoji}</Text>
-                    <Text style={styles.intimacyLabel}>{option.label}</Text>
-                    {selectedIntimacy === option.id && (
-                      <View style={styles.selectedBadge}>
-                        <FontelloIcon name="check" size={14} color="#fff" />
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            {/* Notes Section */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <FontelloIcon
-                  name="book"
-                  size={20}
-                  color={THEME_COLORS.primary}
-                />
-                <Text style={styles.sectionTitle}>Notes</Text>
-              </View>
-              <TouchableOpacity
-                style={styles.notesCard}
-                onPress={() => {
-                  openDiaryModalForDate(selectedDate);
-                }}
-              >
-                <FontelloIcon name="plus-circled" size={24} color="#999" />
-                <Text style={styles.notesPlaceholder}>
-                  Add notes about your day...
-                </Text>
-              </TouchableOpacity>
-              <DiaryModal
-                visible={showDiaryModal}
-                onClose={date => {
-                  closeDiaryModal(date);
-                }}
-                initialDate={diaryModalDate || selectedDate}
-                initialText={diaryText}
-                onSave={(date, text) => {
-                  handleDiarySave(date, text);
-                }}
-                canChangeDate={false}
-              />
-            </View>
-          </>
-        ) : (
-          <>
-            {/* Ratings Tab Content */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <FontelloIcon name="star" size={20} color="#F59E0B" />
-                <Text style={styles.sectionTitle}>{ratingData.heading || "Rate Your Day"}</Text>
-              </View>
-              <Text style={styles.ratingsSubtitle}>
-                {ratingData.sub_heading || "Help us understand your wellness by rating different aspects"}
-              </Text>
-            </View>
-
-            {ratingData.sections.map((section, idx) => (
-              <View key={idx} style={styles.ratingSection}>
-                <Text style={styles.ratingSectionHeading}>
-                  {section.heading}
-                </Text>
-                <View style={styles.ratingItems}>
-                  {section.items.map(item => (
-                    <View key={item.id} style={styles.ratingItemContainer}>
-                      <View style={styles.ratingItem}>
-                        <Text style={styles.ratingItemEmoji}>{item.emoji}</Text>
-                        <Text style={styles.ratingItemTitle}>{item.title}</Text>
-                      </View>
-                      <View style={styles.ratingStars}>
-                        {[1, 2, 3, 4, 5].map(star => (
-                          <TouchableOpacity
-                            key={star}
-                            onPress={() => setItemRating(item.id, star)}
-                          >
-                            <FontelloIcon
-                              name={
-                                star <= (itemRatings[item.id] || 0)
-                                  ? 'star'
-                                  : 'star-empty'
-                              }
-                              size={24}
-                              color={
-                                star <= (itemRatings[item.id] || 0)
-                                  ? '#FFD700'
-                                  : '#d7d5cc'
-                              }
-                            />
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            ))}
-          </>
-        )}
-
-        {/* Save Button - Only show when data is loaded */}
+        {/* Render memoized tab content based on activeTab */}
         {!isLoading && !error && (
-          <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-            <Text style={styles.saveBtnText}>Save Entry</Text>
-          </TouchableOpacity>
+          <>{activeTab === 'tracking' ? trackingContent : ratingsContent}</>
         )}
 
         <View style={styles.bottomPadding} />

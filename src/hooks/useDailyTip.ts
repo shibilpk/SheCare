@@ -23,7 +23,7 @@ export function useDailyTip() {
         setTip(response);
         setError(null);
       } catch (err: any) {
-        console.error('Failed to fetch daily tip:', err);
+        console.info('Failed to fetch daily tip:', err);
         setError(err.message || 'Failed to load daily tip');
         setTip(null);
       } finally {

@@ -78,7 +78,7 @@ export default function InfiniteScrollList<T>({
 
         setInitialLoad(false);
       } catch (err: any) {
-        console.error('Error loading data:', err);
+        console.info('Error loading data:', err);
         setError(err?.message || 'Failed to load data');
         setInitialLoad(false);
       } finally {

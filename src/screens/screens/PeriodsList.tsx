@@ -42,7 +42,7 @@ export default function PeriodsListScreen() {
       );
       return response;
     } catch (error) {
-      console.error('Error fetching periods:', error);
+      console.info('Error fetching periods:', error);
       throw error;
     }
   };

@@ -32,7 +32,6 @@ import {
 } from 'react-native-image-picker';
 import useStore from '../../store/useStore';
 import apiClient, { APIError } from '../../services/ApiClient';
-import { APIS } from '../../constants/apis';
 import AdBanner from '../../components/common/AdBanner';
 import { SAMPLE_ADS, AD_PLACEMENTS, trackAdClick } from '../../constants/ads';
 import { STYLE } from '../../constants/app';
@@ -43,11 +42,16 @@ import {
   parseValidationErrors,
   validateRequiredFields,
 } from '@src/utils/formUtils';
+import { useProfile, ProfileUpdate, WeightData } from '@src/hooks/useProfile';
 
 export default function Profile() {
   const clearToken = useStore(state => state.clearToken);
   const navigation = useNavigation<DrawerNavigationProp<RootStackParamList>>();
   const { showWizard } = usePopupWizard();
+  const { showToast } = useToastMessage();
+
+  // Use profile hook for API calls
+  const profileHook = useProfile();
 
   interface WeightResponse {
     weight: string;
@@ -72,26 +76,6 @@ export default function Profile() {
     luteal_phase?: number;
   }
 
-  interface ProfileUpdate {
-    user?: {
-      first_name?: string;
-    };
-    name?: string;
-    email?: string;
-    phone?: string;
-    date_of_birth?: string;
-    address?: string;
-    height?: number;
-    height_unit?: string;
-    cycle_length?: number;
-    period_length?: number;
-    luteal_phase?: number;
-  }
-  interface WeightData {
-    weight?: string;
-    weight_unit?: string;
-    weight_date?: string;
-  }
   type ProfileErrorKey = {
     height?: string;
     weight?: string;
@@ -103,13 +87,11 @@ export default function Profile() {
 
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [profileUpdate, setProfileUpdate] = useState<ProfileUpdate>({});
-  const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState(true);
   const [weightData, setWeightData] = useState<WeightData>({});
   const [height, setHeight] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [unit, setUnit] = useState('kg');
   const [editField, setEditField] = useState<string | null>(null);
   const [errors, setErrors] = useState<ProfileErrors>({});
 
@@ -120,7 +102,6 @@ export default function Profile() {
   const [useCycleAverage, setUseCycleAverage] = useState(false);
   const [usePeriodAverage, setUsePeriodAverage] = useState(false);
   const [useLutealAverage, setUseLutealAverage] = useState(false);
-  const { showToast } = useToastMessage();
   type AvatarFile = {
     uri: string;
     name: string;
@@ -181,22 +162,13 @@ export default function Profile() {
 
   const handleSave = async () => {
     try {
-      setLoading(true);
-
       let dataToUpdate: ProfileUpdate = {};
       const formData = new FormData();
-      let update_api = APIS.V1.CUSTOMER.PROFILE;
+
       if (editField === 'age') {
-        if (profileUpdate.date_of_birth) {
-          formData.append(
-            'date_of_birth',
-            new Date(profileUpdate.date_of_birth).toISOString().split('T')[0],
-          );
-        }
+        dataToUpdate.date_of_birth = profileUpdate.date_of_birth
       } else if (editField === 'weight') {
         if (!validateWeightForm()) return;
-        appendFormDataRecursively(formData, weightData);
-        update_api = APIS.V1.CUSTOMER.WEIGHT_ENTRY;
       } else if (editField === 'height') {
         formData.append('height', height);
       } else if (editField === 'name') {
@@ -204,16 +176,27 @@ export default function Profile() {
       } else if (editField === 'phone') {
         dataToUpdate.phone = phone;
       } else if (editField === 'cycle') {
-        if (cycleLength) dataToUpdate.cycle_length = parseInt(cycleLength);
-        if (periodLength) dataToUpdate.period_length = parseInt(periodLength);
-        if (lutealPhase) dataToUpdate.luteal_phase = parseInt(lutealPhase);
+        if (cycleLength) dataToUpdate.cycle_length = parseInt(cycleLength, 10);
+        if (periodLength)
+          dataToUpdate.period_length = parseInt(periodLength, 10);
+        if (lutealPhase) dataToUpdate.luteal_phase = parseInt(lutealPhase, 10);
+      } else {
+        // Use recursive function to handle deeply nested objects
+        appendFormDataRecursively(formData, profileUpdate);
       }
 
-      // Use recursive function to handle deeply nested objects
-      appendFormDataRecursively(formData, profileUpdate);
-      console.log(formData);
 
-      const response = await apiClient.patch<any>(update_api, formData);
+      console.log(formData);
+      console.log(dataToUpdate, "dataToUpdate");
+
+      let response;
+      if (editField === 'weight') {
+        // Use weight entry API
+        response = await profileHook.saveWeight(weightData);
+      } else {
+        // Use profile update API
+        response = await profileHook.updateProfile(dataToUpdate);
+      }
 
       if (response.profile) {
         setProfile(response.profile);
@@ -234,8 +217,6 @@ export default function Profile() {
           apiError.normalizedError.message,
         );
       }
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -246,62 +227,9 @@ export default function Profile() {
     setErrors(prev => clearFieldError(prev, field));
   };
 
-  const fetchProfile = async () => {
-    try {
-      setLoading(true);
-      const response = await apiClient.get<any>(APIS.V1.CUSTOMER.PROFILE);
-
-      if (response.profile) {
-        setProfile(response.profile);
-        setName(response.profile.name || '');
-        setPhone(response.profile.phone || '');
-        setHeight(response.profile.height?.toString() || '');
-        setLanguage(response.profile.language || 'en');
-        setTimezone(response.profile.timezone || 'Asia/Kolkata');
-        setCycleLength(
-          (
-            response.profile.cycleLength || response.profile.cycle_length
-          )?.toString() || '',
-        );
-        setPeriodLength(
-          (
-            response.profile.periodLength || response.profile.period_length
-          )?.toString() || '',
-        );
-        setLutealPhase(
-          (
-            response.profile.lutealPhase || response.profile.luteal_phase
-          )?.toString() || '',
-        );
-      } else {
-        showToast('Failed to load profile data');
-      }
-    } catch (error) {
-      const apiError = error as APIError;
-      showToast(apiError.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-
-
   const updateProfilePicture = async (imageFile: AvatarFile) => {
     try {
-      setLoading(true);
-      const formData = new FormData();
-
-      formData.append('photo', {
-        uri: imageFile.uri,
-        name: imageFile.name,
-        type: imageFile.type,
-      } as any);
-
-      const response = await apiClient.patch<any>(
-        APIS.V1.CUSTOMER.PROFILE,
-        formData,
-        { headers: { 'Content-Type': 'multipart/form-data' } },
-      );
+      const response = await profileHook.updateProfilePicture(imageFile);
 
       if (response.profile) {
         setProfile(response.profile);
@@ -313,19 +241,42 @@ export default function Profile() {
     } catch (error) {
       const apiError = error as APIError;
       Alert.alert('Error', apiError.message);
-    } finally {
-      setLoading(false);
     }
   };
 
+  // Auto-sync profile from hook to local state
   useEffect(() => {
-    fetchProfile();
-  }, []);
+    if (profileHook.profile) {
+      const response = profileHook.profile;
+      setProfile(response);
+      setName(response.name || '');
+      setPhone(response.phone || '');
+      setHeight(response.height?.toString() || '');
+      setLanguage(response.language || 'en');
+      setTimezone(response.timezone || 'Asia/Kolkata');
+      setCycleLength(
+        (response.cycleLength || response.cycle_length)?.toString() || '',
+      );
+      setPeriodLength(
+        (response.periodLength || response.period_length)?.toString() || '',
+      );
+      setLutealPhase(
+        (response.lutealPhase || response.luteal_phase)?.toString() || '',
+      );
+    }
+  }, [profileHook.profile]);
+
+  // Sync error state from hook
+  useEffect(() => {
+    if (profileHook.error) {
+      showToast(profileHook.error, { type: 'danger' });
+    }
+  }, [profileHook.error, showToast]);
 
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchProfile();
+    await profileHook.fetchProfile();
     setRefreshing(false);
   };
 
@@ -377,22 +328,16 @@ export default function Profile() {
 
     try {
       // Send data to API
-      const response = await apiClient.post('/user/preferences', data);
+      await apiClient.post('/user/preferences', data);
       Alert.alert('Success', 'Your preferences have been saved!');
     } catch (error) {
-      console.error('Error saving preferences:', error);
+      console.info('Error saving preferences:', error);
       // Handle error gracefully without crashing
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
       Alert.alert(
         'Preferences Saved',
         `Settings saved locally.\n\n${JSON.stringify(data, null, 2)}`,
       );
     }
-  };
-
-  const handleWizardSkip = () => {
-    Alert.alert('Skipped', 'You can access this later from settings.');
   };
 
   const pickImage = () => {
@@ -435,8 +380,6 @@ export default function Profile() {
   useEffect(() => {
     console.log(profileUpdate, 'profileUpdate');
   }, [profileUpdate]);
-
-
 
   const handleScroll = (event: any) => {
     const y = event.nativeEvent.contentOffset.y;
@@ -955,14 +898,15 @@ export default function Profile() {
           >
             <View style={styles.actionLeft}>
               <View
-                style={[styles.actionIconBox,{ backgroundColor: '#FFF3E0' }]}
+                style={[styles.actionIconBox, { backgroundColor: '#FFF3E0' }]}
               >
                 <FontelloIcon name="language" size={18} color="#FF9800" />
               </View>
               <View>
                 <Text style={styles.actionLabel}>Language & Timezone</Text>
                 <Text style={styles.preferenceSubtext}>
-                  {language === 'en' ? 'English' : language.toUpperCase()} • {timezone.split('/')[1]}
+                  {language === 'en' ? 'English' : language.toUpperCase()} •{' '}
+                  {timezone.split('/')[1]}
                 </Text>
               </View>
             </View>
