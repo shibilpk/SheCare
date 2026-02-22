@@ -98,7 +98,7 @@ const PeriodSelector: React.FC = () => {
     }
 
     try {
-      console.log(periodId,"periodId");
+
 
       if (periodId) {
         // Updating an existing period - send period_id, start_date and end_date

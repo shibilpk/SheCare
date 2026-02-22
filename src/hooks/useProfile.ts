@@ -81,10 +81,10 @@ export function useProfile(): UseProfileReturn {
       setIsLoading(true);
       setError(null);
       const response = await apiClient.get<any>(APIS.V1.CUSTOMER.PROFILE);
-      console.log(response, "-------");
+
 
       if (response.profile) {
-        console.log(response, "-------");
+
         setProfile(response.profile);
         return response.profile;
       }

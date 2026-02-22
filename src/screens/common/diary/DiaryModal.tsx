@@ -18,7 +18,7 @@ import FontelloIcon from '../../../services/FontelloIcons';
 
 interface DiaryModalProps {
   visible: boolean;
-  onClose: (date?: Date) => void;
+  onClose: (date: Date) => void;
   initialDate?: Date;
   initialText?: string;
   onSave?: (date: Date, text: string) => void;
@@ -206,18 +206,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: THEME_COLORS.text,
     marginBottom: 12,
-  },
-  textInputContainer: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 12,
-    padding: 12,
-  },
-  textInput: {
-    flex: 1,
-    fontSize: 16,
-    color: THEME_COLORS.text,
-    textAlignVertical: 'top',
   },
   dateBox: {
     flexDirection: 'row',

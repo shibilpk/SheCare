@@ -109,15 +109,15 @@ const checkForUpdates = async (): Promise<UpdateInfo> => {
     // const shouldCheck = await shouldCheckForUpdates();
 
     // if (!shouldCheck) {
-    //   console.log('Update check skipped - checked within last 24 hours');
+    //
     //   return { shouldUpdate: false };
     // }
 
-    console.log('Checking for app updates...');
+
 
     // Get current app version
     const currentVersion = DeviceInfo.getVersion();
-    console.log(currentVersion);
+
     // Make API call to check for updates
 
     const response = await apiClient.get<any>(
@@ -125,7 +125,7 @@ const checkForUpdates = async (): Promise<UpdateInfo> => {
     );
 
     const data: VersionResponse = response;
-    console.log(data);
+
 
     const {
       version: latestVersion,
@@ -146,7 +146,7 @@ const checkForUpdates = async (): Promise<UpdateInfo> => {
       : false;
 
     if (hasUpdate) {
-      console.log(`Update available: ${currentVersion} -> ${latestVersion}`);
+
       return {
         shouldUpdate: true,
         version: latestVersion,
@@ -155,7 +155,7 @@ const checkForUpdates = async (): Promise<UpdateInfo> => {
       };
     }
 
-    console.log('App is up to date');
+
     return { shouldUpdate: false };
   } catch (error) {
     console.error('Update check failed:', error);
@@ -269,7 +269,7 @@ export function UpdateProvider({ children }: UpdateProviderProps) {
 
   const handleUpdate = () => {
     // Track update action
-    console.log('User clicked Update');
+
     setVisible(false);
   };
 

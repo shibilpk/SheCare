@@ -65,7 +65,7 @@ const OTPVerificationScreen: React.FC = () => {
       // Get hash for SMS (you'll need this for your backend)
       RNOtpVerify.getHash()
         .then((hash: string[]) => {
-          console.log('SMS Hash:', hash); // Send this to your backend
+           // Send this to your backend
         })
         .catch(console.info);
 
@@ -266,7 +266,7 @@ const OTPVerificationScreen: React.FC = () => {
                 setOtp(text);
               }}
               onFilled={text => {
-                console.log('OTP filled:', text);
+
                 setOtp(text);
               }}
               theme={{

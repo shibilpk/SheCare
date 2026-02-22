@@ -57,7 +57,7 @@ export default function HomeScreen() {
 
   async function setActivePeriod(response: PeriodRange) {
     try {
-      console.log('Active period:', response);
+
 
       setRange({
         startDate: new Date(response.start_date),
@@ -78,7 +78,7 @@ export default function HomeScreen() {
   }, [customerPeriodData]);
 
   useEffect(() => {
-    console.log(range, 'range updated');
+
   }, [range]);
 
   const dummyNotifications = [
@@ -315,7 +315,7 @@ export default function HomeScreen() {
       const apiError = error as APIError;
 
       if (apiError.statusCode === 422 && apiError.data) {
-        console.log(parseValidationErrors(apiError.data));
+
       } else {
         Alert.alert(
           apiError.normalizedError.title,
@@ -360,7 +360,7 @@ export default function HomeScreen() {
 
   const handleEndPeriod = async () => {
     const rangeDays = customerPeriodData?.avg_period_length || 5;
-    console.log(activePeriodId);
+
 
     navigation.navigate(SCREENS.PERIOD_SELECTOR, {
       ...range,
@@ -532,7 +532,10 @@ export default function HomeScreen() {
         onClose={closeModal}
       />
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {/* Main Period Card */}
         <LinearGradient
           colors={[
@@ -577,6 +580,7 @@ export default function HomeScreen() {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
+          style={styles.statsScrollView}
           contentContainerStyle={styles.statsScroll}
         >
           {quickStats.map(stat => (
@@ -833,9 +837,18 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
   },
-
+  scrollContent: {
+    paddingHorizontal: STYLE.spacing.mh,
+  },
+  statsScrollView: {
+    marginHorizontal: -STYLE.spacing.mh,
+  },
+  statsScroll: {
+    paddingHorizontal: STYLE.spacing.mh,
+    marginVertical: STYLE.spacing.mv,
+    gap: 10,
+  },
   mainCard: {
-    marginHorizontal: STYLE.spacing.mh,
     borderRadius: 24,
     overflow: 'hidden',
     shadowColor: '#000',
@@ -961,7 +974,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: THEME_COLORS.textLight,
-    marginHorizontal: STYLE.spacing.mh,
     padding: 20,
     borderRadius: 16,
     marginVertical: STYLE.spacing.mv,
@@ -1018,7 +1030,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: THEME_COLORS.textLight,
-    marginHorizontal: STYLE.spacing.mh,
     marginBottom: STYLE.spacing.mv,
     padding: 16,
     borderRadius: 16,
@@ -1051,7 +1062,6 @@ const styles = StyleSheet.create({
   },
   tipsCard: {
     backgroundColor: '#FFF9F0',
-    marginHorizontal: STYLE.spacing.mh,
     marginVertical: STYLE.spacing.mv,
     padding: 20,
     borderRadius: 16,
@@ -1101,11 +1111,6 @@ const styles = StyleSheet.create({
   tipLoadingText: {
     fontSize: 14,
     color: '#999',
-  },
-  statsScroll: {
-    paddingHorizontal: STYLE.spacing.ph,
-    marginVertical: STYLE.spacing.mv,
-    gap: 10,
   },
   statCard: {
     width: 100,

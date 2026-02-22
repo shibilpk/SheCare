@@ -66,7 +66,7 @@ export default function PeriodsListScreen() {
 
   const handleEdit = (item: PeriodData) => {
     // TODO: Navigate to edit screen or show edit modal
-    console.log('Editing period:', item);
+
     Alert.alert(
       'Edit Period',
       `Edit period from ${formatDate(item.start_date)} to ${formatDate(item.end_date)}`,
@@ -87,7 +87,7 @@ export default function PeriodsListScreen() {
           style: 'destructive',
           onPress: () => {
             // TODO: Call API to delete period
-            console.log('Deleting period:', item);
+
           },
         },
       ],

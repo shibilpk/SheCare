@@ -1,8 +1,8 @@
 // constants/apis.ts
 // Use your computer's IP address for physical devices/emulators
 // Find your IP: macOS: ifconfig | grep "inet " | grep -v 127.0.0.1
-// export const BASE_URL = 'http://172.20.10.14:7865';
-export const BASE_URL = 'http://localhost:7865'; // Only works in web browser
+export const BASE_URL = 'http://192.168.1.11:7865';
+// export const BASE_URL = 'http://localhost:7865'; // Only works in web browser
 const API_VERSION = 'v1';
 
 const AUTH_API = {
@@ -24,7 +24,6 @@ const CUSTOMER_API = {
     `/api/${API_VERSION}/customer/profile/${id}/`, // dynamic
 };
 
-
 const DAIRY = {
   ENTRY: `/api/${API_VERSION}/diary/entry/`,
   ENTRY_FROM_DATE: `/api/${API_VERSION}/diary/entry-by-date/`,
@@ -39,9 +38,18 @@ const PERIOD = {
 const ACTIVITIES = {
   DAILY_ACTION_LIST: `/api/${API_VERSION}/activities/daily-actions/`,
   RATING_LIST: `/api/${API_VERSION}/activities/rating-lists/`,
-  getDailyEntires: (dateStr:string) => `/api/${API_VERSION}/activities/daily-entries/${dateStr}`,
-  getDailyDetailed: (dateStr:string) => `/api/${API_VERSION}/activities/daily-entries-detailed/${dateStr}`,
-  CREATE_DAILY_ENTRY: `/api/${API_VERSION}/activities/daily-entries/`
+  getDailyEntires: (dateStr: string) =>
+    `/api/${API_VERSION}/activities/daily-entries/${dateStr}`,
+  getDailyDetailed: (dateStr: string) =>
+    `/api/${API_VERSION}/activities/daily-entries-detailed/${dateStr}`,
+  CREATE_DAILY_ENTRY: `/api/${API_VERSION}/activities/daily-entries/`,
+};
+
+const HYDRATION = {
+  getHydrationLog: (dateStr: string) =>
+    `/api/${API_VERSION}/hydration/hydration/${dateStr}`,
+  CREATE_UPDATE_HYDRATION: `/api/${API_VERSION}/hydration/hydration/`,
+  HYDRATION_CONTENT: `/api/${API_VERSION}/hydration/hydration-content/`,
 };
 const GENERAL = {
   DAILY_TIPS: `/api/${API_VERSION}/general/daily-tips/`,
@@ -56,5 +64,6 @@ export const APIS = {
     PERIOD: PERIOD,
     ACTIVITIES: ACTIVITIES,
     GENERAL: GENERAL,
+    HYDRATION: HYDRATION,
   },
 };

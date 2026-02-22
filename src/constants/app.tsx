@@ -1,9 +1,12 @@
+const spacing = {
+  mh: 10,
+  ph: 10,
+  mv: 10,
+  scPb: 40
+};
+
 export const STYLE = {
-  spacing: {
-    mh: 10,
-    ph: 10,
-    mv: 10,
-  },
+  spacing,
   header: {
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -22,5 +25,9 @@ export const STYLE = {
   headerIcon: {
     color: '#333',
     size: 26,
+  },
+  scrollContent: {
+    paddingHorizontal: spacing.ph,
+    paddingBottom: spacing.scPb,
   },
 };

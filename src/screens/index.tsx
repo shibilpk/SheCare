@@ -21,7 +21,7 @@ export { default as PreferencesScreen } from './settings/preferences/Preferences
 export { default as PeriodSelector } from './screens/PeriodSelector';
 
 export { default as Medications } from './screens/Medications';
-export { default as Hydration } from './screens/Hydration';
+export { default as Hydration } from './hydration/Hydration';
 export { default as Nutrition } from './screens/Nutrition';
 export { default as Exercise } from './screens/Exercise';
 export { default as WeightTrack } from './screens/WeightTrack';

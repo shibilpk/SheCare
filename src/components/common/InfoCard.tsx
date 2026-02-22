@@ -14,6 +14,7 @@ type Props = {
   emoji?: string;
   insights: Array<string>;
   highlightColor?: Colors;
+  cardStyle?: object;
 };
 
 const renderHighlightedText = (text: string, boldColor: string) => {
@@ -41,12 +42,14 @@ const InfoCard: React.FC<Props> = ({
     bulletColor: '#8641F4',
     boldColor: '#333',
   },
+  cardStyle = {},
 }) => {
   return (
     <View
       style={[
         styles.card,
         styles.insightsCard,
+        cardStyle,
         {
           borderLeftColor: highlightColor.borderColor,
           backgroundColor: highlightColor.bgColor,
@@ -90,7 +93,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 20,
     paddingVertical: 10,
-    marginBottom: 20,
     shadowColor: '#8641F4',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,

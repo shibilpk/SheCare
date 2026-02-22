@@ -22,7 +22,6 @@ import FontelloIcon from '../../services/FontelloIcons';
 import { THEME_COLORS } from '../../constants/colors';
 import DiaryModal from '../common/diary/DiaryModal';
 import { STYLE } from '../../constants/app';
-import { parseValidationErrors } from '@src/utils/formUtils';
 import { APIError } from '@src/services/ApiClient';
 import { useToastMessage } from '@src/utils/toastMessage';
 import { DailyActionData } from '@src/hooks/useDailyActionData';
@@ -181,10 +180,13 @@ export default function AboutHomeModal({
         setSelectedIntimacy(savedIntimacy);
         setSelectedActivities(savedActivities);
         // Convert ratings array to Record format for state
-        const ratingsRecord = (entry.ratings || []).reduce((acc, item) => {
-          acc[item.id] = item.rating;
-          return acc;
-        }, {} as Record<string, number>);
+        const ratingsRecord = (entry.ratings || []).reduce(
+          (acc, item) => {
+            acc[item.id] = item.rating;
+            return acc;
+          },
+          {} as Record<string, number>,
+        );
         setItemRatings(ratingsRecord);
       } else {
         // Clear state if no entry exists
@@ -227,7 +229,6 @@ export default function AboutHomeModal({
         const apiError = err as APIError;
 
         if (apiError.statusCode === 422 && apiError.data) {
-          console.log(parseValidationErrors(apiError.data));
         } else {
           Alert.alert(
             apiError.normalizedError.title,
@@ -296,6 +297,37 @@ export default function AboutHomeModal({
               </TouchableOpacity>
             ))}
           </View>
+        </View>
+
+        {/* Notes Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <FontelloIcon name="book" size={20} color={THEME_COLORS.primary} />
+            <Text style={styles.sectionTitle}>Notes</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.notesCard}
+            onPress={() => {
+              openDiaryModalForDate(selectedDate);
+            }}
+          >
+            <FontelloIcon name="plus" size={24} color="#999" />
+            <Text style={styles.notesPlaceholder}>
+              Add notes about your day...
+            </Text>
+          </TouchableOpacity>
+          <DiaryModal
+            visible={showDiaryModal}
+            onClose={(date: Date) => {
+              closeDiaryModal(date);
+            }}
+            initialDate={diaryModalDate || selectedDate}
+            initialText={diaryText}
+            onSave={(date: Date, text: string) => {
+              handleDiarySave(date, text);
+            }}
+            canChangeDate={false}
+          />
         </View>
 
         {/* Symptoms Section */}
@@ -422,37 +454,6 @@ export default function AboutHomeModal({
             ))}
           </View>
         </View>
-
-        {/* Notes Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <FontelloIcon name="book" size={20} color={THEME_COLORS.primary} />
-            <Text style={styles.sectionTitle}>Notes</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.notesCard}
-            onPress={() => {
-              openDiaryModalForDate(selectedDate);
-            }}
-          >
-            <FontelloIcon name="plus" size={24} color="#999" />
-            <Text style={styles.notesPlaceholder}>
-              Add notes about your day...
-            </Text>
-          </TouchableOpacity>
-          <DiaryModal
-            visible={showDiaryModal}
-            onClose={(date: Date) => {
-              closeDiaryModal(date);
-            }}
-            initialDate={diaryModalDate || selectedDate}
-            initialText={diaryText}
-            onSave={(date: Date, text: string) => {
-              handleDiarySave(date, text);
-            }}
-            canChangeDate={false}
-          />
-        </View>
       </>
     ),
     [
@@ -542,7 +543,7 @@ export default function AboutHomeModal({
   );
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top}]}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -653,7 +654,7 @@ export default function AboutHomeModal({
           <>{activeTab === 'tracking' ? trackingContent : ratingsContent}</>
         )}
 
-        <View style={styles.bottomPadding} />
+        {/* <View style={styles.bottomPadding} /> */}
       </ScrollView>
     </View>
   );
@@ -665,7 +666,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f9fa',
   },
   scrollContent: {
-    paddingBottom: 40,
+    paddingBottom: STYLE.spacing.scPb,
   },
   calendarHeader: {
     backgroundColor: '#fff',
@@ -889,27 +890,6 @@ const styles = StyleSheet.create({
   notesPlaceholder: {
     fontSize: 15,
     color: '#999',
-  },
-  saveBtn: {
-    backgroundColor: THEME_COLORS.primary,
-    marginHorizontal: STYLE.spacing.mh,
-    marginTop: 24,
-    paddingVertical: 16,
-    borderRadius: 16,
-    alignItems: 'center',
-    shadowColor: THEME_COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  saveBtnText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  bottomPadding: {
-    height: 20,
   },
   tabContainer: {
     flexDirection: 'row',

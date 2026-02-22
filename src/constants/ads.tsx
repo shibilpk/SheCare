@@ -73,12 +73,12 @@ export const getAdsByPlacement = (
 
 // Function to track ad impressions (integrate with your analytics)
 export const trackAdImpression = (adId: string, placement: string) => {
-  console.log(`Ad Impression: ${adId} at ${placement}`);
+
   // Implement your analytics tracking here
 };
 
 // Function to track ad clicks
 export const trackAdClick = (adId: string, placement: string) => {
-  console.log(`Ad Click: ${adId} at ${placement}`);
+
   // Implement your analytics tracking here
 };

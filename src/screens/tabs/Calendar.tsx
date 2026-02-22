@@ -65,13 +65,13 @@ const CalendarScreen: React.FC = () => {
     const loadDailyEntry = async () => {
       try {
         const entry = await fetchDailyDetailed(currentDate);
-        console.log('📅 Daily Summary for', currentDate.toISOString().split('T')[0], ':', entry);
+
 
         if (entry) {
-          console.log('  - Summary Cards:', entry.summary_cards);
-          console.log('  - Created:', entry.created_at);
+
+
         } else {
-          console.log('  - No entry found for this date');
+
         }
       } catch (err) {
         console.info('Error loading daily entry:', err);
@@ -515,7 +515,7 @@ const CalendarScreen: React.FC = () => {
             initialDate={currentDate}
             onSave={(date, text) => {
               // Handle save logic here
-              console.log('Diary saved:', { date, text });
+
             }}
           />
         </>

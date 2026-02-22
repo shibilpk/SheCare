@@ -47,7 +47,7 @@ export function PopupWizardProvider({ children }: PopupWizardProviderProps) {
   };
 
   const handleComplete = async (data: Record<string, any>) => {
-    console.log('Wizard completed with data:', data);
+
 
     // Hide wizard first
     setVisible(false);

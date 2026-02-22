@@ -232,7 +232,7 @@ class ApiClient {
       }
 
       const refreshUrl = `${this.baseURL}${APIS.V1.AUTH.REFRESH}`;
-      console.log('🔄 Refreshing token...');
+
 
       const response = await fetch(refreshUrl, {
         method: 'POST',
@@ -260,7 +260,7 @@ class ApiClient {
       }
 
       useStore.getState().setToken(newAccessToken, newRefreshToken);
-      console.log('✅ Token refresh successful');
+
     } catch (error) {
       // Log detailed error information
       if (error instanceof TypeError) {
@@ -292,10 +292,10 @@ class ApiClient {
     this.refreshQueue = [];
 
     if (error) {
-      console.log('❌ Rejecting', queue.length, 'queued requests due to failed refresh');
+
       queue.forEach(request => request.reject(error));
     } else {
-      console.log('✨ Retrying', queue.length, 'queued request(s) with fresh token...');
+
 
       const promises = queue.map(async request => {
         try {
@@ -329,7 +329,7 @@ class ApiClient {
     // If token refresh is already in progress, queue this request immediately
     // This prevents unnecessary API preparation when we know we'll need to retry anyway
     if (is_auth && this.refreshPromise) {
-      console.log('⏸️  Refresh in progress, queuing request:', endpoint);
+
       return new Promise<T>((resolve, reject) => {
         this.refreshQueue.push({
           resolve: resolve as (value: unknown) => void,
@@ -377,6 +377,9 @@ class ApiClient {
           requestOptions.body = data;
           delete (requestOptions.headers as any)['Content-Type'];
         } else {
+
+
+
           requestOptions.body = JSON.stringify(data);
         }
       }
@@ -408,12 +411,12 @@ class ApiClient {
 
       // Handle 401 Unauthorized
       if (response.status === 401 && is_auth) {
-        console.log('🔴 401 Unauthorized received for:', endpoint);
+
 
         // Use refreshPromise as the primary lock to prevent race conditions
         // If refresh is already in progress, queue this request
         if (this.refreshPromise) {
-          console.log('⏸️  Refresh already in progress, queuing request:', endpoint);
+
           return new Promise<T>((resolve, reject) => {
             this.refreshQueue.push({
               resolve: resolve as (value: unknown) => void,
@@ -425,18 +428,18 @@ class ApiClient {
         }
 
         // Start refresh process - create promise immediately to lock
-        console.log('🔄 Starting token refresh for request:', endpoint);
+
         this.refreshPromise = this.refreshAccessToken()
           .then(async () => {
             // Refresh succeeded - clear promise and process queue
             this.refreshPromise = null;
-            console.log('✅ Token refreshed, processing queued requests...');
+
             await this.processQueue();
           })
           .catch(async (refreshError) => {
             // Refresh failed - clear tokens and logout
             this.refreshPromise = null;
-            console.log('🔒 Session expired, clearing tokens and logging out...');
+
 
             await this.handleRefreshFailure();
 

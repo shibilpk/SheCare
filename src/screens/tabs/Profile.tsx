@@ -186,8 +186,8 @@ export default function Profile() {
       }
 
 
-      console.log(formData);
-      console.log(dataToUpdate, "dataToUpdate");
+
+
 
       let response;
       if (editField === 'weight') {
@@ -324,7 +324,7 @@ export default function Profile() {
   ];
 
   const handleWizardComplete = async (data: Record<string, any>) => {
-    console.log('Wizard completed with data:', data);
+
 
     try {
       // Send data to API
@@ -378,7 +378,7 @@ export default function Profile() {
   }, [scrolledPastHeader, animation]);
 
   useEffect(() => {
-    console.log(profileUpdate, 'profileUpdate');
+
   }, [profileUpdate]);
 
   const handleScroll = (event: any) => {
@@ -549,7 +549,7 @@ export default function Profile() {
           rotationInterval={6000}
           onAdClick={ad => {
             trackAdClick(ad.id, AD_PLACEMENTS.PROFILE_TOP);
-            console.log('Ad clicked:', ad.title);
+
           }}
           showCloseButton={false}
           containerStyle={styles.addContainer}
@@ -563,7 +563,7 @@ export default function Profile() {
           rotationInterval={6000}
           onAdClick={ad => {
             trackAdClick(ad.id, AD_PLACEMENTS.PROFILE_TOP);
-            console.log('Ad clicked:', ad.title);
+
           }}
           showCloseButton={false}
           containerStyle={styles.addContainer}
@@ -755,7 +755,7 @@ export default function Profile() {
           rotationInterval={1000}
           onAdClick={ad => {
             trackAdClick(ad.id, AD_PLACEMENTS.PROFILE_MIDDLE);
-            console.log('Half page ad clicked:', ad.title);
+
           }}
           showCloseButton={true}
           containerStyle={styles.addContainer}
