@@ -534,7 +534,7 @@ export default function RootNavigation() {
                   />
                   <Stack.Screen
                     name={SCREENS.PERIODS_LIST}
-                    component={Screens.PeriodsListScreen}
+                    component={Screens.PeriodHistoryScreen}
                   />
                 </Stack.Navigator>
                 <Modal

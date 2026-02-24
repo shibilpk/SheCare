@@ -1,7 +1,8 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import LottieView from 'lottie-react-native';
-import fireworksAnimation from '../../animations/fireworks.json';
+import { BASE_URL } from '@src/constants/apis';
+import { APIS } from '@src/constants/apis';
 
 interface FireworksProps {
   visible: boolean;
@@ -15,6 +16,14 @@ export default function Fireworks({
   duration = 3000,
 }: FireworksProps) {
   const animationRef = useRef<LottieView>(null);
+  const [animationUrl, setAnimationUrl] = useState<string | null>(null);
+
+  // Fetch animation from backend
+  useEffect(() => {
+    const animationEndpoint = APIS.V1.GENERAL.getAnimation('fireworks');
+    const fullUrl = `${BASE_URL}${animationEndpoint}`;
+    setAnimationUrl(fullUrl);
+  }, []);
 
   useEffect(() => {
     if (visible && animationRef.current) {
@@ -31,13 +40,13 @@ export default function Fireworks({
     }
   }, [visible, duration, onComplete]);
 
-  if (!visible) return null;
+  if (!visible || !animationUrl) return null;
 
   return (
     <View style={styles.container}>
       <LottieView
         ref={animationRef}
-        source={fireworksAnimation}
+        source={{ uri: animationUrl }}
         style={styles.animation}
         loop={false}
         autoPlay

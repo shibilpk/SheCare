@@ -32,7 +32,7 @@ interface PaginatedResponse {
   results: PeriodData[];
 }
 
-export default function PeriodsListScreen() {
+export default function PeriodHistoryScreen() {
   const navigation = useNavigation();
 
   const fetchPeriods = async (page: number): Promise<PaginatedResponse> => {

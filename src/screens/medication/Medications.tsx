@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,138 +6,106 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MenuView } from '@react-native-menu/menu';
 import FontelloIcon from '../../services/FontelloIcons';
 import { THEME_COLORS } from '../../constants/colors';
 import { useNavigation } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import { KeyboardAvoidingModal } from '../../components';
 import { STYLE } from '../../constants/app';
+import { useMedication, CreateMedicationPayload, MedicationWithDoses } from './useMedication';
 
-interface DoseSchedule {
-  time: string;
-  taken: boolean;
-}
-
-interface Medication {
-  id: number;
-  name: string;
-  dosage: string;
-  frequency: string;
-  icon: string;
-  color: string;
-  doses: DoseSchedule[];
-}
+// Helper function to generate icon based on medication name
+const getMedicationIcon = (name: string): string => {
+  const lowerName = name.toLowerCase();
+  
+  // Vitamins
+  if (lowerName.includes('vitamin d')) return 'sun';
+  if (lowerName.includes('vitamin c')) return 'leaf';
+  if (lowerName.includes('vitamin e')) return 'heart';
+  if (lowerName.includes('vitamin a')) return 'eye';
+  if (lowerName.includes('vitamin b')) return 'flash';
+  if (lowerName.includes('vitamin')) return 'leaf';
+  
+  // Minerals
+  if (lowerName.includes('calcium')) return 'food';
+  if (lowerName.includes('iron')) return 'plus-circled';
+  if (lowerName.includes('magnesium')) return 'lightning';
+  if (lowerName.includes('zinc')) return 'shield';
+  
+  // Specific supplements
+  if (lowerName.includes('folic') || lowerName.includes('acid')) return 'droplet';
+  if (lowerName.includes('prenatal')) return 'heart';
+  if (lowerName.includes('dha') || lowerName.includes('omega')) return 'water';
+  if (lowerName.includes('probiotic')) return 'users';
+  if (lowerName.includes('fiber')) return 'grain';
+  if (lowerName.includes('protein')) return 'muscle';
+  
+  // General categories
+  if (lowerName.includes('supplement')) return 'plus';
+  if (lowerName.includes('multivitamin')) return 'star';
+  if (lowerName.includes('herbal')) return 'leaf';
+  
+  return 'pharmacy';
+};
 
 export default function MedicationsScreen() {
   const navigation = useNavigation();
-  const [medications, setMedications] = useState<Medication[]>([
-    {
-      id: 1,
-      name: 'Prenatal Vitamin',
-      dosage: '1 tablet',
-      frequency: 'Once daily',
-      icon: 'pharmacy',
-      color: '#EC4899',
-      doses: [
-        { time: 'Morning', taken: true },
-      ],
-    },
-    {
-      id: 2,
-      name: 'Folic Acid',
-      dosage: '400mcg',
-      frequency: '3 times daily',
-      icon: 'pharmacy',
-      color: '#8B5CF6',
-      doses: [
-        { time: 'Morning', taken: true },
-        { time: 'Afternoon', taken: true },
-        { time: 'Evening', taken: false },
-      ],
-    },
-    {
-      id: 3,
-      name: 'Iron Supplement',
-      dosage: '65mg',
-      frequency: 'Twice daily',
-      icon: 'pharmacy',
-      color: '#EF4444',
-      doses: [
-        { time: 'Morning', taken: true },
-        { time: 'Evening', taken: false },
-      ],
-    },
-    {
-      id: 4,
-      name: 'Calcium',
-      dosage: '600mg',
-      frequency: 'Twice weekly',
-      icon: 'pharmacy',
-      color: '#10B981',
-      doses: [
-        { time: 'Dose 1', taken: false },
-        { time: 'Dose 2', taken: false },
-      ],
-    },
-    {
-      id: 5,
-      name: 'Vitamin D',
-      dosage: '1000 IU',
-      frequency: 'Once daily',
-      icon: 'pharmacy',
-      color: '#F59E0B',
-      doses: [
-        { time: 'Morning', taken: false },
-      ],
-    },
-    {
-      id: 6,
-      name: 'DHA Supplement',
-      dosage: '200mg',
-      frequency: '4 times daily',
-      icon: 'pharmacy',
-      color: '#06B6D4',
-      doses: [
-        { time: 'Dose 1', taken: false },
-        { time: 'Dose 2', taken: false },
-        { time: 'Dose 3', taken: false },
-        { time: 'Dose 4', taken: false },
-      ],
-    },
-  ]);
+  const {
+    medications,
+    stats,
+    isLoading,
+    isSaving,
+    fetchMedications,
+    fetchStats,
+    createMedication,
+    updateMedication,
+    toggleDose,
+    deleteMedication,
+  } = useMedication();
 
+  const [currentDate] = useState(new Date());
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingMedication, setEditingMedication] = useState<MedicationWithDoses | null>(null);
   const [newMedName, setNewMedName] = useState('');
   const [newDosage, setNewDosage] = useState('');
   const [frequencyPeriod, setFrequencyPeriod] = useState('daily');
   const [timesPerPeriod, setTimesPerPeriod] = useState(1);
   const [selectedColor, setSelectedColor] = useState('#EC4899');
-  const [doseTaken, setDoseTaken] = useState<boolean[]>([false]);
 
-  const toggleDose = (medId: number, doseIndex: number) => {
-    setMedications(
-      medications.map(med =>
-        med.id === medId
-          ? {
-              ...med,
-              doses: med.doses.map((dose, idx) =>
-                idx === doseIndex ? { ...dose, taken: !dose.taken } : dose,
-              ),
-            }
-          : med,
-      ),
-    );
+  const loadData = useCallback(async () => {
+    await Promise.all([
+      fetchMedications(currentDate),
+      fetchStats(currentDate),
+    ]);
+  }, [currentDate, fetchMedications, fetchStats]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const handleToggleDose = async (medId: number, doseIndex: number, currentTaken: boolean) => {
+    try {
+      const dateStr = currentDate.toISOString().split('T')[0];
+      await toggleDose({
+        medication_id: medId,
+        date: dateStr,
+        dose_index: doseIndex,
+        taken: !currentTaken,
+      });
+    } catch (error) {
+      console.error('Failed to toggle dose:', error);
+    }
   };
 
-  // Calculate total doses
-  const totalDoses = medications.reduce((sum, med) => sum + med.doses.length, 0);
-  const takenDoses = medications.reduce(
-    (sum, med) => sum + med.doses.filter(d => d.taken).length,
-    0,
-  );
-  const completionPercent = totalDoses > 0 ? (takenDoses / totalDoses) * 100 : 0;
+  // Calculate completion percentage
+  const totalDoses = stats?.total_doses || 0;
+  const takenDoses = stats?.taken_doses || 0;
+  const completionPercent = stats?.completion_percent || 0;
 
   const colorOptions = [
     '#EC4899', '#8B5CF6', '#EF4444', '#10B981', '#F59E0B',
@@ -146,50 +114,71 @@ export default function MedicationsScreen() {
 
   const handleTimesChange = (newTimes: number) => {
     setTimesPerPeriod(newTimes);
-    setDoseTaken(Array(newTimes).fill(false));
   };
 
-  const handleSaveMedication = () => {
+  const handleSaveMedication = async () => {
     if (newMedName.trim() && newDosage.trim()) {
-      let frequencyText = '';
+      try {
+        const payload: CreateMedicationPayload = {
+          name: newMedName.trim(),
+          dosage: newDosage.trim(),
+          frequency_period: frequencyPeriod as any,
+          times_per_period: timesPerPeriod,
+          color: selectedColor,
+          icon: getMedicationIcon(newMedName),
+        };
 
-      if (frequencyPeriod === 'once') {
-        frequencyText = 'One time only';
-      } else {
-        const timesText = timesPerPeriod === 1 ? 'Once' :
-                         timesPerPeriod === 2 ? 'Twice' :
-                         `${timesPerPeriod} times`;
-        frequencyText = `${timesText} ${frequencyPeriod}`;
-      }
-
-      // Generate generic time labels
-      const generateTimes = (count: number) => {
-        const times = [];
-        if (count === 1) times.push('Morning');
-        else if (count === 2) times.push('Morning', 'Evening');
-        else if (count === 3) times.push('Morning', 'Afternoon', 'Evening');
-        else {
-          for (let i = 1; i <= count; i++) {
-            times.push(`Dose ${i}`);
-          }
+        if (editingMedication) {
+          await updateMedication(editingMedication.id, payload);
+        } else {
+          await createMedication(payload);
         }
-        return times;
-      };
-
-      const newMed: Medication = {
-        id: medications.length + 1,
-        name: newMedName.trim(),
-        dosage: newDosage.trim(),
-        frequency: frequencyText,
-        icon: 'pharmacy',
-        color: selectedColor,
-        doses: generateTimes(timesPerPeriod).map(time => ({ time, taken: false })),
-      };
-
-      setMedications([...medications, newMed]);
-      resetForm();
-      setShowAddModal(false);
+        
+        await loadData(); // Reload data
+        resetForm();
+        setShowAddModal(false);
+      } catch (error) {
+        console.error('Failed to save medication:', error);
+      }
     }
+  };
+
+  const handleEdit = (med: MedicationWithDoses) => {
+    setEditingMedication(med);
+    setNewMedName(med.name);
+    setNewDosage(med.dosage);
+    // Parse frequency back to period - need to map from frequency text
+    // For now, default to daily
+    setFrequencyPeriod('daily');
+    setTimesPerPeriod(med.doses.length);
+    setSelectedColor(med.color);
+    setShowAddModal(true);
+  };
+
+  const handleDelete = (med: MedicationWithDoses) => {
+    Alert.alert(
+      'Confirm Delete',
+      `Are you sure you want to delete ${med.name}?\nThis action cannot be undone.`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteMedication(med.id);
+              await loadData(); // Reload data
+            } catch (error) {
+              console.error('Failed to delete medication:', error);
+              Alert.alert('Error', 'Failed to delete medication. Please try again.');
+            }
+          },
+        },
+      ],
+    );
   };
 
   const resetForm = () => {
@@ -198,7 +187,7 @@ export default function MedicationsScreen() {
     setFrequencyPeriod('daily');
     setTimesPerPeriod(1);
     setSelectedColor('#EC4899');
-    setDoseTaken([false]);
+    setEditingMedication(null);
   };
 
   return (
@@ -215,131 +204,192 @@ export default function MedicationsScreen() {
         <TouchableOpacity
           onPress={() => setShowAddModal(true)}
           style={styles.addBtn}
+          disabled={isSaving}
         >
           <FontelloIcon name="plus" size={24} color="#333" />
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {/* Progress Card */}
-        <LinearGradient
-          colors={['#FCE7F3', '#FBCFE8']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.progressCard}
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={THEME_COLORS.primary} />
+          <Text style={styles.loadingText}>Loading medications...</Text>
+        </View>
+      ) : (
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
         >
-          <View style={styles.progressCardWrapper}>
-            <View style={styles.progressHeader}>
-              <View>
-                <Text style={styles.progressTitle}>Today's Progress</Text>
-                <Text style={styles.progressSubtitle}>
-                  {takenDoses} of {totalDoses} doses taken
-                </Text>
+          {/* Progress Card */}
+          <LinearGradient
+            colors={['#FCE7F3', '#FBCFE8']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.progressCard}
+          >
+            <View style={styles.progressCardWrapper}>
+              <View style={styles.progressHeader}>
+                <View>
+                  <Text style={styles.progressTitle}>Today's Progress</Text>
+                  <Text style={styles.progressSubtitle}>
+                    {takenDoses} of {totalDoses} doses taken
+                  </Text>
+                </View>
+                <View style={styles.progressCircle}>
+                  <Text style={styles.progressPercent}>
+                    {Math.round(completionPercent)}%
+                  </Text>
+                </View>
               </View>
-              <View style={styles.progressCircle}>
-                <Text style={styles.progressPercent}>
-                  {Math.round(completionPercent)}%
-                </Text>
+              <View style={styles.progressBarContainer}>
+                <View style={styles.progressBar}>
+                  <View
+                    style={[
+                      styles.progressFill,
+                      { width: `${completionPercent}%` },
+                    ]}
+                  />
+                </View>
               </View>
             </View>
-            <View style={styles.progressBarContainer}>
-              <View style={styles.progressBar}>
+          </LinearGradient>
+
+          {/* Medications List */}
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Today's Schedule</Text>
+          </View>
+
+          {medications.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <FontelloIcon name="pharmacy" size={64} color="#ccc" />
+              <Text style={styles.emptyTitle}>No Medications Yet</Text>
+              <Text style={styles.emptyText}>
+                Add your first medication to start tracking
+              </Text>
+              <TouchableOpacity
+                style={styles.emptyButton}
+                onPress={() => setShowAddModal(true)}
+              >
+                <FontelloIcon name="plus" size={20} color="#fff" />
+                <Text style={styles.emptyButtonText}>Add Medication</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            medications.map(med => (
+              <View key={med.id} style={styles.medCard}>
                 <View
                   style={[
-                    styles.progressFill,
-                    { width: `${completionPercent}%` },
+                    styles.medIconContainer,
+                    { backgroundColor: `${med.color}20` },
                   ]}
-                />
+                >
+                  <FontelloIcon name={med.icon} size={24} color={med.color} />
+                </View>
+                <View style={styles.medContent}>
+                  <View style={styles.medHeader}>
+                    <View style={styles.medTitleContainer}>
+                      <Text style={styles.medName}>{med.name}</Text>
+                    </View>
+                    <MenuView
+                      onPressAction={({ nativeEvent }) => {
+                        if (nativeEvent.event === 'edit') {
+                          handleEdit(med);
+                        } else if (nativeEvent.event === 'delete') {
+                          handleDelete(med);
+                        }
+                      }}
+                      actions={[
+                        {
+                          id: 'edit',
+                          title: 'Edit Medication',
+                          image: 'pencil',
+                          imageColor: THEME_COLORS.primary,
+                        },
+                        {
+                          id: 'delete',
+                          title: 'Delete Medication',
+                          image: 'trash',
+                          attributes: {
+                            destructive: true,
+                          },
+                        },
+                      ]}
+                    >
+                      <View style={styles.menuButton}>
+                        <FontelloIcon name="dot-3" size={20} color="#666" />
+                      </View>
+                    </MenuView>
+                  </View>
+                  <Text style={styles.medDosage}>{med.dosage}</Text>
+                  <View style={styles.medMeta}>
+                    <FontelloIcon name="clock" size={12} color="#999" />
+                    <Text style={styles.medFrequency}>  {med.frequency}</Text>
+                  </View>
+
+                  {/* Dose Schedule */}
+                  <View style={styles.doseScheduleContainer}>
+                    {med.doses.map((dose, index) => (
+                      <TouchableOpacity
+                        key={index}
+                        style={[
+                          styles.doseItem,
+                          dose.taken && styles.doseItemTaken,
+                        ]}
+                        onPress={() => handleToggleDose(med.id, index, dose.taken)}
+                      >
+                        <FontelloIcon
+                          name="clock"
+                          size={10}
+                          color={dose.taken ? THEME_COLORS.textLight : '#999'}
+                        />
+                        <Text style={[
+                          styles.doseTime,
+                          dose.taken && styles.doseTimeTaken,
+                        ]}>
+                          {dose.time}
+                        </Text>
+                        {dose.taken && (
+                          <FontelloIcon
+                            name="ok"
+                            size={10}
+                            color={THEME_COLORS.textLight}
+                          />
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
               </View>
+            ))
+          )}
+
+          {/* Tips Section */}
+          <View style={styles.tipsCard}>
+            <View style={styles.tipsHeader}>
+              <FontelloIcon name="info-circled" size={20} color="#3B82F6" />
+              <Text style={styles.tipsTitle}>Important Reminders</Text>
             </View>
+            <Text style={styles.tipText}>
+              • Take iron supplements with vitamin C for better absorption
+            </Text>
+            <Text style={styles.tipText}>
+              • Avoid taking calcium and iron together
+            </Text>
+            <Text style={styles.tipText}>
+              • Set daily reminders to maintain consistency
+            </Text>
           </View>
-        </LinearGradient>
+        </ScrollView>
+      )}
 
-        {/* Medications List */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Today's Schedule</Text>
-        </View>
-
-        {medications.map(med => (
-          <View key={med.id} style={styles.medCard}>
-            <View
-              style={[
-                styles.medIconContainer,
-                { backgroundColor: `${med.color}20` },
-              ]}
-            >
-              <FontelloIcon name={med.icon} size={24} color={med.color} />
-            </View>
-            <View style={styles.medContent}>
-              <Text style={styles.medName}>{med.name}</Text>
-              <Text style={styles.medDosage}>{med.dosage}</Text>
-              <View style={styles.medMeta}>
-                <FontelloIcon name="clock" size={12} color="#999" />
-                <Text style={styles.medFrequency}>  {med.frequency}</Text>
-              </View>
-
-              {/* Dose Schedule */}
-              <View style={styles.doseScheduleContainer}>
-                {med.doses.map((dose, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={[
-                      styles.doseItem,
-                      dose.taken && styles.doseItemTaken,
-                    ]}
-                    onPress={() => toggleDose(med.id, index)}
-                  >
-                    <FontelloIcon
-                      name="clock"
-                      size={10}
-                      color={dose.taken ? THEME_COLORS.textLight : '#999'}
-                    />
-                    <Text style={[
-                      styles.doseTime,
-                      dose.taken && styles.doseTimeTaken,
-                    ]}>
-                      {dose.time}
-                    </Text>
-                    {dose.taken && (
-                      <FontelloIcon
-                        name="ok"
-                        size={10}
-                        color={THEME_COLORS.textLight}
-                      />
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          </View>
-        ))}
-
-        {/* Tips Section */}
-        <View style={styles.tipsCard}>
-          <View style={styles.tipsHeader}>
-            <FontelloIcon name="info-circled" size={20} color="#3B82F6" />
-            <Text style={styles.tipsTitle}>Important Reminders</Text>
-          </View>
-          <Text style={styles.tipText}>
-            • Take iron supplements with vitamin C for better absorption
-          </Text>
-          <Text style={styles.tipText}>
-            • Avoid taking calcium and iron together
-          </Text>
-          <Text style={styles.tipText}>
-            • Set daily reminders to maintain consistency
-          </Text>
-        </View>
-      </ScrollView>
-
-      {/* Add Medication Modal */}
+      {/* Add/Edit Medication Modal */}
       <KeyboardAvoidingModal
         visible={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        title="Add Medication"
+        onClose={() => {
+          resetForm();
+          setShowAddModal(false);
+        }}
+        title={editingMedication ? 'Edit Medication' : 'Add Medication'}
         showScrollView={true}
       >
         <View style={styles.inputGroup}>
@@ -396,7 +446,7 @@ export default function MedicationsScreen() {
                   <View style={styles.inputGroup}>
                     <Text style={styles.inputLabel}>How many times per {frequencyPeriod}?</Text>
                     <View style={styles.timesRow}>
-                      {[1, 2, 3, 4, 5, 6].map(num => (
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
                         <TouchableOpacity
                           key={num}
                           onPress={() => handleTimesChange(num)}
@@ -466,6 +516,49 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8f9fa',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#666',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: THEME_COLORS.text,
+    marginTop: 20,
+    marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 15,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  emptyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: THEME_COLORS.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+  },
+  emptyButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
   },
   header: {
     flexDirection: 'row',
@@ -581,6 +674,19 @@ const styles = StyleSheet.create({
   },
   medContent: {
     flex: 1,
+  },
+  medHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 4,
+  },
+  medTitleContainer: {
+    flex: 1,
+  },
+  menuButton: {
+    padding: 4,
+    marginLeft: 8,
   },
   medName: {
     fontSize: 16,

@@ -54,25 +54,17 @@ export default function HydrationScreen() {
     }
   }, [hydrationLog]);
 
-  // Trigger fireworks when goal is achieved
-  useEffect(() => {
-    if (hydrationLog) {
-      const currentProgress = hydrationLog.progress_percent || 0;
-
-      // Check if just achieved goal (crossed 100% threshold)
-
-
-      if (currentProgress >= 100) {
-        setShowFireworks(true);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrationLog?.progress_percent]);
+  // Removed automatic fireworks trigger - now only shows on manual add when goal reached
 
   const handleAddGlass = async () => {
     if (!hydrationLog) return;
+    const previousProgress = hydrationLog.progress_percent || 0;
     try {
-      await addWater(hydrationLog.glass_size_ml);
+      const updatedLog = await addWater(hydrationLog.glass_size_ml);
+      // Check if goal was just reached
+      if (updatedLog && previousProgress < 100 && updatedLog.progress_percent >= 100) {
+        setShowFireworks(true);
+      }
     } catch (err: any) {
       Alert.alert(
         'Error',
@@ -80,6 +72,7 @@ export default function HydrationScreen() {
       );
     }
   };
+
 
   const handleRemoveGlass = async () => {
     if (!hydrationLog) return;

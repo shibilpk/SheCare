@@ -20,7 +20,7 @@ export { default as ThemeSettings } from './settings/theme/ThemeSettings';
 export { default as PreferencesScreen } from './settings/preferences/PreferencesScreen';
 export { default as PeriodSelector } from './screens/PeriodSelector';
 
-export { default as Medications } from './screens/Medications';
+export { default as Medications } from './medication/Medications';
 export { default as Hydration } from './hydration/Hydration';
 export { default as Nutrition } from './screens/Nutrition';
 export { default as Exercise } from './screens/Exercise';
@@ -33,4 +33,4 @@ export { default as TipsScreen } from './common/TipsScreen';
 export { default as DailyTipScreen } from './common/DailyTipScreen';
 export { default as BlogListScreen } from './blog/BlogListScreen';
 export { default as BlogDetailScreen } from './blog/BlogDetailScreen';
-export { default as PeriodsListScreen } from './screens/PeriodsList';
+export { default as PeriodHistoryScreen } from './screens/PeriodHistory';

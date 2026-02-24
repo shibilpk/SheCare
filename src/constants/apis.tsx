@@ -51,9 +51,23 @@ const HYDRATION = {
   CREATE_UPDATE_HYDRATION: `/api/${API_VERSION}/hydration/hydration/`,
   HYDRATION_CONTENT: `/api/${API_VERSION}/hydration/hydration-content/`,
 };
+
+const MEDICATION = {
+  MEDICATIONS: `/api/${API_VERSION}/medication/medications/`,
+  getMedicationsWithDoses: (dateStr: string) =>
+    `/api/${API_VERSION}/medication/medications/by-date/${dateStr}`,
+  getMedication: (id: number) => `/api/${API_VERSION}/medication/medications/${id}`,
+  updateMedication: (id: number) => `/api/${API_VERSION}/medication/medications/${id}`,
+  deleteMedication: (id: number) => `/api/${API_VERSION}/medication/medications/${id}`,
+  TOGGLE_DOSE: `/api/${API_VERSION}/medication/medication-log/`,
+  getStats: (dateStr: string) =>
+    `/api/${API_VERSION}/medication/medication-stats/${dateStr}`,
+};
+
 const GENERAL = {
   DAILY_TIPS: `/api/${API_VERSION}/general/daily-tips/`,
   getVersion: (os: string) => `/api/${API_VERSION}/general/app-version/${os}/`,
+  getAnimation: (name: string) => `/api/${API_VERSION}/general/animations/${name}/`,
 };
 
 export const APIS = {
@@ -65,5 +79,6 @@ export const APIS = {
     ACTIVITIES: ACTIVITIES,
     GENERAL: GENERAL,
     HYDRATION: HYDRATION,
+    MEDICATION: MEDICATION,
   },
 };
