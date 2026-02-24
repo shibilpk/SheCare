@@ -22,7 +22,7 @@ import { useMedication, CreateMedicationPayload, MedicationWithDoses } from './u
 // Helper function to generate icon based on medication name
 const getMedicationIcon = (name: string): string => {
   const lowerName = name.toLowerCase();
-  
+
   // Vitamins
   if (lowerName.includes('vitamin d')) return 'sun';
   if (lowerName.includes('vitamin c')) return 'leaf';
@@ -30,13 +30,13 @@ const getMedicationIcon = (name: string): string => {
   if (lowerName.includes('vitamin a')) return 'eye';
   if (lowerName.includes('vitamin b')) return 'flash';
   if (lowerName.includes('vitamin')) return 'leaf';
-  
+
   // Minerals
   if (lowerName.includes('calcium')) return 'food';
   if (lowerName.includes('iron')) return 'plus-circled';
   if (lowerName.includes('magnesium')) return 'lightning';
   if (lowerName.includes('zinc')) return 'shield';
-  
+
   // Specific supplements
   if (lowerName.includes('folic') || lowerName.includes('acid')) return 'droplet';
   if (lowerName.includes('prenatal')) return 'heart';
@@ -44,12 +44,12 @@ const getMedicationIcon = (name: string): string => {
   if (lowerName.includes('probiotic')) return 'users';
   if (lowerName.includes('fiber')) return 'grain';
   if (lowerName.includes('protein')) return 'muscle';
-  
+
   // General categories
   if (lowerName.includes('supplement')) return 'plus';
   if (lowerName.includes('multivitamin')) return 'star';
   if (lowerName.includes('herbal')) return 'leaf';
-  
+
   return 'pharmacy';
 };
 
@@ -133,7 +133,7 @@ export default function MedicationsScreen() {
         } else {
           await createMedication(payload);
         }
-        
+
         await loadData(); // Reload data
         resetForm();
         setShowAddModal(false);
@@ -301,13 +301,13 @@ export default function MedicationsScreen() {
                       actions={[
                         {
                           id: 'edit',
-                          title: 'Edit Medication',
+                          title: 'Edit',
                           image: 'pencil',
                           imageColor: THEME_COLORS.primary,
                         },
                         {
                           id: 'delete',
-                          title: 'Delete Medication',
+                          title: 'Delete',
                           image: 'trash',
                           attributes: {
                             destructive: true,
