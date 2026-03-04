@@ -2,7 +2,7 @@ const spacing = {
   mh: 10,
   ph: 10,
   mv: 10,
-  scPb: 40
+  scPb: 60
 };
 
 export const STYLE = {
@@ -27,6 +27,7 @@ export const STYLE = {
     size: 26,
   },
   scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: spacing.ph,
     paddingBottom: spacing.scPb,
   },

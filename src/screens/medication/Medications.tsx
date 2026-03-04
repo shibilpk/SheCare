@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
-  ActivityIndicator,
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,40 +17,8 @@ import LinearGradient from 'react-native-linear-gradient';
 import { KeyboardAvoidingModal } from '../../components';
 import { STYLE } from '../../constants/app';
 import { useMedication, CreateMedicationPayload, MedicationWithDoses } from './useMedication';
+import { ScreenLoader } from '../../components/common/ScreenLoader';
 
-// Helper function to generate icon based on medication name
-const getMedicationIcon = (name: string): string => {
-  const lowerName = name.toLowerCase();
-
-  // Vitamins
-  if (lowerName.includes('vitamin d')) return 'sun';
-  if (lowerName.includes('vitamin c')) return 'leaf';
-  if (lowerName.includes('vitamin e')) return 'heart';
-  if (lowerName.includes('vitamin a')) return 'eye';
-  if (lowerName.includes('vitamin b')) return 'flash';
-  if (lowerName.includes('vitamin')) return 'leaf';
-
-  // Minerals
-  if (lowerName.includes('calcium')) return 'food';
-  if (lowerName.includes('iron')) return 'plus-circled';
-  if (lowerName.includes('magnesium')) return 'lightning';
-  if (lowerName.includes('zinc')) return 'shield';
-
-  // Specific supplements
-  if (lowerName.includes('folic') || lowerName.includes('acid')) return 'droplet';
-  if (lowerName.includes('prenatal')) return 'heart';
-  if (lowerName.includes('dha') || lowerName.includes('omega')) return 'water';
-  if (lowerName.includes('probiotic')) return 'users';
-  if (lowerName.includes('fiber')) return 'grain';
-  if (lowerName.includes('protein')) return 'muscle';
-
-  // General categories
-  if (lowerName.includes('supplement')) return 'plus';
-  if (lowerName.includes('multivitamin')) return 'star';
-  if (lowerName.includes('herbal')) return 'leaf';
-
-  return 'pharmacy';
-};
 
 export default function MedicationsScreen() {
   const navigation = useNavigation();
@@ -125,7 +92,6 @@ export default function MedicationsScreen() {
           frequency_period: frequencyPeriod as any,
           times_per_period: timesPerPeriod,
           color: selectedColor,
-          icon: getMedicationIcon(newMedName),
         };
 
         if (editingMedication) {
@@ -211,10 +177,12 @@ export default function MedicationsScreen() {
       </View>
 
       {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={THEME_COLORS.primary} />
-          <Text style={styles.loadingText}>Loading medications...</Text>
-        </View>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          <ScreenLoader message="Loading medications..." />
+        </ScrollView>
       ) : (
         <ScrollView
           showsVerticalScrollIndicator={false}
@@ -283,7 +251,7 @@ export default function MedicationsScreen() {
                     { backgroundColor: `${med.color}20` },
                   ]}
                 >
-                  <FontelloIcon name={med.icon} size={24} color={med.color} />
+                  <FontelloIcon name="pharmacy" size={24} color={med.color} />
                 </View>
                 <View style={styles.medContent}>
                   <View style={styles.medHeader}>
@@ -516,16 +484,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8f9fa',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 12,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#666',
   },
   emptyContainer: {
     alignItems: 'center',

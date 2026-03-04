@@ -1,7 +1,7 @@
 // constants/apis.ts
 // Use your computer's IP address for physical devices/emulators
 // Find your IP: macOS: ifconfig | grep "inet " | grep -v 127.0.0.1
-export const BASE_URL = 'http://192.168.108.230:7865';
+export const BASE_URL = 'http://192.168.1.8:7865';
 // export const BASE_URL = 'http://localhost:7865'; // Only works in web browser
 const API_VERSION = 'v1';
 
@@ -56,9 +56,10 @@ const MEDICATION = {
   MEDICATIONS: `/api/${API_VERSION}/medication/medications/`,
   getMedicationsWithDoses: (dateStr: string) =>
     `/api/${API_VERSION}/medication/medications/by-date/${dateStr}`,
-  getMedication: (id: number) => `/api/${API_VERSION}/medication/medications/${id}`,
-  updateMedication: (id: number) => `/api/${API_VERSION}/medication/medications/${id}`,
-  deleteMedication: (id: number) => `/api/${API_VERSION}/medication/medications/${id}`,
+  updateMedication: (id: number) =>
+    `/api/${API_VERSION}/medication/medications/${id}`,
+  deleteMedication: (id: number) =>
+    `/api/${API_VERSION}/medication/medications/${id}`,
   TOGGLE_DOSE: `/api/${API_VERSION}/medication/medication-log/`,
   getStats: (dateStr: string) =>
     `/api/${API_VERSION}/medication/medication-stats/${dateStr}`,
@@ -67,7 +68,23 @@ const MEDICATION = {
 const GENERAL = {
   DAILY_TIPS: `/api/${API_VERSION}/general/daily-tips/`,
   getVersion: (os: string) => `/api/${API_VERSION}/general/app-version/${os}/`,
-  getAnimation: (name: string) => `/api/${API_VERSION}/general/animations/${name}/`,
+  getAnimation: (name: string) =>
+    `/api/${API_VERSION}/general/animations/${name}/`,
+};
+
+const REMINDER = {
+  SETTINGS: `/api/${API_VERSION}/reminder/reminder-settings/`,
+  INFO: `/api/${API_VERSION}/reminder/reminder-info/`,
+};
+
+const NUTRITION = {
+  getSummary: (dateStr: string) =>
+    `/api/${API_VERSION}/nutrition/summary/${dateStr}`,
+  LOGS: `/api/${API_VERSION}/nutrition/logs/`,
+  updateLog: (id: number) => `/api/${API_VERSION}/nutrition/logs/${id}`,
+  deleteLog: (id: number) => `/api/${API_VERSION}/nutrition/logs/${id}`,
+  GOAL: `/api/${API_VERSION}/nutrition/goal/`,
+  FOOD_SUGGESTIONS: `/api/${API_VERSION}/nutrition/food-suggestions/`,
 };
 
 export const APIS = {
@@ -79,6 +96,8 @@ export const APIS = {
     ACTIVITIES: ACTIVITIES,
     GENERAL: GENERAL,
     HYDRATION: HYDRATION,
+    REMINDER: REMINDER,
     MEDICATION: MEDICATION,
+    NUTRITION: NUTRITION,
   },
 };

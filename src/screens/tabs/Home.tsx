@@ -29,7 +29,11 @@ import HomeQuickActions from '../common/quickAction/HomeQuickActions';
 import { DateRange } from '@src/components/widgets/Calender';
 import GlobalModalContext from '@src/services/GlobalContext';
 import { useDailyTip } from '@src/hooks/useDailyTip';
-import { usePeriodData, CustomerPeriodData, PeriodRange } from '@src/hooks/usePeriodData';
+import {
+  usePeriodData,
+  CustomerPeriodData,
+  PeriodRange,
+} from '@src/hooks/usePeriodData';
 import { useDiary } from '@src/hooks/useDiary';
 
 interface PregnancyChance {
@@ -51,14 +55,20 @@ export default function HomeScreen() {
   const modal = useContext(GlobalModalContext);
 
   // Use hooks for API calls
-  const { tip: dailyTip, isLoading: isLoadingTip, error: tipError } = useDailyTip();
-  const { periodData: customerPeriodData, isLoading: isLoadingPeriod, refetch: refetchPeriodData } = usePeriodData();
+  const {
+    tip: dailyTip,
+    isLoading: isLoadingTip,
+    error: tipError,
+  } = useDailyTip();
+  const {
+    periodData: customerPeriodData,
+    isLoading: isLoadingPeriod,
+    refetch: refetchPeriodData,
+  } = usePeriodData();
   const { fetchEntry: fetchDiaryEntry, saveEntry: saveDiaryEntry } = useDiary();
 
   async function setActivePeriod(response: PeriodRange) {
     try {
-
-
       setRange({
         startDate: new Date(response.start_date),
         endDate: new Date(response.end_date),
@@ -77,9 +87,7 @@ export default function HomeScreen() {
     }
   }, [customerPeriodData]);
 
-  useEffect(() => {
-
-  }, [range]);
+  useEffect(() => {}, [range]);
 
   const dummyNotifications = [
     {
@@ -119,7 +127,7 @@ export default function HomeScreen() {
       title: 'Update',
       message: 'App version 2.0 released.',
       time: '12 min ago',
-      icon: 'cog-b',
+      icon: 'cog-1',
       color: '#10B981',
     },
   ];
@@ -258,6 +266,9 @@ export default function HomeScreen() {
     if (stat.id === 'next_period') {
       return getDaysUntilNextPeriod() !== null; // or !== undefined
     }
+
+
+
     return true;
   });
 
@@ -287,7 +298,7 @@ export default function HomeScreen() {
       description: 'Great job! Your wellness score is 85%',
       color: '#EC4899',
       bgColor: '#FCE7F3',
-    },
+    }
   ];
 
   useEffect(() => {
@@ -315,7 +326,6 @@ export default function HomeScreen() {
       const apiError = error as APIError;
 
       if (apiError.statusCode === 422 && apiError.data) {
-
       } else {
         Alert.alert(
           apiError.normalizedError.title,
@@ -360,7 +370,6 @@ export default function HomeScreen() {
 
   const handleEndPeriod = async () => {
     const rangeDays = customerPeriodData?.avg_period_length || 5;
-
 
     navigation.navigate(SCREENS.PERIOD_SELECTOR, {
       ...range,
@@ -509,7 +518,7 @@ export default function HomeScreen() {
           onPress={() => navigation.openDrawer()}
           style={styles.headerBtn}
         >
-          <FontelloIcon name="cog-b" size={26} color="#333" />
+          <FontelloIcon name="cog-1" size={26} color="#333" />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>FemCare</Text>
@@ -697,13 +706,12 @@ export default function HomeScreen() {
             </View>
           ) : tipError ? (
             <Text style={styles.tipsText}>
-              Stay hydrated and get 7-8 hours of sleep for optimal health. Regular exercise can help regulate your cycle and improve mood.
+              Stay hydrated and get 7-8 hours of sleep for optimal health.
+              Regular exercise can help regulate your cycle and improve mood.
             </Text>
           ) : dailyTip ? (
             <>
-              <Text style={styles.tipsText}>
-                {dailyTip.short_description}
-              </Text>
+              <Text style={styles.tipsText}>{dailyTip.short_description}</Text>
               <TouchableOpacity
                 style={styles.tipsBtn}
                 onPress={() => {

@@ -2,12 +2,17 @@ import React from "react";
 import { View, StyleSheet, Text, ActivityIndicator } from "react-native";
 import { THEME_COLORS } from "../../constants/colors";
 
-// Simple loader for the entire Hydration screen
-export const HydrationScreenLoader = () => {
+interface ScreenLoaderProps {
+  message?: string;
+}
+
+export const ScreenLoader: React.FC<ScreenLoaderProps> = ({
+  message = "Loading..."
+}) => {
   return (
     <View style={styles.screenContainer}>
       <ActivityIndicator size="large" color={THEME_COLORS.primary} />
-      <Text style={styles.mainLoadingText}>Loading hydration...</Text>
+      <Text style={styles.mainLoadingText}>{message}</Text>
     </View>
   );
 };

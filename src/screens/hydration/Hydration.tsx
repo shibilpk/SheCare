@@ -18,10 +18,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import { STYLE } from '../../constants/app';
 import { useHydration } from './useHydration';
 import { useHydrationContent } from './useHydrationContent';
-import {
-  HydrationLogSkeleton,
-  HydrationContentSkeleton,
-} from './HydrationSkeleton';
+import { ScreenLoader } from '../../components/common/ScreenLoader';
 import InfoCard from '../../components/common/InfoCard';
 import Fireworks from '../../components/common/Fireworks';
 
@@ -122,18 +119,23 @@ export default function HydrationScreen() {
           style={styles.settingsBtn}
           onPress={() => setWaterModalVisible(true)}
         >
-          <FontelloIcon name="cog-b" size={22} color="#333" />
+          <FontelloIcon name="cog-1" size={22} color="#333" />
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {/* Hydration Log Section (Progress + Controls) */}
-        {isLoading ? (
-          <HydrationLogSkeleton />
-        ) : (
+      {isLoading || isContentLoading ? (
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          <ScreenLoader message="Loading hydration..." />
+        </ScrollView>
+      ) : (
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {/* Hydration Log Section (Progress + Controls) */}
           <>
             {/* Progress Card */}
             <LinearGradient
@@ -338,15 +340,12 @@ export default function HydrationScreen() {
               </View>
             </View>
           </>
-        )}
 
-        {/* Hydration Info Card - Benefits & Tips */}
-        {isContentLoading ? (
-          <HydrationContentSkeleton />
-        ) : hydrationContent ? (
-          <>
-            {/* Benefits Section */}
-            {hydrationContent.benefits.length > 0 && (
+          {/* Hydration Info Card - Benefits & Tips */}
+          {hydrationContent && (
+            <>
+              {/* Benefits Section */}
+              {hydrationContent.benefits.length > 0 && (
               <InfoCard
                 title="Hydration Benefits"
                 emoji="💧"
@@ -379,8 +378,9 @@ export default function HydrationScreen() {
               />
             )}
           </>
-        ) : null}
-      </ScrollView>
+          )}
+        </ScrollView>
+      )}
 
       {/* Water Settings Modal */}
       <Modal visible={waterModalVisible} animationType="slide" transparent>
@@ -480,6 +480,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   scrollContent: {
+    flexGrow: 1,
     ...STYLE.scrollContent,
   },
 

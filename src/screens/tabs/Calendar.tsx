@@ -258,7 +258,7 @@ const CalendarScreen: React.FC = () => {
           style={styles.settingsBtn}
           onPress={() => setShowSettingsModal(true)}
         >
-          <FontelloIcon name="cog-b" size={24} color={THEME_COLORS.text} />
+          <FontelloIcon name="cog-1" size={24} color={THEME_COLORS.text} />
         </TouchableOpacity>
 
         <View style={styles.viewSwitcher}>
@@ -307,7 +307,7 @@ const CalendarScreen: React.FC = () => {
           <View style={styles.todayBadge}>
             <Text style={styles.todayBadgeText}>{today.getDate()}</Text>
           </View>
-          <FontelloIcon name="calendar-o" size={28} color={THEME_COLORS.text} />
+          <FontelloIcon name="calendar-1" size={28} color={THEME_COLORS.text} />
         </TouchableOpacity>
       </View>
 

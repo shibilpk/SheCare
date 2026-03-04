@@ -22,7 +22,7 @@ export { default as PeriodSelector } from './screens/PeriodSelector';
 
 export { default as Medications } from './medication/Medications';
 export { default as Hydration } from './hydration/Hydration';
-export { default as Nutrition } from './screens/Nutrition';
+export { default as Nutrition } from './nutrition/Nutrition';
 export { default as Exercise } from './screens/Exercise';
 export { default as WeightTrack } from './screens/WeightTrack';
 export { default as Appointments } from './appointments/Appointments';

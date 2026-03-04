@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,487 +7,386 @@ import {
   ScrollView,
   Switch,
   Modal,
-  TextInput,
+  Alert,
 } from 'react-native';
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
-import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { THEME_COLORS } from '../../../constants/colors';
 import FontelloIcon from '../../../services/FontelloIcons';
 import ModalTopIcon from '../../../components/common/ModalTopIcon';
 import BackButton from '../../../components/widgets/BackButton';
 import { STYLE } from '../../../constants/app';
+import { useReminders, type Reminder } from './useReminders';
+import { ScreenLoader } from '../../../components/common/ScreenLoader';
+import { InfoCard } from '@src/components';
 
-type ReminderFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
-type ReminderType = 'repeat' | 'one-time' | 'repeat_from' | 'specific';
-interface Reminder {
-  id: string;
-  title: string;
-  icon: string;
-  color: string;
-  enabled: boolean;
-
-  time?: string;
-
-  type: ReminderType;
-  frequency?: ReminderFrequency;
-  specificDate?: Date;
-  customMessage?: string;
+interface ReminderCardProps {
+  reminder: Reminder;
+  onToggle: (reminder_type: string) => void;
+  onEdit: (reminder: Reminder) => void;
+  isUpdating: boolean;
 }
 
+const ReminderCard: React.FC<ReminderCardProps> = ({
+  reminder,
+  onToggle,
+  onEdit,
+  isUpdating,
+}) => (
+  <TouchableOpacity
+    style={styles.reminderCard}
+    onLongPress={() => onEdit(reminder)}
+  >
+    <View style={styles.reminderLeft}>
+      <View
+        style={[styles.iconBox, { backgroundColor: reminder.color || '#666' }]}
+      >
+        <FontelloIcon
+          name={reminder.icon || 'bell-alt'}
+          size={20}
+          color="#fff"
+        />
+      </View>
+      <View style={styles.reminderInfo}>
+        <Text style={styles.reminderTitle}>{reminder.title}</Text>
+        <Text style={styles.reminderSubtitle}>
+          {reminder.days_advance > 0 &&
+            `${reminder.days_advance} day${
+              reminder.days_advance === 1 ? '' : 's'
+            } before • `}
+          {reminder.time}
+        </Text>
+      </View>
+    </View>
+    <Switch
+      value={reminder.enabled}
+      onValueChange={() => onToggle(reminder.reminder_type)}
+      trackColor={{
+        false: '#ddd',
+        true: reminder.color || THEME_COLORS.primary,
+      }}
+      thumbColor="#fff"
+      disabled={isUpdating}
+    />
+  </TouchableOpacity>
+);
+
 const ReminderSettingsScreen: React.FC = () => {
-  // Custom reminder form state (single object)
-  const [customForm, setCustomForm] = useState({
-    title: '',
-    message: '',
-    time: new Date(),
-    frequency: 'daily' as ReminderFrequency,
-    date: new Date(),
-  });
+  const {
+    reminders,
+    isLoading,
+    updatingReminders,
+    toggleReminder,
+    updateReminder,
+    reminderInfo
+  } = useReminders();
+
   const insets = useSafeAreaInsets();
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [editingReminder, setEditingReminder] = useState<string | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingReminder, setEditingReminder] = useState<Reminder | null>(null);
+  const [selectedHour, setSelectedHour] = useState(9);
+  const [selectedPeriod, setSelectedPeriod] = useState<'AM' | 'PM'>('AM');
+  const [selectedDaysAdvance, setSelectedDaysAdvance] = useState(0);
 
-  const [customReminders, setCustomReminders] = useState<Reminder[]>([]);
+  const handleToggleReminder = useCallback(
+    async (reminder_type: string) => {
+      try {
+        await toggleReminder(reminder_type);
+      } catch (err: any) {
+        Alert.alert(
+          'Error',
+          err?.normalizedError?.message || 'Failed to update reminder',
+        );
+      }
+    },
+    [toggleReminder],
+  );
 
-  const [reminders, setReminders] = useState<Reminder[]>([
-    {
-      id: '1',
-      //   type: 'period',
-      title: 'Period Reminder',
-      icon: 'calendar-o',
-      color: '#F44336',
-      enabled: true,
-      frequency: 'daily',
-      daysAdvance: 0,
-      time: '09:00 AM',
-    },
-    {
-      id: '2',
-      //   type: 'ovulation',
-      title: 'Ovulation Day',
-      icon: 'heart',
-      color: '#FF9800',
-      enabled: true,
-      frequency: 'daily',
-      daysAdvance: 1,
-      time: '08:00 AM',
-    },
-    {
-      id: '3',
-      //   type: 'fertility',
-      title: 'Fertility Window',
-      icon: 'star',
-      color: '#4CAF50',
-      enabled: true,
-      frequency: 'daily',
-      daysAdvance: 0,
-      time: '07:00 AM',
-    },
-    {
-      id: '4',
-      //   type: 'medicine',
-      title: 'Take Medicine',
-      icon: 'hospital',
-      color: '#2196F3',
-      enabled: false,
-      frequency: 'daily',
-      daysAdvance: 0,
-      time: '08:00 PM',
-    },
-    {
-      id: '5',
-      //   type: 'appointment',
-      title: 'Doctor Appointment',
-      icon: 'stethoscope',
-      color: '#9C27B0',
-      enabled: false,
-      daysAdvance: 1,
-      time: '08:00 PM',
-    },
-    {
-      id: '6',
-      //   type: 'water',
-      title: 'Drink Water',
-      icon: 'glass',
-      color: '#00BCD4',
-      enabled: true,
-      frequency: 'daily',
-      time: '10:00 AM',
-    },
-  ]);
+  const openEditModal = useCallback((reminder: Reminder) => {
+    setEditingReminder(reminder);
+    setSelectedDaysAdvance(reminder.days_advance);
 
-  const toggleReminder = (id: string) => {
-    setReminders(prev =>
-      prev.map(r => (r.id === id ? { ...r, enabled: !r.enabled } : r)),
-    );
-  };
-
-  const openEditModal = (id: string) => {
-    setEditingReminder(id);
-    const reminder = reminders.find(r => r.id === id);
-    if (reminder && reminder.time) {
+    // Parse time
+    if (reminder.time) {
       const [time, period] = reminder.time.split(' ');
-      const [hours, minutes] = time.split(':');
-      let hour = parseInt(hours);
-      if (period === 'PM' && hour !== 12) hour += 12;
-      if (period === 'AM' && hour === 12) hour = 0;
-      const dateObj = new Date();
-      dateObj.setHours(hour, parseInt(minutes), 0);
-      setCustomForm(prev => ({ ...prev, time: dateObj }));
+      const [hours] = time.split(':');
+      let hour = Number.parseInt(hours, 10);
+
+      if (period === 'PM' && hour !== 12) {
+        setSelectedHour(hour);
+        setSelectedPeriod('PM');
+      } else if (period === 'AM' && hour === 12) {
+        setSelectedHour(12);
+        setSelectedPeriod('AM');
+      } else if (period === 'AM') {
+        setSelectedHour(hour);
+        setSelectedPeriod('AM');
+      } else {
+        setSelectedHour(hour === 12 ? 12 : hour);
+        setSelectedPeriod('PM');
+      }
+    }
+
+    setShowEditModal(true);
+  }, []);
+
+  const handleSaveReminder = async () => {
+    if (!editingReminder) return;
+
+    const timeString = `${selectedHour.toString().padStart(2, '0')}:00 ${selectedPeriod}`;
+
+    try {
+      await updateReminder(editingReminder.reminder_type, {
+        time: timeString,
+        days_advance: selectedDaysAdvance,
+      });
+      setShowEditModal(false);
+      setEditingReminder(null);
+    } catch (err: any) {
+      Alert.alert(
+        'Error',
+        err?.normalizedError?.message || 'Failed to update reminder',
+      );
     }
   };
 
-  const handleAddCustomReminder = () => {
-    if (!customForm.title.trim()) return;
-
-    const newReminder: Reminder = {
-      id: Date.now().toString(),
-      title: customForm.title,
-      icon: 'bell',
-      color: '#607D8B',
-      enabled: true,
-      time: customForm.time.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
-      frequency: customForm.frequency,
-      specificDate:
-        customForm.frequency === 'specific' ? customForm.date : undefined,
-      customMessage: customForm.message,
-    };
-
-    setCustomReminders(prev => [...prev, newReminder]);
-    resetCustomForm();
-    setShowAddModal(false);
-  };
-
-  const resetCustomForm = () => {
-    setCustomForm({
-      title: '',
-      message: '',
-      time: new Date(),
-      frequency: 'daily',
-      date: new Date(),
-    });
-  };
-
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  // Delete custom reminder by index
-  const deleteCustomReminder = (index: number) => {
-    setCustomReminders(prev => prev.filter((_, i) => i !== index));
-  };
+  const hours = Array.from({ length: 12 }, (_, i) => i + 1);
+  const daysAdvanceOptions = Array.from({ length: 8 }, (_, i) => i);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <BackButton />
         <Text style={styles.headerTitle}>Reminder Settings</Text>
-        <View style={styles.placeholder} />
+        <TouchableOpacity
+          style={styles.settingsButton}
+          onPress={() =>
+            Alert.alert(
+              'Reminder Settings',
+              'Tap hold any reminder to customize its time and days before notification.\n\nUse the toggle to enable/disable reminders.',
+              [{ text: 'Got it' }],
+            )
+          }
+        >
+          <FontelloIcon name="cog" size={20} color={THEME_COLORS.primary} />
+        </TouchableOpacity>
       </View>
 
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Description */}
-        <View style={styles.descriptionCard}>
-          <FontelloIcon
-            name="info-circled"
-            size={24}
-            color={THEME_COLORS.primary}
+      {isLoading ? (
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <ScreenLoader message="Loading reminders..." />
+        </ScrollView>
+      ) : (
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <InfoCard
+            title="Insights & Tips"
+            emoji="💡"
+            highlightColor={{
+              bgColor: '#FFF3E0',
+              borderColor: '#FF9800',
+              bulletColor: '#FF9800',
+              boldColor: '#333',
+            }}
+            insights={reminderInfo}
           />
-          <Text style={styles.descriptionText}>
-            Set up reminders for periods, ovulation, medications, appointments,
-            and more. Stay on track with your health.
-          </Text>
-        </View>
 
-        {/* Health Cycle Reminders */}
-        <View style={styles.section}>
-          {reminders.map(reminder => (
-            <TouchableOpacity
-              key={reminder.id}
-              style={styles.reminderCard}
-              onPress={() => openEditModal(reminder.id)}
-            >
-              <View style={styles.reminderLeft}>
-                <View
-                  style={[styles.iconBox, { backgroundColor: reminder.color }]}
-                >
-                  <FontelloIcon name={reminder.icon} size={20} color="#fff" />
-                </View>
-                <View style={styles.reminderInfo}>
-                  <Text style={styles.reminderTitle}>{reminder.title}</Text>
-                  <Text style={styles.reminderSubtitle}>
-                    {reminder.daysAdvance !== undefined &&
-                      `${reminder.daysAdvance} day${
-                        reminder.daysAdvance !== 1 ? 's' : ''
-                      } before`}
-                    {reminder.time && ` • ${reminder.time}`}
-                  </Text>
-                </View>
-              </View>
-              <Switch
-                value={reminder.enabled}
-                onValueChange={() => toggleReminder(reminder.id)}
-                trackColor={{ false: '#ddd', true: reminder.color }}
-                thumbColor="#fff"
+          {/* Health Cycle Reminders */}
+          <View style={styles.section}>
+            {reminders.map(reminder => (
+              <ReminderCard
+                key={reminder.reminder_type}
+                reminder={reminder}
+                onToggle={handleToggleReminder}
+                onEdit={openEditModal}
+                isUpdating={updatingReminders.has(reminder.reminder_type)}
               />
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Custom Reminders */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Custom Reminders</Text>
-            <TouchableOpacity
-              style={styles.addBtn}
-              onPress={() => setShowAddModal(true)}
-            >
-              <FontelloIcon
-                name="plus"
-                size={20}
-                color={THEME_COLORS.primary}
-              />
-            </TouchableOpacity>
+            ))}
           </View>
+        </ScrollView>
+      )}
 
-          {customReminders.map((reminder, idx) => (
-            <TouchableOpacity
-              key={reminder.id}
-              style={styles.reminderCard}
-              // You can add edit modal logic here if needed
-            >
-              <View style={styles.reminderLeft}>
-                <View
-                  style={[styles.iconBox, { backgroundColor: reminder.color }]}
-                >
-                  <FontelloIcon name={reminder.icon} size={20} color="#fff" />
-                </View>
-                <View style={styles.reminderInfo}>
-                  <Text style={styles.reminderTitle}>{reminder.title}</Text>
-                  <Text style={styles.reminderSubtitle}>
-                    {reminder.frequency === 'specific'
-                      ? reminder.specificDate?.toLocaleDateString()
-                      : reminder.frequency}
-                    {reminder.time && ` • ${reminder.time}`}
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.reminderRight}>
-                <Switch
-                  value={reminder.enabled}
-                  onValueChange={() => {
-                    setCustomReminders(prev =>
-                      prev.map((r, i) =>
-                        i === idx ? { ...r, enabled: !r.enabled } : r,
-                      ),
-                    );
-                  }}
-                  trackColor={{ false: '#ddd', true: reminder.color }}
-                  thumbColor="#fff"
-                />
-                <TouchableOpacity
-                  style={styles.deleteBtn}
-                  onPress={() => deleteCustomReminder(idx)}
-                >
-                  <FontelloIcon name="trash" size={18} color="#F44336" />
-                </TouchableOpacity>
-              </View>
-            </TouchableOpacity>
-          ))}
-
-          {customReminders.length === 0 && (
-            <View style={styles.emptyState}>
-              <FontelloIcon name="bell" size={48} color="#ddd" />
-              <Text style={styles.emptyText}>No custom reminders yet</Text>
-              <Text style={styles.emptySubtext}>
-                Tap + to create your first reminder
-              </Text>
-            </View>
-          )}
-        </View>
-      </ScrollView>
-
-      {/* Add Custom Reminder Modal */}
+      {/* Edit Reminder Modal */}
       <Modal
-        visible={showAddModal}
+        visible={showEditModal}
         animationType="slide"
         transparent={false}
-        onRequestClose={() => setShowAddModal(false)}
+        onRequestClose={() => setShowEditModal(false)}
       >
         <View style={[styles.modalContainer, { paddingTop: insets.top }]}>
           <View style={styles.modalHeader}>
             <ModalTopIcon
               iconName="cancel"
               onPress={() => {
-                setShowAddModal(false);
-                resetCustomForm();
+                setShowEditModal(false);
+                setEditingReminder(null);
               }}
             />
-            <Text style={styles.modalTitle}>Add Custom Reminder</Text>
-            <ModalTopIcon iconName="check" onPress={handleAddCustomReminder} />
+            <Text style={styles.modalTitle}>Edit Reminder</Text>
+            <ModalTopIcon iconName="check" onPress={handleSaveReminder} />
           </View>
 
           <ScrollView style={styles.modalContent}>
-            {/* Title Input */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Reminder Title *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g., Birthday, Anniversary"
-                placeholderTextColor="#999"
-                value={customForm.title}
-                onChangeText={text =>
-                  setCustomForm(prev => ({ ...prev, title: text }))
-                }
-              />
-            </View>
-
-            {/* Message Input */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Message (Optional)</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder="Add a custom message..."
-                placeholderTextColor="#999"
-                value={customForm.message}
-                onChangeText={text =>
-                  setCustomForm(prev => ({ ...prev, message: text }))
-                }
-                multiline
-                numberOfLines={3}
-              />
-            </View>
-
-            {/* Frequency Selection */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Frequency</Text>
-              <View style={styles.frequencyGrid}>
-                {(
-                  [
-                    'daily',
-                    'weekly',
-                    'monthly',
-                    'yearly',
-                    'specific',
-                  ] as ReminderFrequency[]
-                ).map(freq => (
-                  <TouchableOpacity
-                    key={freq}
+            {editingReminder && (
+              <>
+                {/* Reminder Info */}
+                <View style={styles.reminderPreview}>
+                  <View
                     style={[
-                      styles.frequencyBtn,
-                      customForm.frequency === freq &&
-                        styles.frequencyBtnActive,
+                      styles.iconBoxLarge,
+                      { backgroundColor: editingReminder.color || '#666' },
                     ]}
-                    onPress={() =>
-                      setCustomForm(prev => ({ ...prev, frequency: freq }))
-                    }
                   >
-                    <Text
-                      style={[
-                        styles.frequencyText,
-                        customForm.frequency === freq &&
-                          styles.frequencyTextActive,
-                      ]}
-                    >
-                      {freq.charAt(0).toUpperCase() + freq.slice(1)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            {/* Specific Date Picker */}
-            {customForm.frequency === 'specific' && (
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Select Date</Text>
-                <TouchableOpacity
-                  style={styles.dateButton}
-                  onPress={() => setShowDatePicker(true)}
-                >
-                  <FontelloIcon
-                    name="calendar-o"
-                    size={20}
-                    color={THEME_COLORS.primary}
-                  />
-                  <Text style={styles.dateButtonText}>
-                    {customForm.date.toLocaleDateString('en-US', {
-                      weekday: 'short',
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                    })}
+                    <FontelloIcon
+                      name={editingReminder.icon || 'bell'}
+                      size={32}
+                      color="#fff"
+                    />
+                  </View>
+                  <Text style={styles.reminderPreviewTitle}>
+                    {editingReminder.title}
                   </Text>
-                </TouchableOpacity>
-              </View>
+                </View>
+
+                {/* Days Advance Selector */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Days Before Event</Text>
+                  <View style={styles.daysGrid}>
+                    {daysAdvanceOptions.map(days => {
+                      let label: string;
+                      if (days === 0) {
+                        label = 'Same day';
+                      } else if (days === 1) {
+                        label = '1 day before';
+                      } else {
+                        label = `${days} days before`;
+                      }
+
+                      return (
+                        <TouchableOpacity
+                          key={days}
+                          style={[
+                            styles.dayButton,
+                            selectedDaysAdvance === days &&
+                              styles.dayButtonActive,
+                          ]}
+                          onPress={() => setSelectedDaysAdvance(days)}
+                        >
+                          <Text
+                            style={[
+                              styles.dayButtonText,
+                              selectedDaysAdvance === days &&
+                                styles.dayButtonTextActive,
+                            ]}
+                          >
+                            {label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                {/* Time Selector */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Reminder Time</Text>
+
+                  {/* Hour Selection */}
+                  <Text style={styles.subLabel}>Hour</Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.hourScroll}
+                    contentContainerStyle={styles.hourScrollContent}
+                  >
+                    {hours.map(hour => (
+                      <TouchableOpacity
+                        key={hour}
+                        style={[
+                          styles.hourButton,
+                          selectedHour === hour && styles.hourButtonActive,
+                        ]}
+                        onPress={() => setSelectedHour(hour)}
+                      >
+                        <Text
+                          style={[
+                            styles.hourButtonText,
+                            selectedHour === hour &&
+                              styles.hourButtonTextActive,
+                          ]}
+                        >
+                          {hour.toString().padStart(2, '0')}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+
+                  {/* AM/PM Selection */}
+                  <Text style={styles.subLabel}>Period</Text>
+                  <View style={styles.periodRow}>
+                    <TouchableOpacity
+                      style={[
+                        styles.periodButton,
+                        selectedPeriod === 'AM' && styles.periodButtonActive,
+                      ]}
+                      onPress={() => setSelectedPeriod('AM')}
+                    >
+                      <Text
+                        style={[
+                          styles.periodButtonText,
+                          selectedPeriod === 'AM' &&
+                            styles.periodButtonTextActive,
+                        ]}
+                      >
+                        AM
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.periodButton,
+                        selectedPeriod === 'PM' && styles.periodButtonActive,
+                      ]}
+                      onPress={() => setSelectedPeriod('PM')}
+                    >
+                      <Text
+                        style={[
+                          styles.periodButtonText,
+                          selectedPeriod === 'PM' &&
+                            styles.periodButtonTextActive,
+                        ]}
+                      >
+                        PM
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Info Card */}
+                <View style={styles.infoCard}>
+                  <FontelloIcon name="info-circled" size={20} color="#2196F3" />
+                  <Text style={styles.infoText}>
+                    You'll receive a notification at{' '}
+                    {selectedHour.toString().padStart(2, '0')}:00{' '}
+                    {selectedPeriod}
+                    {selectedDaysAdvance > 0 &&
+                      ` (${selectedDaysAdvance} day${
+                        selectedDaysAdvance === 1 ? '' : 's'
+                      } before the event)`}
+                    .
+                  </Text>
+                </View>
+              </>
             )}
-
-            {/* Time Picker */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Reminder Time</Text>
-              <TouchableOpacity
-                style={styles.dateButton}
-                onPress={() => setShowTimePicker(true)}
-              >
-                <FontelloIcon
-                  name="clock"
-                  size={20}
-                  color={THEME_COLORS.primary}
-                />
-                <Text style={styles.dateButtonText}>
-                  {formatTime(customForm.time)}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Info Card */}
-            <View style={styles.infoCard}>
-              <FontelloIcon name="info-circled" size={20} color="#2196F3" />
-              <Text style={styles.infoText}>
-                You'll receive a notification at the specified time based on
-                your selected frequency.
-              </Text>
-            </View>
           </ScrollView>
         </View>
-
-        {/* Date Picker */}
-        <DateTimePickerModal
-          isVisible={showDatePicker}
-          mode="date"
-          date={customForm.date}
-          onConfirm={date => {
-            setCustomForm(prev => ({ ...prev, date }));
-            setShowDatePicker(false);
-          }}
-          onCancel={() => setShowDatePicker(false)}
-        />
-
-        {/* Time Picker */}
-        <DateTimePickerModal
-          isVisible={showTimePicker}
-          mode="time"
-          date={customForm.time}
-          onConfirm={time => {
-            setCustomForm(prev => ({ ...prev, time }));
-            setShowTimePicker(false);
-          }}
-          onCancel={() => setShowTimePicker(false)}
-        />
       </Modal>
     </SafeAreaView>
   );
@@ -503,50 +402,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     ...STYLE.header,
+    marginBottom: STYLE.spacing.mv * 2,
   },
   headerTitle: {
     ...STYLE.headerTitle,
   },
-  placeholder: {
+  settingsButton: {
     width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  scrollView: {
-    flex: 1,
-  },
-  descriptionCard: {
-    flexDirection: 'row',
-    backgroundColor: '#E3F2FD',
-    marginHorizontal: STYLE.spacing.mh,
-    marginTop: 16,
-    marginBottom: 8,
-    padding: 16,
-    borderRadius: 12,
-    gap: 12,
-  },
-  descriptionText: {
-    flex: 1,
-    fontSize: 13,
-    color: '#1976D2',
-    lineHeight: 18,
+  scrollContent: {
+    ...STYLE.scrollContent,
   },
   section: {
-    marginTop: 24,
-    paddingHorizontal: 20,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#333',
-    marginBottom: 12,
-  },
-  addBtn: {
-    padding: 4,
+    marginTop: STYLE.spacing.mv,
   },
   reminderCard: {
     flexDirection: 'row',
@@ -555,7 +426,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     padding: 16,
     borderRadius: 16,
-    marginBottom: 12,
+    marginTop: STYLE.spacing.mv,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -566,11 +437,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-  },
-  reminderRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
   },
   iconBox: {
     width: 44,
@@ -592,26 +458,6 @@ const styles = StyleSheet.create({
   reminderSubtitle: {
     fontSize: 12,
     color: '#999',
-  },
-  deleteBtn: {
-    padding: 8,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 40,
-    paddingHorizontal: 20,
-  },
-  emptyText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#999',
-    marginTop: 16,
-    marginBottom: 4,
-  },
-  emptySubtext: {
-    fontSize: 13,
-    color: '#bbb',
-    textAlign: 'center',
   },
   modalContainer: {
     flex: 1,
@@ -636,6 +482,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 24,
   },
+  reminderPreview: {
+    alignItems: 'center',
+    paddingVertical: 24,
+    marginBottom: 24,
+  },
+  iconBoxLarge: {
+    width: 80,
+    height: 80,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  reminderPreviewTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#333',
+  },
   inputGroup: {
     marginBottom: 24,
   },
@@ -645,58 +509,92 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 8,
   },
-  input: {
-    backgroundColor: '#f8f9fa',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 15,
-    color: '#333',
-    borderWidth: 1,
-    borderColor: '#f0f0f0',
+  subLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#666',
+    marginTop: 12,
+    marginBottom: 8,
   },
-  textArea: {
-    height: 100,
-    textAlignVertical: 'top',
-  },
-  frequencyGrid: {
+  daysGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
-  frequencyBtn: {
-    paddingHorizontal: 16,
+  dayButton: {
+    paddingHorizontal: 12,
     paddingVertical: 10,
-    borderRadius: 20,
+    borderRadius: 12,
     backgroundColor: '#f0f0f0',
     borderWidth: 1,
     borderColor: '#f0f0f0',
   },
-  frequencyBtnActive: {
+  dayButtonActive: {
     backgroundColor: THEME_COLORS.primary,
     borderColor: THEME_COLORS.primary,
   },
-  frequencyText: {
-    fontSize: 14,
+  dayButtonText: {
+    fontSize: 13,
     fontWeight: '600',
     color: '#666',
   },
-  frequencyTextActive: {
+  dayButtonTextActive: {
     color: '#fff',
   },
-  dateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f8f9fa',
+  hourScroll: {
+    maxHeight: 60,
+  },
+  hourScrollContent: {
+    paddingVertical: 8,
+    gap: 8,
+  },
+  hourButton: {
+    width: 60,
+    height: 44,
     borderRadius: 12,
-    padding: 16,
-    gap: 12,
+    backgroundColor: '#f0f0f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
     borderWidth: 1,
     borderColor: '#f0f0f0',
   },
-  dateButtonText: {
-    fontSize: 15,
+  hourButtonActive: {
+    backgroundColor: THEME_COLORS.primary,
+    borderColor: THEME_COLORS.primary,
+  },
+  hourButtonText: {
+    fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: '#666',
+  },
+  hourButtonTextActive: {
+    color: '#fff',
+  },
+  periodRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  periodButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: '#f0f0f0',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
+  },
+  periodButtonActive: {
+    backgroundColor: THEME_COLORS.primary,
+    borderColor: THEME_COLORS.primary,
+  },
+  periodButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666',
+  },
+  periodButtonTextActive: {
+    color: '#fff',
   },
   infoCard: {
     flexDirection: 'row',

@@ -97,7 +97,7 @@ export default function PregnancyScreen() {
           onPress={() => navigation.openDrawer()}
           style={styles.headerBtn}
         >
-          <FontelloIcon name="cog-b" size={26} color="#333" />
+          <FontelloIcon name="cog-1" size={26} color="#333" />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>My Pregnancy</Text>

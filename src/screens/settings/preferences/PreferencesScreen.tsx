@@ -154,7 +154,7 @@ const PreferencesScreen: React.FC = () => {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Description */}
         <View style={styles.descriptionBox}>
-          <FontelloIcon name="cog-b" size={22} color={THEME_COLORS.primary} />
+          <FontelloIcon name="cog-1" size={22} color={THEME_COLORS.primary} />
           <Text style={styles.descriptionText}>
             Customize your language and timezone preferences. Changes will be
             saved when you tap the save button.

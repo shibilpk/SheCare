@@ -424,7 +424,7 @@ export default function Profile() {
             onPress={() => navigation.openDrawer()}
             style={styles.settingsBtn}
           >
-            <FontelloIcon name="cog-b" size={26} color="#fff" />
+            <FontelloIcon name="cog-1" size={26} color="#fff" />
           </TouchableOpacity>
 
           <View style={styles.headerContent}>
@@ -814,7 +814,7 @@ export default function Profile() {
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Preferences</Text>
-            <FontelloIcon name="cog-b" size={18} color={THEME_COLORS.primary} />
+            <FontelloIcon name="cog-1" size={18} color={THEME_COLORS.primary} />
           </View>
 
           <TouchableOpacity
