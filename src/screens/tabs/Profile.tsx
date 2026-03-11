@@ -90,7 +90,6 @@ export default function Profile() {
   const [notifications, setNotifications] = useState(true);
   const [weightData, setWeightData] = useState<WeightData>({});
   const [height, setHeight] = useState('');
-  const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [editField, setEditField] = useState<string | null>(null);
   const [errors, setErrors] = useState<ProfileErrors>({});
@@ -119,30 +118,6 @@ export default function Profile() {
     setHeaderHeight(event.nativeEvent.layout.height);
   };
 
-  const appendFormDataRecursively = (
-    formData: FormData,
-    data: any,
-    parentKey = '',
-  ) => {
-    Object.entries(data).forEach(([key, value]) => {
-      if (value === undefined || value === null) return;
-
-      const formKey = parentKey ? `${parentKey}.${key}` : key;
-
-      if (value instanceof File || value instanceof Blob) {
-        formData.append(formKey, value);
-      } else if (Array.isArray(value)) {
-        value.forEach((item, index) => {
-          appendFormDataRecursively(formData, { [index]: item }, formKey);
-        });
-      } else if (typeof value === 'object') {
-        appendFormDataRecursively(formData, value, formKey);
-      } else {
-        formData.append(formKey, String(value));
-      }
-    });
-  };
-
   const validateWeightForm = (): boolean => {
     let newErrors: FormErrors<WeightData> = {};
 
@@ -163,31 +138,33 @@ export default function Profile() {
   const handleSave = async () => {
     try {
       let dataToUpdate: ProfileUpdate = {};
-      const formData = new FormData();
 
       if (editField === 'age') {
-        dataToUpdate.date_of_birth = profileUpdate.date_of_birth
+        dataToUpdate.date_of_birth = profileUpdate.date_of_birth;
       } else if (editField === 'weight') {
         if (!validateWeightForm()) return;
       } else if (editField === 'height') {
-        formData.append('height', height);
-      } else if (editField === 'name') {
-        dataToUpdate.name = name;
+        dataToUpdate.height = Number.parseFloat(height);
+      } else if (editField === 'profile') {
+        // Handle profile fields (name and address)
+        if (profileUpdate.user?.first_name) {
+          dataToUpdate.user = {
+            first_name: profileUpdate.user.first_name,
+          };
+        }
+        if (profileUpdate.address) {
+          dataToUpdate.address = profileUpdate.address;
+        }
       } else if (editField === 'phone') {
-        dataToUpdate.phone = phone;
+        dataToUpdate.user = {
+          phone: phone,
+        };
       } else if (editField === 'cycle') {
-        if (cycleLength) dataToUpdate.cycle_length = parseInt(cycleLength, 10);
+        if (cycleLength) dataToUpdate.cycle_length = Number.parseInt(cycleLength, 10);
         if (periodLength)
-          dataToUpdate.period_length = parseInt(periodLength, 10);
-        if (lutealPhase) dataToUpdate.luteal_phase = parseInt(lutealPhase, 10);
-      } else {
-        // Use recursive function to handle deeply nested objects
-        appendFormDataRecursively(formData, profileUpdate);
+          dataToUpdate.period_length = Number.parseInt(periodLength, 10);
+        if (lutealPhase) dataToUpdate.luteal_phase = Number.parseInt(lutealPhase, 10);
       }
-
-
-
-
 
       let response;
       if (editField === 'weight') {
@@ -201,6 +178,7 @@ export default function Profile() {
       if (response.profile) {
         setProfile(response.profile);
         setEditField(null);
+        setProfileUpdate({});
         showToast(response.detail?.message || 'Profile updated successfully');
         setErrors({});
       } else {
@@ -221,8 +199,6 @@ export default function Profile() {
   };
 
   const handleWightChange = (field: keyof WeightData, value: string) => {
-    // setLoginData(prev => ({ ...prev, [field]: value }));
-    // setWeightData({ ...weightData, weight: text })
     setWeightData(prev => ({ ...prev, [field]: value }));
     setErrors(prev => clearFieldError(prev, field));
   };
@@ -249,7 +225,6 @@ export default function Profile() {
     if (profileHook.profile) {
       const response = profileHook.profile;
       setProfile(response);
-      setName(response.name || '');
       setPhone(response.phone || '');
       setHeight(response.height?.toString() || '');
       setLanguage(response.language || 'en');
@@ -964,24 +939,7 @@ export default function Profile() {
             <FontelloIcon name="right-open-mini" size={20} color="#999" />
           </TouchableOpacity>
 
-          <View style={styles.divider} />
 
-          <TouchableOpacity
-            style={styles.actionRow}
-            onPress={() => {
-              Alert.alert('Help & Support', 'Navigate to help center');
-            }}
-          >
-            <View style={styles.actionLeft}>
-              <View
-                style={[styles.actionIconBox, { backgroundColor: '#F3E5F5' }]}
-              >
-                <FontelloIcon name="help-circled" size={18} color="#9C27B0" />
-              </View>
-              <Text style={styles.actionLabel}>Help & Support</Text>
-            </View>
-            <FontelloIcon name="right-open-mini" size={20} color="#999" />
-          </TouchableOpacity>
 
           <View style={styles.divider} />
 
@@ -1104,7 +1062,7 @@ export default function Profile() {
               style={styles.input}
               placeholder="Enter phone number"
               keyboardType="phone-pad"
-              value={profileUpdate.phone ?? profile?.phone ?? ''}
+              value={profileUpdate.user?.phone ?? profile?.phone ?? ''}
               onChangeText={text =>
                 setProfileUpdate(prev => ({
                   ...prev,
@@ -1222,7 +1180,7 @@ export default function Profile() {
             onChange={date =>
               setProfileUpdate(prev => ({
                 ...prev,
-                date_of_birth: date.toISOString(),
+                date_of_birth: date.toISOString().split('T')[0],
               }))
             }
             mode="date"

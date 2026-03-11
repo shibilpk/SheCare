@@ -10,14 +10,14 @@ export interface PeriodRange {
 }
 
 export interface PregnancyChance {
-  value: 'low' | 'medium' | 'high';
-  percent: number;
+  level: 'low' | 'medium' | 'high';
+  percentage: number;
 }
 
 export interface CustomerPeriodData {
   active_period: PeriodRange | null;
   is_fertile: boolean;
-  pregnancy_chance: PregnancyChance | null;
+  pregnancy_chance: PregnancyChance | null; // Updated: now returns object with level and percentage
   next_period_date: string | null;
   ovulation_date: string | null;
   fertile_window_start: string | null;

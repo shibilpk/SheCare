@@ -30,17 +30,16 @@ export interface ProfileResponse {
 export interface ProfileUpdate {
   user?: {
     first_name?: string;
+    phone?: string;
   };
-  name?: string;
-  email?: string;
-  phone?: string;
   date_of_birth?: string;
   address?: string;
   height?: number;
-  height_unit?: string;
   cycle_length?: number;
   period_length?: number;
   luteal_phase?: number;
+  language?: string;
+  timezone?: string;
 }
 
 export interface WeightData {
@@ -82,9 +81,7 @@ export function useProfile(): UseProfileReturn {
       setError(null);
       const response = await apiClient.get<any>(APIS.V1.CUSTOMER.PROFILE);
 
-
       if (response.profile) {
-
         setProfile(response.profile);
         return response.profile;
       }
@@ -98,52 +95,59 @@ export function useProfile(): UseProfileReturn {
     }
   }, []);
 
-  const updateProfile = useCallback(async (data: ProfileUpdate) => {
-    try {
-      setIsSaving(true);
-      setError(null);
+  // Helper function to append form data recursively
+  const appendFormDataRecursively = useCallback(
+    (formData: FormData, obj: any, parentKey?: string) => {
+      for (const key in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+          const value = obj[key];
+          const formKey = parentKey ? `${parentKey}[${key}]` : key;
 
-      // Helper function to append form data recursively
-      const appendFormDataRecursively = (
-        formData: FormData,
-        obj: any,
-        parentKey?: string,
-      ) => {
-        for (const key in obj) {
-          if (Object.prototype.hasOwnProperty.call(obj, key)) {
-            const value = obj[key];
-            const formKey = parentKey ? `${parentKey}[${key}]` : key;
-
-            if (value != null && typeof value === 'object' && !Array.isArray(value)) {
-              appendFormDataRecursively(formData, value, formKey);
-            } else if (value != null) {
-              formData.append(formKey, String(value));
-            }
+          if (
+            value != null &&
+            typeof value === 'object' &&
+            !Array.isArray(value)
+          ) {
+            appendFormDataRecursively(formData, value, formKey);
+          } else if (value != null) {
+            formData.append(formKey, String(value));
           }
         }
-      };
-
-      const formData = new FormData();
-      appendFormDataRecursively(formData, data);
-
-      const response = await apiClient.patch<any>(
-        APIS.V1.CUSTOMER.PROFILE,
-        formData,
-      );
-
-      if (response.profile) {
-        setProfile(response.profile);
       }
+    },
+    [],
+  );
 
-      return response;
-    } catch (err: any) {
-      console.info('Failed to update profile:', err);
-      setError(err.message || 'Failed to update profile');
-      throw err;
-    } finally {
-      setIsSaving(false);
-    }
-  }, []);
+  const updateProfile = useCallback(
+    async (data: ProfileUpdate) => {
+      try {
+        setIsSaving(true);
+        setError(null);
+
+        const formData = new FormData();
+        appendFormDataRecursively(formData, data);
+        console.log(formData);
+
+        const response = await apiClient.patch<any>(
+          APIS.V1.CUSTOMER.PROFILE,
+          formData,
+        );
+
+        if (response.profile) {
+          setProfile(response.profile);
+        }
+
+        return response;
+      } catch (err: any) {
+        console.info('Failed to update profile:', err);
+        setError(err.message || 'Failed to update profile');
+        throw err;
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [appendFormDataRecursively],
+  );
 
   const updateProfilePicture = useCallback(async (imageFile: AvatarFile) => {
     try {
@@ -177,25 +181,29 @@ export function useProfile(): UseProfileReturn {
     }
   }, []);
 
-  const saveWeight = useCallback(async (weightData: WeightData) => {
-    try {
-      setIsSaving(true);
-      setError(null);
+  const saveWeight = useCallback(
+    async (weightData: WeightData) => {
+      try {
+        setIsSaving(true);
+        setError(null);
+        const formData = new FormData();
+        appendFormDataRecursively(formData, weightData);
+        const response = await apiClient.post<any>(
+          APIS.V1.CUSTOMER.WEIGHT_ENTRY,
+          formData,
+        );
 
-      const response = await apiClient.post<any>(
-        APIS.V1.CUSTOMER.WEIGHT_ENTRY,
-        weightData,
-      );
-
-      return response;
-    } catch (err: any) {
-      console.info('Failed to save weight:', err);
-      setError(err.message || 'Failed to save weight');
-      throw err;
-    } finally {
-      setIsSaving(false);
-    }
-  }, []);
+        return response;
+      } catch (err: any) {
+        console.info('Failed to save weight:', err);
+        setError(err.message || 'Failed to save weight');
+        throw err;
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [appendFormDataRecursively],
+  );
 
   // Auto-fetch profile on mount
   useEffect(() => {

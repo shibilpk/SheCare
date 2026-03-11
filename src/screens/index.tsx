@@ -34,3 +34,10 @@ export { default as DailyTipScreen } from './common/DailyTipScreen';
 export { default as BlogListScreen } from './blog/BlogListScreen';
 export { default as BlogDetailScreen } from './blog/BlogDetailScreen';
 export { default as PeriodHistoryScreen } from './screens/PeriodHistory';
+export {
+  PrivacyPolicyScreen,
+  TermsOfServiceScreen,
+  HelpSupportScreen,
+} from './common/StaticContentScreen';
+export { default as ContactUsScreen } from './common/ContactUsScreen';
+export { default as FeedbackScreen } from './common/FeedbackScreen';

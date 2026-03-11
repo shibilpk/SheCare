@@ -9,3 +9,4 @@ export { default as InfoCard } from './common/InfoCard';
 export { default as NetworkErrorModal } from './common/NetworkErrorModal';
 export { default as InfiniteScrollList } from './common/InfiniteScrollList';
 export { ScreenLoader } from './common/ScreenLoader';
+export { default as EditorJsRenderer } from './common/EditorJsRenderer';

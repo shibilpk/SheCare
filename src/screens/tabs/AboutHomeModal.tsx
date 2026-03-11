@@ -326,6 +326,11 @@ export default function AboutHomeModal({
             onSave={(date: Date, text: string) => {
               handleDiarySave(date, text);
             }}
+            onDateChange={(date: Date) => {
+              // Handle date change if needed
+              console.log("Date", date);
+
+            }}
             canChangeDate={false}
           />
         </View>

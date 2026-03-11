@@ -5,7 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -14,7 +14,8 @@ import FontelloIcon from '../../services/FontelloIcons';
 import { THEME_COLORS } from '../../constants/colors';
 import { RootStackParamList } from '../../constants/navigation';
 import { STYLE } from '../../constants/app';
-import { BlogPost } from './BlogListScreen';
+import { useBlogDetail } from '../../hooks/useBlog';
+import { EditorJsRenderer } from '../../components';
 
 type BlogDetailRouteProp = RouteProp<RootStackParamList, 'BlogDetail'>;
 type BlogDetailNavigationProp = StackNavigationProp<
@@ -25,12 +26,65 @@ type BlogDetailNavigationProp = StackNavigationProp<
 const BlogDetailScreen: React.FC = () => {
   const navigation = useNavigation<BlogDetailNavigationProp>();
   const route = useRoute<BlogDetailRouteProp>();
-  const blog = (route.params as any)?.blog as BlogPost;
+  const blogId = (route.params as any)?.blogId;
+  const { blog, isLoading, error } = useBlogDetail(blogId);
 
-  if (!blog) {
+  // Helper function to format date
+  const formatBlogDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
+
+  if (isLoading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <Text>Blog not found</Text>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backBtn}
+          >
+            <FontelloIcon name="left-open-mini" size={24} color="#333" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Loading...</Text>
+          <View style={styles.placeholder} />
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={THEME_COLORS.primary} />
+          <Text style={styles.loadingText}>Loading article...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error || !blog) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backBtn}
+          >
+            <FontelloIcon name="left-open-mini" size={24} color="#333" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Error</Text>
+          <View style={styles.placeholder} />
+        </View>
+        <View style={styles.errorContainer}>
+          <FontelloIcon name="attention" size={64} color="#ccc" />
+          <Text style={styles.errorText}>
+            {error || 'Article not found'}
+          </Text>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.backButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     );
   }
@@ -46,7 +100,7 @@ const BlogDetailScreen: React.FC = () => {
           <FontelloIcon name="left-open-mini" size={24} color="#333" />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
-          {blog.category}
+          Article
         </Text>
         <TouchableOpacity style={styles.shareBtn}>
           <FontelloIcon name="share" size={20} color="#333" />
@@ -59,13 +113,15 @@ const BlogDetailScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Hero Image */}
-        <Image source={blog.image} style={styles.heroImage} />
+        {/* Hero Image Placeholder */}
+        <View style={styles.heroImagePlaceholder}>
+          <FontelloIcon name="doc-text" size={64} color={THEME_COLORS.primary} />
+        </View>
 
         {/* Article Info */}
         <View style={styles.articleInfo}>
           <View style={styles.categoryBadge}>
-            <Text style={styles.categoryText}>{blog.category}</Text>
+            <Text style={styles.categoryText}>Article</Text>
           </View>
           <Text style={styles.title}>{blog.title}</Text>
 
@@ -77,34 +133,16 @@ const BlogDetailScreen: React.FC = () => {
               <Text style={styles.authorName}>{blog.author}</Text>
             </View>
             <View style={styles.metaDetails}>
-              <Text style={styles.metaText}>{blog.date}</Text>
-              <Text style={styles.metaDot}>•</Text>
-              <Text style={styles.metaText}>{blog.readTime}</Text>
+              <Text style={styles.metaText}>
+                {formatBlogDate(blog.published_date)}
+              </Text>
             </View>
           </View>
         </View>
 
-        {/* Article Content */}
+        {/* Article Content - Use EditorJsRenderer */}
         <View style={styles.contentSection}>
-          <Text style={styles.excerpt}>{blog.excerpt}</Text>
-          <View style={styles.divider} />
-          <Text style={styles.content}>{blog.content}</Text>
-        </View>
-
-        {/* Tags */}
-        <View style={styles.tagsSection}>
-          <Text style={styles.tagsTitle}>Tags</Text>
-          <View style={styles.tagsContainer}>
-            <View style={styles.tag}>
-              <Text style={styles.tagText}>{blog.category}</Text>
-            </View>
-            <View style={styles.tag}>
-              <Text style={styles.tagText}>Health</Text>
-            </View>
-            <View style={styles.tag}>
-              <Text style={styles.tagText}>Wellness</Text>
-            </View>
-          </View>
+          <EditorJsRenderer data={blog.content} />
         </View>
 
         {/* Share Section */}
@@ -151,16 +189,56 @@ const styles = StyleSheet.create({
   shareBtn: {
     padding: 4,
   },
+  placeholder: {
+    width: 32,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#666',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#666',
+    marginTop: 16,
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  backButton: {
+    backgroundColor: THEME_COLORS.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  backButtonText: {
+    color: THEME_COLORS.textLight,
+    fontSize: 16,
+    fontWeight: '600',
+  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     paddingBottom: 40,
   },
-  heroImage: {
+  heroImagePlaceholder: {
     width: '100%',
     height: 250,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: '#F3E8FF',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   articleInfo: {
     padding: 20,
@@ -217,60 +295,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#999',
   },
-  metaDot: {
-    fontSize: 13,
-    color: '#999',
-    marginHorizontal: 6,
-  },
   contentSection: {
     backgroundColor: THEME_COLORS.textLight,
     marginTop: 12,
     padding: 20,
-  },
-  excerpt: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#666',
-    lineHeight: 24,
-    marginBottom: 16,
-    fontStyle: 'italic',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#E5E7EB',
-    marginVertical: 20,
-  },
-  content: {
-    fontSize: 15,
-    color: THEME_COLORS.text,
-    lineHeight: 26,
-  },
-  tagsSection: {
-    backgroundColor: THEME_COLORS.textLight,
-    marginTop: 12,
-    padding: 20,
-  },
-  tagsTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: THEME_COLORS.text,
-    marginBottom: 12,
-  },
-  tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  tag: {
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  tagText: {
-    fontSize: 13,
-    color: '#666',
-    fontWeight: '500',
   },
   shareSection: {
     backgroundColor: THEME_COLORS.textLight,

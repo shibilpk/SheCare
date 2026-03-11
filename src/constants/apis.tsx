@@ -1,7 +1,7 @@
 // constants/apis.ts
 // Use your computer's IP address for physical devices/emulators
 // Find your IP: macOS: ifconfig | grep "inet " | grep -v 127.0.0.1
-export const BASE_URL = 'http://192.168.1.8:7865';
+export const BASE_URL = 'http://192.168.108.134:7865';
 // export const BASE_URL = 'http://localhost:7865'; // Only works in web browser
 const API_VERSION = 'v1';
 
@@ -34,6 +34,7 @@ const PERIOD = {
   END: `/api/${API_VERSION}/period/end/`,
   LIST: `/api/${API_VERSION}/period/list/`,
   CUSTOMER_DATA: `/api/${API_VERSION}/period/customer-data/`,
+  PREGNANCY_CHANCE: `/api/${API_VERSION}/period/pregnancy-chance/`,
 };
 const ACTIVITIES = {
   DAILY_ACTION_LIST: `/api/${API_VERSION}/activities/daily-actions/`,
@@ -72,6 +73,19 @@ const GENERAL = {
     `/api/${API_VERSION}/general/animations/${name}/`,
 };
 
+const BLOG = {
+  LIST_POSTS: `/api/${API_VERSION}/blog/posts/`,
+  getLatestPosts: (limit: number) => `/api/${API_VERSION}/blog/posts/?limit=${limit}&page=1`,
+  getPaginatedPosts: (page: number, limit: number = 10) => `/api/${API_VERSION}/blog/posts/?page=${page}&limit=${limit}`,
+  getPost: (id: string) => `/api/${API_VERSION}/blog/posts/${id}/`,
+};
+
+const STATIC_CONTENT = {
+  LIST: `/api/${API_VERSION}/static-content/`,
+  getContent: (contentType: string) =>
+    `/api/${API_VERSION}/static-content/${contentType}/`,
+};
+
 const REMINDER = {
   SETTINGS: `/api/${API_VERSION}/reminder/reminder-settings/`,
   INFO: `/api/${API_VERSION}/reminder/reminder-info/`,
@@ -87,6 +101,13 @@ const NUTRITION = {
   FOOD_SUGGESTIONS: `/api/${API_VERSION}/nutrition/food-suggestions/`,
 };
 
+const CONTACT_FEEDBACK = {
+  submitContactUs: () => `/api/${API_VERSION}/contact-feedback/contact-us/`,
+  submitFeedback: () => `/api/${API_VERSION}/contact-feedback/feedback/`,
+  listContactUs: () => `/api/${API_VERSION}/contact-feedback/contact-us/`,
+  listFeedback: () => `/api/${API_VERSION}/contact-feedback/feedback/`,
+};
+
 export const APIS = {
   V1: {
     AUTH: AUTH_API,
@@ -95,9 +116,12 @@ export const APIS = {
     PERIOD: PERIOD,
     ACTIVITIES: ACTIVITIES,
     GENERAL: GENERAL,
+    BLOG: BLOG,
     HYDRATION: HYDRATION,
     REMINDER: REMINDER,
     MEDICATION: MEDICATION,
     NUTRITION: NUTRITION,
+    STATIC_CONTENT: STATIC_CONTENT,
+    CONTACT_FEEDBACK: CONTACT_FEEDBACK,
   },
 };

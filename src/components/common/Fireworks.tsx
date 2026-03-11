@@ -1,13 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import LottieView from 'lottie-react-native';
-import { BASE_URL } from '@src/constants/apis';
-import { APIS } from '@src/constants/apis';
+import { BASE_URL, APIS } from '@src/constants/apis';
 
 interface FireworksProps {
-  visible: boolean;
-  onComplete?: () => void;
-  duration?: number;
+  readonly visible: boolean;
+  readonly onComplete?: () => void;
+  readonly duration?: number;
 }
 
 export default function Fireworks({

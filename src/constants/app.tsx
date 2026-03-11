@@ -19,7 +19,7 @@ export const STYLE = {
   },
   headerTitle: {
     fontSize: 17,
-    fontWeight: '600' as const,
+    fontWeight: "bold" as const,
     color: '#333',
   },
   headerIcon: {

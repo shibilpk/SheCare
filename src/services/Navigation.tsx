@@ -187,19 +187,38 @@ function CustomDrawerContent(props: any) {
       color: '#3B82F6',
       onPress: () => props.navigation.navigate(SCREENS.CHANGE_PASSWORD),
     },
+  ];
+
+  const supportItems = [
     {
-      icon: 'info',
+      icon: 'help-circled',
       label: 'Help & Support',
-      color: '#10B981',
-      onPress: () =>
-        Alert.alert('Help & Support', 'Contact us at support@femcare.com'),
+      color: '#9C27B0',
+      onPress: () => props.navigation.navigate(SCREENS.HELP_SUPPORT),
+    },
+    {
+      icon: 'mail-alt',
+      label: 'Contact Us',
+      color: '#FF9800',
+      onPress: () => props.navigation.navigate(SCREENS.CONTACT_US),
+    },
+    {
+      icon: 'comment-empty',
+      label: 'Feedback',
+      color: '#009688',
+      onPress: () => props.navigation.navigate(SCREENS.FEEDBACK),
     },
     {
       icon: 'doc-text',
       label: 'Privacy Policy',
-      color: '#6B7280',
-      onPress: () =>
-        Alert.alert('Privacy Policy', 'View our privacy policy...'),
+      color: '#4CAF50',
+      onPress: () => props.navigation.navigate(SCREENS.PRIVACY_POLICY),
+    },
+    {
+      icon: 'doc-text',
+      label: 'Terms of Service',
+      color: '#607D8B',
+      onPress: () => props.navigation.navigate(SCREENS.TERMS_OF_SERVICE),
     },
   ];
 
@@ -277,6 +296,30 @@ function CustomDrawerContent(props: any) {
         ))}
       </View>
 
+      {/* Support & Info Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Support & Info</Text>
+        {supportItems.map((item, index) => (
+          <TouchableOpacity
+            key={index}
+            style={styles.menuItem}
+            onPress={item.onPress}
+            activeOpacity={0.7}
+          >
+            <View
+              style={[
+                styles.menuIconBox,
+                { backgroundColor: `${item.color}20` },
+              ]}
+            >
+              <FontelloIcon name={item.icon} size={20} color={item.color} />
+            </View>
+            <Text style={styles.menuLabel}>{item.label}</Text>
+            <FontelloIcon name="right-open-mini" size={18} color="#999" />
+          </TouchableOpacity>
+        ))}
+      </View>
+
       {/* Logout Button */}
       <TouchableOpacity
         style={styles.logoutButton}
@@ -334,7 +377,7 @@ const styles = StyleSheet.create({
   },
   section: {
     paddingHorizontal: 12,
-    marginBottom: 20,
+    marginBottom: STYLE.spacing.mv,
   },
   sectionTitle: {
     fontSize: 12,
@@ -535,6 +578,26 @@ export default function RootNavigation() {
                   <Stack.Screen
                     name={SCREENS.PERIODS_LIST}
                     component={Screens.PeriodHistoryScreen}
+                  />
+                  <Stack.Screen
+                    name={SCREENS.PRIVACY_POLICY}
+                    component={Screens.PrivacyPolicyScreen}
+                  />
+                  <Stack.Screen
+                    name={SCREENS.TERMS_OF_SERVICE}
+                    component={Screens.TermsOfServiceScreen}
+                  />
+                  <Stack.Screen
+                    name={SCREENS.HELP_SUPPORT}
+                    component={Screens.HelpSupportScreen}
+                  />
+                  <Stack.Screen
+                    name={SCREENS.CONTACT_US}
+                    component={Screens.ContactUsScreen}
+                  />
+                  <Stack.Screen
+                    name={SCREENS.FEEDBACK}
+                    component={Screens.FeedbackScreen}
                   />
                 </Stack.Navigator>
                 <Modal

@@ -6,6 +6,7 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import {
   SafeAreaView,
@@ -19,7 +20,10 @@ import { ScrollView } from 'react-native-gesture-handler';
 import { monthNames } from '../../constants/common';
 import DiaryModal from '../common/diary/DiaryModal';
 import { useDailyEntry } from '@src/hooks/useDailyEntry';
-import { useErrorToast } from '@src/utils/toastMessage';
+import { useErrorToast, useToastMessage } from '@src/utils/toastMessage';
+import { useDiary } from '@src/hooks/useDiary';
+import { APIError } from '@src/services/ApiClient';
+import { usePregnancyChance } from '@src/hooks/usePregnancyChance';
 
 // Memoized MonthCard component for better performance in year view
 const MonthCard = React.memo<{
@@ -51,11 +55,21 @@ const CalendarScreen: React.FC = () => {
   const [selectedYear, setSelectedYear] = useState(today.getFullYear());
   const [showDiaryModal, setShowDiaryModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [diaryText, setDiaryText] = useState('');
+  const [diaryDate, setDiaryDate] = useState<Date>(today);
   // Removed full screen activity animation logic
   const insets = useSafeAreaInsets();
 
   // Daily entry hook
-  const { dailySummary, isLoading, error, fetchDailyDetailed } = useDailyEntry();
+  const { dailySummary, isLoading, error, fetchDailyDetailed } =
+    useDailyEntry();
+
+  const { saveEntry: saveDiaryNote, fetchEntry: fetchDiaryEntry } = useDiary();
+
+  const { showToast } = useToastMessage();
+
+  // Pregnancy chance hook
+  const { pregnancyChance, isLoading: isLoadingPregnancy } = usePregnancyChance();
 
   // Auto show errors as toast
   useErrorToast(error);
@@ -66,12 +80,8 @@ const CalendarScreen: React.FC = () => {
       try {
         const entry = await fetchDailyDetailed(currentDate);
 
-
         if (entry) {
-
-
         } else {
-
         }
       } catch (err) {
         console.info('Error loading daily entry:', err);
@@ -92,6 +102,39 @@ const CalendarScreen: React.FC = () => {
     love: true,
     diary: true,
   });
+
+  async function loadDiary(date: Date) {
+    try {
+      const entry = await fetchDiaryEntry(date);
+      setDiaryDate(date);
+      setDiaryText(entry?.content ?? '');
+      setShowDiaryModal(true);
+    } catch (err) {
+      console.info('Failed to fetch diary entry', err);
+      setDiaryText('');
+    }
+  }
+
+  const handleDiarySave = useCallback(
+    async (date: Date, text: string) => {
+      try {
+        const message = await saveDiaryNote(date, text);
+        showToast(message);
+        setShowDiaryModal(false);
+      } catch (err) {
+        const apiError = err as APIError;
+
+        if (apiError.statusCode === 422 && apiError.data) {
+        } else {
+          Alert.alert(
+            apiError.normalizedError.title,
+            apiError.normalizedError.message,
+          );
+        }
+      }
+    },
+    [saveDiaryNote, showToast],
+  );
 
   const toggleMarking = (key: keyof typeof markingToggles) => {
     setMarkingToggles(prev => ({ ...prev, [key]: !prev[key] }));
@@ -428,15 +471,20 @@ const CalendarScreen: React.FC = () => {
                         Pregnancy Chance
                       </Text>
                       <Text style={styles.pregnancySubtitle}>
-                        Fertility window tracking
+                        {isLoadingPregnancy
+                          ? 'Loading...'
+                          : `${pregnancyChance?.level?.charAt(0).toUpperCase()}${pregnancyChance?.level?.slice(1) || 'Low'} chance - Fertility tracking`
+                        }
                       </Text>
                     </View>
                   </View>
-                  <Text style={styles.pregnancyPercent}>50%</Text>
+                  <Text style={styles.pregnancyPercent}>
+                    {isLoadingPregnancy ? '...' : `${pregnancyChance?.percentage || 0}%`}
+                  </Text>
                 </View>
                 <View style={styles.progressBarContainer}>
                   <View style={styles.progressBar}>
-                    <View style={[styles.progressFill, { width: '50%' }]} />
+                    <View style={[styles.progressFill, { width: `${pregnancyChance?.percentage || 0}%` }]} />
                   </View>
                 </View>
                 {/* Removed expand/collapse button and icon */}
@@ -444,7 +492,7 @@ const CalendarScreen: React.FC = () => {
                   <View style={styles.sectionHeader}>
                     <Text style={styles.sectionTitle}>Today's Summary</Text>
                     <TouchableOpacity
-                      onPress={() => setShowDiaryModal(true)}
+                      onPress={() => loadDiary(diaryDate)}
                       style={styles.activitiesAddBtn}
                     >
                       <FontelloIcon
@@ -461,7 +509,9 @@ const CalendarScreen: React.FC = () => {
                       <View key={card.id} style={styles.activityItem}>
                         <View style={styles.activityIconCircle}>
                           {card.icon.length === 1 || card.icon.length === 2 ? (
-                            <Text style={styles.activityEmoji}>{card.icon}</Text>
+                            <Text style={styles.activityEmoji}>
+                              {card.icon}
+                            </Text>
                           ) : (
                             <FontelloIcon
                               name={card.icon}
@@ -473,7 +523,9 @@ const CalendarScreen: React.FC = () => {
                         <View style={styles.activityInfo}>
                           <Text style={styles.activityTitle}>{card.title}</Text>
                           {card.value && (
-                            <Text style={styles.activityValue}>{card.value}</Text>
+                            <Text style={styles.activityValue}>
+                              {card.value}
+                            </Text>
                           )}
                           {card.rating && (
                             <View style={styles.activityRatingStars}>
@@ -500,8 +552,12 @@ const CalendarScreen: React.FC = () => {
                     ))
                   ) : (
                     <View style={styles.emptyState}>
-                      <Text style={styles.emptyStateText}>No data for this date</Text>
-                      <Text style={styles.emptyStateSubtext}>Tap + to add activities</Text>
+                      <Text style={styles.emptyStateText}>
+                        No data for this date
+                      </Text>
+                      <Text style={styles.emptyStateSubtext}>
+                        Tap + to add activities
+                      </Text>
                     </View>
                   )}
                 </View>
@@ -512,10 +568,14 @@ const CalendarScreen: React.FC = () => {
           <DiaryModal
             visible={showDiaryModal}
             onClose={() => setShowDiaryModal(false)}
-            initialDate={currentDate}
-            onSave={(date, text) => {
-              // Handle save logic here
-
+            initialDate={diaryDate}
+            initialText={diaryText}
+            onSave={(date: Date, text: string) => {
+              handleDiarySave(date, text);
+            }}
+            onDateChange={(date: Date) => {
+              loadDiary(date);
+              console.log('Date', date);
             }}
           />
         </>

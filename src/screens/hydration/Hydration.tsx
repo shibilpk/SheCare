@@ -480,7 +480,6 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   scrollContent: {
-    flexGrow: 1,
     ...STYLE.scrollContent,
   },
 

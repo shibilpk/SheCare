@@ -30,6 +30,12 @@ export const SCREENS = {
   PERIODS_LIST: 'PeriodsList',
   DAILY_TIP: 'DailyTip',
   PREFERENCES: 'Preferences',
+  STATIC_CONTENT: 'StaticContent',
+  PRIVACY_POLICY: 'PrivacyPolicy',
+  TERMS_OF_SERVICE: 'TermsOfService',
+  HELP_SUPPORT: 'HelpSupport',
+  CONTACT_US: 'ContactUs',
+  FEEDBACK: 'Feedback',
 } as const;
 
 // Define screens that need params and their types

@@ -1,4 +1,4 @@
-import React, { use, useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,35 +17,17 @@ import { useNavigation } from '@react-navigation/native';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
 import { RootStackParamList, SCREENS } from '../../constants/navigation';
 import { monthNamesShort } from '../../constants/common';
-import DiaryModal from '../common/diary/DiaryModal';
-import { blogPosts } from '../blog/BlogListScreen';
 import { STYLE } from '../../constants/app';
-import apiClient, { APIError } from '@src/services/ApiClient';
-import { APIS } from '@src/constants/apis';
-import { parseValidationErrors } from '@src/utils/formUtils';
-import { useToastMessage } from '@src/utils/toastMessage';
 import HomeQuickActions from '../common/quickAction/HomeQuickActions';
 import { DateRange } from '@src/components/widgets/Calender';
 import GlobalModalContext from '@src/services/GlobalContext';
 import { useDailyTip } from '@src/hooks/useDailyTip';
-import {
-  usePeriodData,
-  CustomerPeriodData,
-  PeriodRange,
-} from '@src/hooks/usePeriodData';
-import { useDiary } from '@src/hooks/useDiary';
-
-interface PregnancyChance {
-  value: 'low' | 'medium' | 'high';
-  percent: number;
-}
+import { useBlogList } from '@src/hooks/useBlog';
+import { usePeriodData, PeriodRange } from '@src/hooks/usePeriodData';
 
 export default function HomeScreen() {
   const navigation = useNavigation<DrawerNavigationProp<RootStackParamList>>();
   const [showNotifications, setShowNotifications] = useState(false);
-  const [showDiaryModal, setShowDiaryModal] = useState(false);
-  const { showToast } = useToastMessage();
-  const [diaryText, setDiaryText] = useState<string>('');
   const [range, setRange] = useState<DateRange>({
     startDate: null,
     endDate: null,
@@ -60,12 +41,11 @@ export default function HomeScreen() {
     isLoading: isLoadingTip,
     error: tipError,
   } = useDailyTip();
-  const {
-    periodData: customerPeriodData,
-    isLoading: isLoadingPeriod,
-    refetch: refetchPeriodData,
-  } = usePeriodData();
-  const { fetchEntry: fetchDiaryEntry, saveEntry: saveDiaryEntry } = useDiary();
+  const { periodData: customerPeriodData, isLoading: isLoadingPeriod } =
+    usePeriodData();
+
+  // Fetch latest blogs using the hook
+  const { blogs, isLoading: isLoadingBlogs } = useBlogList(5);
 
   async function setActivePeriod(response: PeriodRange) {
     try {
@@ -136,12 +116,12 @@ export default function HomeScreen() {
     if (!customerPeriodData?.pregnancy_chance)
       return { value: 'L', icon: 'down', color: '#DC2626' };
 
-    const chance = customerPeriodData.pregnancy_chance;
+    const chance = customerPeriodData.pregnancy_chance.level;
     switch (chance) {
       case 'high':
-        return { value: 'M', icon: 'resize-vertical', color: '#ffa200' };
-      case 'medium':
         return { value: 'H', icon: 'up', color: '#10B981' };
+      case 'medium':
+        return { value: 'M', icon: 'resize-vertical', color: '#ffa200' };
       case 'low':
       default:
         return { value: 'L', icon: 'down', color: '#DC2626' };
@@ -267,8 +247,6 @@ export default function HomeScreen() {
       return getDaysUntilNextPeriod() !== null; // or !== undefined
     }
 
-
-
     return true;
   });
 
@@ -280,7 +258,15 @@ export default function HomeScreen() {
     setShowNotifications(false);
   };
 
-  const latestBlogs = blogPosts.slice(0, 5);
+  // Helper function to format date
+  const formatBlogDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
 
   const healthInsights = [
     {
@@ -298,62 +284,8 @@ export default function HomeScreen() {
       description: 'Great job! Your wellness score is 85%',
       color: '#EC4899',
       bgColor: '#FCE7F3',
-    }
+    },
   ];
-
-  useEffect(() => {
-    if (showDiaryModal) {
-      loadDiary(new Date());
-    }
-  }, [showDiaryModal]);
-
-  async function loadDiary(date: Date) {
-    try {
-      const entry = await fetchDiaryEntry(date);
-      setDiaryText(entry?.content ?? '');
-    } catch (error) {
-      console.info('Failed to fetch diary entry', error);
-      setDiaryText('');
-    }
-  }
-
-  async function handleDiarySave(date: Date, text: string) {
-    try {
-      const message = await saveDiaryEntry(date, text);
-      showToast(message);
-      setShowDiaryModal(false);
-    } catch (error) {
-      const apiError = error as APIError;
-
-      if (apiError.statusCode === 422 && apiError.data) {
-      } else {
-        Alert.alert(
-          apiError.normalizedError.title,
-          apiError.normalizedError.message,
-        );
-      }
-    }
-  }
-
-  const isInFertileWindow = () => {
-    if (
-      !customerPeriodData?.fertile_window_start ||
-      !customerPeriodData?.fertile_window_end
-    ) {
-      return false;
-    }
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const fertileStart = new Date(customerPeriodData.fertile_window_start);
-    fertileStart.setHours(0, 0, 0, 0);
-
-    const fertileEnd = new Date(customerPeriodData.fertile_window_end);
-    fertileEnd.setHours(0, 0, 0, 0);
-
-    return today >= fertileStart && today <= fertileEnd;
-  };
 
   const handleStartPeriod = async () => {
     const rangeDays = customerPeriodData?.avg_period_length || 7;
@@ -376,104 +308,6 @@ export default function HomeScreen() {
       rangeDays: rangeDays,
       periodId: activePeriodId,
     });
-  };
-
-  const getDaysToNextEvent = () => {
-    if (!customerPeriodData) return null;
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    let minDays = null;
-    let eventType = null;
-
-    // Check days to ovulation
-    if (customerPeriodData.ovulation_date) {
-      const ovulationDate = new Date(customerPeriodData.ovulation_date);
-      ovulationDate.setHours(0, 0, 0, 0);
-      const daysToOvulation = Math.ceil(
-        (ovulationDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
-      );
-
-      if (daysToOvulation > 0) {
-        minDays = daysToOvulation;
-        eventType = 'Ovulation';
-      }
-    }
-
-    // Check days to next period
-    if (customerPeriodData.next_period_date) {
-      const nextPeriodDate = new Date(customerPeriodData.next_period_date);
-      nextPeriodDate.setHours(0, 0, 0, 0);
-      const daysToPeriod = Math.ceil(
-        (nextPeriodDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
-      );
-
-      if (daysToPeriod > 0 && (minDays === null || daysToPeriod < minDays)) {
-        minDays = daysToPeriod;
-        eventType = 'Next Period';
-      }
-    }
-
-    // Check days to end of fertile window if currently in it
-    if (isInFertileWindow() && customerPeriodData.fertile_window_end) {
-      const fertileEnd = new Date(customerPeriodData.fertile_window_end);
-      fertileEnd.setHours(0, 0, 0, 0);
-      const daysToFertileEnd = Math.ceil(
-        (fertileEnd.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
-      );
-
-      if (daysToFertileEnd >= 0) {
-        minDays = daysToFertileEnd;
-        eventType = 'Fertile Window Ends';
-      }
-    }
-
-    return { days: minDays, eventType };
-  };
-
-  const getNextEventLabel = () => {
-    const nextEvent = getDaysToNextEvent();
-    return nextEvent?.eventType || 'Next Event';
-  };
-
-  const getNextEventDate = () => {
-    if (!customerPeriodData) return null;
-
-    const today = new Date();
-    let targetDate = null;
-
-    if (customerPeriodData.ovulation_date) {
-      const ovulationDate = new Date(customerPeriodData.ovulation_date);
-      const daysToOvulation = Math.ceil(
-        (ovulationDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
-      );
-
-      if (customerPeriodData.next_period_date) {
-        const nextPeriodDate = new Date(customerPeriodData.next_period_date);
-        const daysToPeriod = Math.ceil(
-          (nextPeriodDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
-        );
-
-        if (daysToOvulation > 0 && daysToOvulation < daysToPeriod) {
-          targetDate = ovulationDate;
-        } else {
-          targetDate = nextPeriodDate;
-        }
-      } else if (daysToOvulation > 0) {
-        targetDate = ovulationDate;
-      }
-    } else if (customerPeriodData.next_period_date) {
-      targetDate = new Date(customerPeriodData.next_period_date);
-    }
-
-    return targetDate
-      ? targetDate.toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-        })
-      : null;
   };
 
   // Simple helper functions using server-calculated data
@@ -745,49 +579,59 @@ export default function HomeScreen() {
             <Text style={styles.seeAllText}>See All</Text>
           </TouchableOpacity>
         </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.blogsScroll}
-        >
-          {latestBlogs.map(blog => (
-            <TouchableOpacity
-              key={blog.id}
-              style={styles.blogCard}
-              onPress={() =>
-                navigation.navigate(SCREENS.BLOG_DETAIL, { blog } as any)
-              }
-              activeOpacity={0.8}
-            >
-              <Image source={blog.image} style={styles.blogCardImage} />
-              <View style={styles.blogCardContent}>
-                <View style={styles.blogCardBadge}>
-                  <Text style={styles.blogCardBadgeText}>{blog.category}</Text>
+        {isLoadingBlogs ? (
+          <View style={styles.blogsLoadingContainer}>
+            <ActivityIndicator size="small" color={THEME_COLORS.primary} />
+          </View>
+        ) : blogs.length === 0 ? (
+          <View style={styles.blogsEmptyContainer}>
+            <Text style={styles.blogsEmptyText}>No articles available yet</Text>
+          </View>
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.blogsScroll}
+          >
+            {blogs.map(blog => (
+              <TouchableOpacity
+                key={blog.id}
+                style={styles.blogCard}
+                onPress={() =>
+                  navigation.navigate(SCREENS.BLOG_DETAIL, {
+                    blogId: blog.id,
+                  } as any)
+                }
+                activeOpacity={0.8}
+              >
+                <View style={styles.placeholderBlogImage}>
+                  <FontelloIcon
+                    name="doc-text"
+                    size={32}
+                    color={THEME_COLORS.primary}
+                  />
                 </View>
-                <Text style={styles.blogCardTitle} numberOfLines={2}>
-                  {blog.title}
-                </Text>
-                <View style={styles.blogCardFooter}>
-                  <Text style={styles.blogCardReadTime}>{blog.readTime}</Text>
+                <View style={styles.blogCardContent}>
+                  <View style={styles.blogCardBadge}>
+                    <Text style={styles.blogCardBadgeText}>Article</Text>
+                  </View>
+                  <Text style={styles.blogCardTitle} numberOfLines={2}>
+                    {blog.title}
+                  </Text>
+                  <Text style={styles.blogCardExcerpt} numberOfLines={2}>
+                    {blog.short_description || 'Read more...'}
+                  </Text>
+                  <View style={styles.blogCardFooter}>
+                    <Text style={styles.blogCardReadTime}>
+                      {formatBlogDate(blog.published_date)}
+                    </Text>
+                  </View>
                 </View>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
       </ScrollView>
-      <DiaryModal
-        visible={showDiaryModal}
-        onClose={() => setShowDiaryModal(false)}
-        initialDate={new Date()}
-        initialText={diaryText}
-        onSave={(date, text) => {
-          // Handle save logic here
-          handleDiarySave(date, text);
-        }}
-        onDateChange={date => {
-          loadDiary(date);
-        }}
-      />
     </SafeAreaView>
   );
 }
@@ -946,6 +790,13 @@ const styles = StyleSheet.create({
     height: 140,
     backgroundColor: '#E5E7EB',
   },
+  placeholderBlogImage: {
+    width: '100%',
+    height: 140,
+    backgroundColor: THEME_COLORS.primary + '10',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   blogCardContent: {
     padding: 12,
   },
@@ -969,12 +820,31 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 8,
   },
+  blogCardExcerpt: {
+    fontSize: 13,
+    color: '#666',
+    lineHeight: 18,
+    marginBottom: 8,
+  },
   blogCardFooter: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   blogCardReadTime: {
     fontSize: 12,
+    color: '#999',
+  },
+  blogsLoadingContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
+  },
+  blogsEmptyContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
+    paddingHorizontal: STYLE.spacing.ph,
+  },
+  blogsEmptyText: {
+    fontSize: 14,
     color: '#999',
   },
   checkInCard: {

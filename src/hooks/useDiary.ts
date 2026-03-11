@@ -69,7 +69,9 @@ export function useDiary(): UseDiaryReturn {
         content,
       };
 
+      console.log('useDiary - Sending diary entry:', payload);
       const response = await apiClient.post<any>(APIS.V1.DAIRY.ENTRY, payload);
+      console.log('useDiary - Server response:', response);
 
       // Update local state with saved entry
       setDiaryEntry({
@@ -79,7 +81,7 @@ export function useDiary(): UseDiaryReturn {
 
       return response?.detail?.message ?? 'Diary entry saved successfully!';
     } catch (err: any) {
-      console.info('Failed to save diary entry:', err);
+      console.error('useDiary - Failed to save diary entry:', err);
       setError(err.message || 'Failed to save diary entry');
       throw err;
     } finally {
