@@ -1,127 +1,142 @@
 // constants/apis.ts
 // Use your computer's IP address for physical devices/emulators
 // Find your IP: macOS: ifconfig | grep "inet " | grep -v 127.0.0.1
-export const BASE_URL = 'http://192.168.108.134:7865';
-// export const BASE_URL = 'http://localhost:7865'; // Only works in web browser
+// export const BASE_URL = 'http://192.168.108.134:7865';
+export const BASE_URL = 'http://localhost:7865'; // Only works in web browser
 const API_VERSION = 'v1';
 
-const AUTH_API = {
-  LOGIN: `/api/${API_VERSION}/auth/login/`,
-  REFRESH: `/api/${API_VERSION}/auth/refresh/`,
-  SEND_OTP: `/api/${API_VERSION}/auth/send-otp/`,
-  getVerifyOTP: (id: string) => `/api/${API_VERSION}/auth/verify-otp/${id}/`,
-  LOGIN_WITH_OTP: `/api/${API_VERSION}/auth/login-otp/`,
+const auth = {
+  login: () => `/api/${API_VERSION}/auth/login/`,
+  refresh: () => `/api/${API_VERSION}/auth/refresh/`,
+  sendOtp: () => `/api/${API_VERSION}/auth/send-otp/`,
+  verifyOtp: (id: string) => `/api/${API_VERSION}/auth/verify-otp/${id}/`,
+  loginWithOtp: () => `/api/${API_VERSION}/auth/login-otp/`,
+  changePassword: () => `/api/${API_VERSION}/auth/change-password/`,
 };
 
-const CUSTOMER_API = {
-  REGISTER: `/api/${API_VERSION}/customer/register/`,
-  PROFILE: `/api/${API_VERSION}/customer/profile/`,
-  WEIGHT_ENTRY: `/api/${API_VERSION}/customer/profile/wight-entry/`,
-  HEALTH_ANALYSIS: `/api/${API_VERSION}/customer/health-analysis/`,
-  PREFERENCES: `/api/${API_VERSION}/customer/preferences/`,
-  PREFERENCES_OPTIONS: `/api/${API_VERSION}/customer/preferences/options/`,
-  getProfile: (id: string | number) =>
-    `/api/${API_VERSION}/customer/profile/${id}/`, // dynamic
+const customer = {
+  register: () => `/api/${API_VERSION}/customer/register/`,
+  profile: () => `/api/${API_VERSION}/customer/profile/`,
+  weightEntry: () => `/api/${API_VERSION}/customer/profile/wight-entry/`,
+  healthAnalysis: () => `/api/${API_VERSION}/customer/health-analysis/`,
+  preferences: () => `/api/${API_VERSION}/customer/preferences/`,
+  preferencesOptions: () => `/api/${API_VERSION}/customer/preferences/options/`,
+  profileById: (id: string | number) =>
+    `/api/${API_VERSION}/customer/profile/${id}/`,
 };
 
-const DAIRY = {
-  ENTRY: `/api/${API_VERSION}/diary/entry/`,
-  ENTRY_FROM_DATE: `/api/${API_VERSION}/diary/entry-by-date/`,
-};
-const PERIOD = {
-  ACTIVE: `/api/${API_VERSION}/period/active/`,
-  START: `/api/${API_VERSION}/period/start/`,
-  END: `/api/${API_VERSION}/period/end/`,
-  LIST: `/api/${API_VERSION}/period/list/`,
-  CUSTOMER_DATA: `/api/${API_VERSION}/period/customer-data/`,
-  PREGNANCY_CHANCE: `/api/${API_VERSION}/period/pregnancy-chance/`,
-};
-const ACTIVITIES = {
-  DAILY_ACTION_LIST: `/api/${API_VERSION}/activities/daily-actions/`,
-  RATING_LIST: `/api/${API_VERSION}/activities/rating-lists/`,
-  getDailyEntires: (dateStr: string) =>
-    `/api/${API_VERSION}/activities/daily-entries/${dateStr}`,
-  getDailyDetailed: (dateStr: string) =>
-    `/api/${API_VERSION}/activities/daily-entries-detailed/${dateStr}`,
-  CREATE_DAILY_ENTRY: `/api/${API_VERSION}/activities/daily-entries/`,
+const diary = {
+  entry: () => `/api/${API_VERSION}/diary/entry/`,
+  entryFromDate: () => `/api/${API_VERSION}/diary/entry-by-date/`,
 };
 
-const HYDRATION = {
-  getHydrationLog: (dateStr: string) =>
-    `/api/${API_VERSION}/hydration/hydration/${dateStr}`,
-  CREATE_UPDATE_HYDRATION: `/api/${API_VERSION}/hydration/hydration/`,
-  HYDRATION_CONTENT: `/api/${API_VERSION}/hydration/hydration-content/`,
+const period = {
+  active: () => `/api/${API_VERSION}/period/active/`,
+  start: () => `/api/${API_VERSION}/period/start/`,
+  end: () => `/api/${API_VERSION}/period/end/`,
+  list: () => `/api/${API_VERSION}/period/list/`,
+  customerData: () => `/api/${API_VERSION}/period/customer-data/`,
+  pregnancyChance: () => `/api/${API_VERSION}/period/pregnancy-chance/`,
 };
 
-const MEDICATION = {
-  MEDICATIONS: `/api/${API_VERSION}/medication/medications/`,
-  getMedicationsWithDoses: (dateStr: string) =>
-    `/api/${API_VERSION}/medication/medications/by-date/${dateStr}`,
+const activities = {
+  dailyActionList: () => `/api/${API_VERSION}/activities/daily-actions/`,
+  ratingList: () => `/api/${API_VERSION}/activities/rating-lists/`,
+  dailyEntries: (dateStr: string) =>
+    `/api/${API_VERSION}/activities/daily-entries/${dateStr}/`,
+  dailyEntriesDetailed: (dateStr: string) =>
+    `/api/${API_VERSION}/activities/daily-entries-detailed/${dateStr}/`,
+  createDailyEntry: () => `/api/${API_VERSION}/activities/daily-entries/`,
+};
+
+const hydration = {
+  hydrationLog: (dateStr: string) =>
+    `/api/${API_VERSION}/hydration/hydration/${dateStr}/`,
+  createOrUpdateHydration: () => `/api/${API_VERSION}/hydration/hydration/`,
+  hydrationContent: () => `/api/${API_VERSION}/hydration/hydration-content/`,
+};
+
+const medication = {
+  medications: () => `/api/${API_VERSION}/medication/medications/`,
+  medicationsByDate: (dateStr: string) =>
+    `/api/${API_VERSION}/medication/medications/by-date/${dateStr}/`,
   updateMedication: (id: number) =>
-    `/api/${API_VERSION}/medication/medications/${id}`,
+    `/api/${API_VERSION}/medication/medications/${id}/`,
   deleteMedication: (id: number) =>
-    `/api/${API_VERSION}/medication/medications/${id}`,
-  TOGGLE_DOSE: `/api/${API_VERSION}/medication/medication-log/`,
-  getStats: (dateStr: string) =>
-    `/api/${API_VERSION}/medication/medication-stats/${dateStr}`,
+    `/api/${API_VERSION}/medication/medications/${id}/`,
+  toggleDose: () => `/api/${API_VERSION}/medication/medication-log/`,
+  stats: (dateStr: string) =>
+    `/api/${API_VERSION}/medication/medication-stats/${dateStr}/`,
 };
 
-const GENERAL = {
-  DAILY_TIPS: `/api/${API_VERSION}/general/daily-tips/`,
-  getVersion: (os: string) => `/api/${API_VERSION}/general/app-version/${os}/`,
-  getAnimation: (name: string) =>
+const general = {
+  dailyTips: () => `/api/${API_VERSION}/general/daily-tips/`,
+  appVersion: (os: string) => `/api/${API_VERSION}/general/app-version/${os}/`,
+  animation: (name: string) =>
     `/api/${API_VERSION}/general/animations/${name}/`,
 };
 
-const BLOG = {
-  LIST_POSTS: `/api/${API_VERSION}/blog/posts/`,
-  getLatestPosts: (limit: number) => `/api/${API_VERSION}/blog/posts/?limit=${limit}&page=1`,
-  getPaginatedPosts: (page: number, limit: number = 10) => `/api/${API_VERSION}/blog/posts/?page=${page}&limit=${limit}`,
-  getPost: (id: string) => `/api/${API_VERSION}/blog/posts/${id}/`,
+const blog = {
+  listPosts: () => `/api/${API_VERSION}/blog/posts/`,
+  latestPosts: (limit: number) =>
+    `/api/${API_VERSION}/blog/posts/?limit=${limit}&page=1`,
+  paginatedPosts: (page: number, limit: number = 10) =>
+    `/api/${API_VERSION}/blog/posts/?page=${page}&limit=${limit}`,
+  post: (id: string) => `/api/${API_VERSION}/blog/posts/${id}/`,
 };
 
-const STATIC_CONTENT = {
-  LIST: `/api/${API_VERSION}/static-content/`,
-  getContent: (contentType: string) =>
+const staticContent = {
+  list: () => `/api/${API_VERSION}/static-content/`,
+  content: (contentType: string) =>
     `/api/${API_VERSION}/static-content/${contentType}/`,
 };
 
-const REMINDER = {
-  SETTINGS: `/api/${API_VERSION}/reminder/reminder-settings/`,
-  INFO: `/api/${API_VERSION}/reminder/reminder-info/`,
+const reminder = {
+  settings: () => `/api/${API_VERSION}/reminder/reminder-settings/`,
+  info: () => `/api/${API_VERSION}/reminder/reminder-info/`,
 };
 
-const NUTRITION = {
-  getSummary: (dateStr: string) =>
-    `/api/${API_VERSION}/nutrition/summary/${dateStr}`,
-  LOGS: `/api/${API_VERSION}/nutrition/logs/`,
-  updateLog: (id: number) => `/api/${API_VERSION}/nutrition/logs/${id}`,
-  deleteLog: (id: number) => `/api/${API_VERSION}/nutrition/logs/${id}`,
-  GOAL: `/api/${API_VERSION}/nutrition/goal/`,
-  FOOD_SUGGESTIONS: `/api/${API_VERSION}/nutrition/food-suggestions/`,
+const nutrition = {
+  summary: (dateStr: string) =>
+    `/api/${API_VERSION}/nutrition/summary/${dateStr}/`,
+  logs: () => `/api/${API_VERSION}/nutrition/logs/`,
+  updateLog: (id: number) => `/api/${API_VERSION}/nutrition/logs/${id}/`,
+  deleteLog: (id: number) => `/api/${API_VERSION}/nutrition/logs/${id}/`,
+  goal: () => `/api/${API_VERSION}/nutrition/goal/`,
+  foodSuggestions: () => `/api/${API_VERSION}/nutrition/food-suggestions/`,
 };
 
-const CONTACT_FEEDBACK = {
+const contactFeedback = {
   submitContactUs: () => `/api/${API_VERSION}/contact-feedback/contact-us/`,
   submitFeedback: () => `/api/${API_VERSION}/contact-feedback/feedback/`,
   listContactUs: () => `/api/${API_VERSION}/contact-feedback/contact-us/`,
   listFeedback: () => `/api/${API_VERSION}/contact-feedback/feedback/`,
 };
 
+const pregnancy = {
+  status: () => `/api/${API_VERSION}/pregnancy/status/`,
+  active: () => `/api/${API_VERSION}/pregnancy/active/`,
+  create: () => `/api/${API_VERSION}/pregnancy/create/`,
+  update: () => `/api/${API_VERSION}/pregnancy/update/`,
+  end: () => `/api/${API_VERSION}/pregnancy/end/`,
+  delete: () => `/api/${API_VERSION}/pregnancy/delete/`,
+};
+
 export const APIS = {
-  V1: {
-    AUTH: AUTH_API,
-    CUSTOMER: CUSTOMER_API,
-    DAIRY: DAIRY,
-    PERIOD: PERIOD,
-    ACTIVITIES: ACTIVITIES,
-    GENERAL: GENERAL,
-    BLOG: BLOG,
-    HYDRATION: HYDRATION,
-    REMINDER: REMINDER,
-    MEDICATION: MEDICATION,
-    NUTRITION: NUTRITION,
-    STATIC_CONTENT: STATIC_CONTENT,
-    CONTACT_FEEDBACK: CONTACT_FEEDBACK,
-  },
+  v1: {
+    auth: auth,
+    customer: customer,
+    diary: diary,
+    period: period,
+    activities: activities,
+    general: general,
+    blog: blog,
+    hydration: hydration,
+    reminder: reminder,
+    medication: medication,
+    nutrition: nutrition,
+    static_content: staticContent,
+    contact_feedback: contactFeedback,
+    pregnancy: pregnancy,
+  }
 };

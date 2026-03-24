@@ -41,7 +41,7 @@ export function useRatingData(): RatingData {
       setError(null);
       try {
         const res = await apiClient.get<RatingDataResponse>(
-          APIS.V1.ACTIVITIES.RATING_LIST,
+          APIS.v1.activities.ratingList(),
         );
         setSections(res.sections || []);
       } catch (e) {

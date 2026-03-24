@@ -44,7 +44,7 @@ export function usePeriodActions(): UsePeriodActionsReturn {
       setError(null);
 
       const response = await apiClient.post<any>(
-        APIS.V1.PERIOD.START,
+        APIS.v1.period.start(),
         payload,
       );
 
@@ -64,7 +64,7 @@ export function usePeriodActions(): UsePeriodActionsReturn {
       setError(null);
 
       const response = await apiClient.post<any>(
-        APIS.V1.PERIOD.END,
+        APIS.v1.period.end(),
         payload,
       );
 
@@ -82,7 +82,7 @@ export function usePeriodActions(): UsePeriodActionsReturn {
     try {
       setError(null);
 
-      const response = await apiClient.get<any>(APIS.V1.PERIOD.ACTIVE);
+      const response = await apiClient.get<any>(APIS.v1.period.active());
 
       // If no active period, backend might return null or empty object
       if (!response || !response.id) {

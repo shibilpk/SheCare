@@ -25,7 +25,7 @@ export function useHydrationContent() {
       try {
         setIsLoading(true);
         const response = await apiClient.get<HydrationContent>(
-          APIS.V1.HYDRATION.HYDRATION_CONTENT,
+          APIS.v1.hydration.hydrationContent(),
           { is_auth: true }
         );
         setContent(response);

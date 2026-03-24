@@ -31,7 +31,7 @@ export interface DailyEntryResponse {
  */
 export async function saveDailyEntry(payload: DailyEntryPayload): Promise<DailyEntryResponse> {
   const response = await apiClient.post<DailyEntryResponse>(
-    APIS.V1.ACTIVITIES.CREATE_DAILY_ENTRY,
+    APIS.v1.activities.createDailyEntry(),
     payload
   );
   return response;
@@ -45,7 +45,7 @@ export async function fetchDailyEntry(date: Date): Promise<DailyEntryResponse | 
 
   try {
     const response = await apiClient.get<DailyEntryResponse>(
-      APIS.V1.ACTIVITIES.getDailyEntires(dateStr)
+      APIS.v1.activities.dailyEntries(dateStr)
     );
     return response;
   } catch (error: any) {

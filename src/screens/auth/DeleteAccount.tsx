@@ -5,7 +5,7 @@ import { THEME_COLORS } from '../../constants/colors';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../constants/navigation';
-import DeleteAccountSvg from '../../assets/images/delete-account.svg';
+import DeleteAccountSvg from '@src/assets/images/delete-account.svg';
 import FontelloIcon from '../../services/FontelloIcons';
 import { STYLE } from '../../constants/app';
 

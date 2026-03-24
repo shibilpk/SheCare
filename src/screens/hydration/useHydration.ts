@@ -32,7 +32,7 @@ export function useHydration(date: string) {
     try {
       setIsLoading(true);
       const response = await apiClient.get<HydrationLog>(
-        APIS.V1.HYDRATION.getHydrationLog(date),
+        APIS.v1.hydration.hydrationLog(date),
         { is_auth: true }
       );
       setHydrationLog(response);
@@ -42,7 +42,7 @@ export function useHydration(date: string) {
       if (err?.statusCode === 404) {
         try {
           const newLog = await apiClient.post<HydrationLog>(
-            APIS.V1.HYDRATION.CREATE_UPDATE_HYDRATION,
+            APIS.v1.hydration.createOrUpdateHydration(),
             {
               date,
               amount_ml: 0,
@@ -70,7 +70,7 @@ export function useHydration(date: string) {
     try {
       setIsUpdating(true);
       const response = await apiClient.post<HydrationLog>(
-        APIS.V1.HYDRATION.CREATE_UPDATE_HYDRATION,
+        APIS.v1.hydration.createOrUpdateHydration(),
         payload,
         { is_auth: true }
       );

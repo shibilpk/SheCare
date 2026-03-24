@@ -11,16 +11,16 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Input, Button } from '../../components';
-import apiClient, { APIError } from '../../services/ApiClient';
-import useStore from '../../store/useStore';
+import { Input, Button } from '@src/components';
+import apiClient, { APIError } from '@src/services/ApiClient';
+import useStore from '@src/store/useStore';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList, SCREENS } from '../../constants/navigation';
-import { APIS } from '../../constants/apis';
+import { RootStackParamList, SCREENS } from '@src/constants/navigation';
+import { APIS } from '@src/constants/apis';
 import LinearGradient from 'react-native-linear-gradient';
-import FontelloIcon from '../../services/FontelloIcons';
-import { STYLE } from '../../constants/app';
+import FontelloIcon from '@src/services/FontelloIcons';
+import { STYLE } from '@src/constants/app';
 import {
   clearFieldError,
   FormErrors,
@@ -28,7 +28,7 @@ import {
   validateEmail,
   validatePhone,
   parseValidationErrors,
-} from '../../utils/formUtils';
+} from '@src/utils/formUtils';
 type InputMode = 'email' | 'phone';
 // Types for login
 
@@ -97,7 +97,7 @@ const LoginScreen: React.FC = () => {
           ? { email: loginData.email, password: loginData.password }
           : { phone: loginData.phone, password: loginData.password };
 
-      const response = await apiClient.post<any>(APIS.V1.AUTH.LOGIN, payload, {
+      const response = await apiClient.post<any>(APIS.v1.auth.login(), payload, {
         is_auth: false,
       });
 
@@ -136,7 +136,7 @@ const LoginScreen: React.FC = () => {
       const payload = inputMode === 'email' ? { email: loginData.email } : { phone: loginData.phone };
 
       const response = await apiClient.post<any>(
-        APIS.V1.AUTH.SEND_OTP,
+        APIS.v1.auth.sendOtp(),
         payload,
         { is_auth: false },
       );
@@ -193,7 +193,7 @@ const LoginScreen: React.FC = () => {
               {/* Header Section */}
               <View style={styles.headerSection}>
                 <Image
-                  source={require('../../assets/images/calendar-woman.png')}
+                  source={require('@src/assets/images/calendar-woman.png')}
                   style={styles.calendarWoman}
                   resizeMode="contain"
                 />
@@ -304,7 +304,7 @@ const LoginScreen: React.FC = () => {
                       }}
                     >
                       <Image
-                        source={require('../../assets/images/icons/icons8-google-50.png')}
+                        source={require('@src/assets/images/icons/icons8-google-50.png')}
                         style={styles.socialIcon}
                       />
                     </TouchableOpacity>
@@ -315,7 +315,7 @@ const LoginScreen: React.FC = () => {
                       }}
                     >
                       <Image
-                        source={require('../../assets/images/icons/icons8-github-50.png')}
+                        source={require('@src/assets/images/icons/icons8-github-50.png')}
                         style={styles.socialIcon}
                       />
                     </TouchableOpacity>
@@ -326,7 +326,7 @@ const LoginScreen: React.FC = () => {
                       }}
                     >
                       <Image
-                        source={require('../../assets/images/icons/icons8-instagram-50.png')}
+                        source={require('@src/assets/images/icons/icons8-instagram-50.png')}
                         style={styles.socialIcon}
                       />
                     </TouchableOpacity>

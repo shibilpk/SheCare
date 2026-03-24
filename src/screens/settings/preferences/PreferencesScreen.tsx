@@ -44,7 +44,7 @@ const PreferencesScreen: React.FC = () => {
   const fetchProfile = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get<any>(APIS.V1.CUSTOMER.PROFILE);
+      const response = await apiClient.get<any>(APIS.v1.customer.profile());
       if (response.profile) {
         const lang = response.profile.language || 'en';
         const tz = response.profile.timezone || 'Asia/Kolkata';
@@ -64,7 +64,7 @@ const PreferencesScreen: React.FC = () => {
   const fetchPreferencesOptions = async () => {
     try {
       const response = await apiClient.get<any>(
-        APIS.V1.CUSTOMER.PREFERENCES_OPTIONS,
+        APIS.v1.customer.preferencesOptions(),
       );
       if (response) {
         setLanguageOptions(response.languages || []);
@@ -96,7 +96,7 @@ const PreferencesScreen: React.FC = () => {
     try {
       setSaving(true);
       const response = await apiClient.patch<any>(
-        APIS.V1.CUSTOMER.PREFERENCES,
+        APIS.v1.customer.preferences(),
         {
           language,
           timezone,

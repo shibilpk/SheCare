@@ -92,7 +92,7 @@ export function useMedication(): UseMedicationReturn {
 
       const dateStr = date.toISOString().split('T')[0];
       const response = await apiClient.get<MedicationWithDoses[]>(
-        APIS.V1.MEDICATION.getMedicationsWithDoses(dateStr)
+        APIS.v1.medication.medicationsByDate(dateStr)
       );
 
       setMedications(response);
@@ -111,7 +111,7 @@ export function useMedication(): UseMedicationReturn {
     try {
       const dateStr = date.toISOString().split('T')[0];
       const response = await apiClient.get<MedicationStats>(
-        APIS.V1.MEDICATION.getStats(dateStr)
+        APIS.v1.medication.stats(dateStr)
       );
 
       setStats(response);
@@ -128,7 +128,7 @@ export function useMedication(): UseMedicationReturn {
       setError(null);
 
       const response = await apiClient.post<Medication>(
-        APIS.V1.MEDICATION.MEDICATIONS,
+        APIS.v1.medication.medications(),
         payload
       );
 
@@ -148,7 +148,7 @@ export function useMedication(): UseMedicationReturn {
       setError(null);
 
       const response = await apiClient.put<Medication>(
-        APIS.V1.MEDICATION.updateMedication(id),
+        APIS.v1.medication.updateMedication(id),
         payload
       );
 
@@ -165,7 +165,7 @@ export function useMedication(): UseMedicationReturn {
   const toggleDose = useCallback(async (payload: ToggleDosePayload): Promise<void> => {
     try {
       await apiClient.post(
-        APIS.V1.MEDICATION.TOGGLE_DOSE,
+        APIS.v1.medication.toggleDose(),
         payload
       );
 
@@ -214,7 +214,7 @@ export function useMedication(): UseMedicationReturn {
       setError(null);
 
       await apiClient.delete(
-        APIS.V1.MEDICATION.deleteMedication(id)
+        APIS.v1.medication.deleteMedication(id)
       );
 
       // Remove from local state

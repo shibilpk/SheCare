@@ -79,7 +79,7 @@ export function useProfile(): UseProfileReturn {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await apiClient.get<any>(APIS.V1.CUSTOMER.PROFILE);
+      const response = await apiClient.get<any>(APIS.v1.customer.profile());
 
       if (response.profile) {
         setProfile(response.profile);
@@ -129,7 +129,7 @@ export function useProfile(): UseProfileReturn {
         console.log(formData);
 
         const response = await apiClient.patch<any>(
-          APIS.V1.CUSTOMER.PROFILE,
+          APIS.v1.customer.profile(),
           formData,
         );
 
@@ -162,7 +162,7 @@ export function useProfile(): UseProfileReturn {
       } as any);
 
       const response = await apiClient.patch<any>(
-        APIS.V1.CUSTOMER.PROFILE,
+        APIS.v1.customer.profile(),
         formData,
         { headers: { 'Content-Type': 'multipart/form-data' } },
       );
@@ -189,7 +189,7 @@ export function useProfile(): UseProfileReturn {
         const formData = new FormData();
         appendFormDataRecursively(formData, weightData);
         const response = await apiClient.post<any>(
-          APIS.V1.CUSTOMER.WEIGHT_ENTRY,
+          APIS.v1.customer.weightEntry(),
           formData,
         );
 

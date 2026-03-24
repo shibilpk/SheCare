@@ -19,7 +19,7 @@ export default function Fireworks({
 
   // Fetch animation from backend
   useEffect(() => {
-    const animationEndpoint = APIS.V1.GENERAL.getAnimation('fireworks');
+    const animationEndpoint = APIS.v1.general.animation('fireworks');
     const fullUrl = `${BASE_URL}${animationEndpoint}`;
     setAnimationUrl(fullUrl);
   }, []);

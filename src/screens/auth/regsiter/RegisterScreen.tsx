@@ -135,7 +135,7 @@ const RegisterScreen: React.FC = () => {
 
     try {
       const response = await apiClient.post<any>(
-        APIS.V1.CUSTOMER.REGISTER,
+        APIS.v1.customer.register(),
         apiData,
         { is_auth: false },
       );

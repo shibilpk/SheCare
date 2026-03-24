@@ -78,7 +78,7 @@ const FeedbackScreen: React.FC = () => {
 
     try {
       setLoading(true);
-      await apiClient.post(APIS.V1.CONTACT_FEEDBACK.submitFeedback(), formData);
+      await apiClient.post(APIS.v1.contactFeedback.submitFeedback(), formData);
 
       Alert.alert(
         'Success',

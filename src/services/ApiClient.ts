@@ -231,7 +231,7 @@ class ApiClient {
         throw new Error('No refresh token available');
       }
 
-      const refreshUrl = `${this.baseURL}${APIS.V1.AUTH.REFRESH}`;
+      const refreshUrl = `${this.baseURL}${APIS.v1.auth.refresh()}`;
 
 
       const response = await fetch(refreshUrl, {

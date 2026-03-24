@@ -10,7 +10,7 @@ type StoreState = {
   isLoggedIn: () => boolean;
 
   isPregnant: boolean;
-  setIsPregnant?: (isPregnant: boolean) => void;
+  setIsPregnant: (isPregnant: boolean) => void;
 
   isDarkMode: undefined | boolean;
   setDarkMode: (isDarkMode: boolean | undefined) => void;

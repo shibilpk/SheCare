@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,36 +8,48 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import LinearGradient from 'react-native-linear-gradient';
 import FontelloIcon from '../../../services/FontelloIcons';
 import { THEME_COLORS } from '../../../constants/colors';
-import { RootStackParamList } from '../../../constants/navigation';
-import useStore from '../../../store/useStore';
 import { KeyboardAvoidingModal } from '../../../components';
+import { ScreenLoader } from '../../../components/common/ScreenLoader';
 import { STYLE } from '../../../constants/app';
+import { usePregnancy, BabyDetails } from './usePregnancy';
 
 export default function PregnancySettings() {
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation = useNavigation();
+  const {
+    pregnancy,
+    isLoading,
+    isUpdating,
+    isPregnant,
+    createPregnancy,
+    updatePregnancy,
+    endPregnancy,
+  } = usePregnancy();
 
-  const isPregnant = useStore(state => state.isPregnant ?? false);
-  const setIsPregnant = useStore(state => state.setIsPregnant ?? (() => {}));
-
-  const [pregnancyEnabled, setPregnancyEnabled] = useState(isPregnant);
-  const [dueDate, setDueDate] = useState(new Date());
+  const [dueDate, setDueDate] = useState<Date | null>(null);
   const [showDueDatePicker, setShowDueDatePicker] = useState(false);
   const [babyName, setBabyName] = useState('');
   const [doctorName, setDoctorName] = useState('');
   const [hospitalName, setHospitalName] = useState('');
-  const [kickCounter, setKickCounter] = useState(true);
-  const [contractionTimer, setContractionTimer] = useState(true);
-  const [weeklyUpdates, setWeeklyUpdates] = useState(true);
-  const [appointmentReminders, setAppointmentReminders] = useState(true);
+  const [togglePregnancy, setTogglePregnancy] = useState(false);
+
+
+  // Populate form when pregnancy data is available
+  useEffect(() => {
+    if (pregnancy) {
+      setDueDate(new Date(pregnancy.due_date));
+      setBabyName(pregnancy.baby_name || '');
+      setDoctorName(pregnancy.doctor_name || '');
+      setHospitalName(pregnancy.hospital_name || '');
+    }
+  }, [pregnancy]);
 
   // Turn Off Reason Modal States
   const [showTurnOffModal, setShowTurnOffModal] = useState(false);
@@ -52,22 +64,33 @@ export default function PregnancySettings() {
   const [birthLength, setBirthLength] = useState('');
   const [childGender, setChildGender] = useState<'boy' | 'girl' | ''>('');
 
-  const calculateWeeks = () => {
-    const today = new Date();
-    const timeDiff = dueDate.getTime() - today.getTime();
-    const weeksRemaining = Math.ceil(timeDiff / (1000 * 60 * 60 * 24 * 7));
-    const currentWeek = 40 - weeksRemaining;
-    return currentWeek > 0 ? currentWeek : 0;
-  };
+  const handleSave = async () => {
 
-  const handleSave = () => {
-    setIsPregnant(pregnancyEnabled);
-    Alert.alert('Success', 'Pregnancy settings saved successfully!', [
-      {
-        text: 'OK',
-        onPress: () => navigation.goBack(),
-      },
-    ]);
+    const payload = {
+      ...(dueDate && { due_date: dueDate.toISOString().split('T')[0] }),
+      baby_name: babyName,
+      doctor_name: doctorName,
+      hospital_name: hospitalName,
+    };
+
+    try {
+      // Use createPregnancy if no existing pregnancy, otherwise updatePregnancy
+      if (pregnancy?.id) {
+        await updatePregnancy(payload);
+      } else {
+        await createPregnancy(payload);
+      }
+      setTogglePregnancy(true);
+
+      Alert.alert('Success', 'Pregnancy settings saved successfully!', [
+        {
+          text: 'OK',
+          onPress: () => navigation.goBack(),
+        },
+      ]);
+    } catch (_error) {
+      Alert.alert('Error', 'Failed to save pregnancy settings. Please try again.');
+    }
   };
 
   const handleDueDateConfirm = (date: Date) => {
@@ -81,62 +104,111 @@ export default function PregnancySettings() {
   };
 
   const handlePregnancyToggle = (value: boolean) => {
-    if (!value && pregnancyEnabled) {
+    setTogglePregnancy(value);
+    console.log(isPregnant,"isPregnant");
+
+    if (!value && isPregnant) {
       // Turning off pregnancy mode
       setShowTurnOffModal(true);
-    } else {
-      setPregnancyEnabled(value);
     }
   };
 
-  const handleTurnOffConfirm = () => {
+  const handleTurnOffConfirm = async () => {
     if (turnOffReason === 'born') {
       setShowTurnOffModal(false);
       setShowChildBornModal(true);
     } else if (turnOffReason === 'abortion' || turnOffReason === 'mistake') {
-      setPregnancyEnabled(false);
-      setShowTurnOffModal(false);
-      Alert.alert(
-        'Pregnancy Mode Disabled',
-        turnOffReason === 'abortion'
-          ? 'Our thoughts are with you during this difficult time.'
-          : 'Pregnancy mode has been turned off.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              setIsPregnant(false);
-              navigation.goBack();
+      const reason = turnOffReason === 'abortion' ? 'lost' : 'mistake';
+
+      try {
+        const result = await endPregnancy({ reason });
+
+        setShowTurnOffModal(false);
+        setTogglePregnancy(false);
+
+        Alert.alert(
+          result?.title || 'Pregnancy Mode Disabled',
+          result?.message || (turnOffReason === 'abortion'
+            ? 'Our thoughts are with you during this difficult time.'
+            : 'Pregnancy mode has been turned off.'),
+          [
+            {
+              text: 'OK',
+              onPress: () => navigation.goBack(),
             },
-          },
-        ]
-      );
+          ]
+        );
+      } catch (_error) {
+        Alert.alert('Error', 'Failed to update pregnancy status. Please try again.');
+      }
     }
   };
 
-  const handleChildBornSave = () => {
+  const handleChildBornSave = async () => {
     if (!childName.trim()) {
-      Alert.alert('Required', 'Please enter the baby\'s name');
+      Alert.alert('Required', "Please enter the baby's name");
       return;
     }
 
-    setPregnancyEnabled(false);
-    setShowChildBornModal(false);
+    try {
+      const baby_details: BabyDetails = {
+        child_name: childName,
+        birth_date: birthDate.toISOString().split('T')[0],
+        birth_weight: birthWeight ? Number.parseFloat(birthWeight) : undefined,
+        birth_length: birthLength ? Number.parseFloat(birthLength) : undefined,
+        child_gender: (childGender || '') as '' | 'boy' | 'girl',
+      };
 
-    Alert.alert(
-      'Congratulations! 🎉',
-      `Welcome to the world, ${childName}! Your pregnancy journey has been saved.`,
-      [
-        {
-          text: 'OK',
-          onPress: () => {
-            setIsPregnant(false);
-            navigation.goBack();
+      const result = await endPregnancy({ reason: 'born', baby_details });
+
+      setShowChildBornModal(false);
+      setTogglePregnancy(false);
+
+      Alert.alert(
+        result?.title || 'Congratulations! 🎉',
+        result?.message || `Welcome to the world, ${childName}! Your pregnancy journey has been saved.`,
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.goBack(),
           },
-        },
-      ]
-    );
+        ]
+      );
+    } catch (_error) {
+      Alert.alert('Error', 'Failed to save baby details. Please try again.');
+    }
   };
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        {/* Header */}
+        <LinearGradient
+          colors={[THEME_COLORS.primary, THEME_COLORS.secondary]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+        >
+          <View style={styles.header}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={styles.backButton}
+            >
+              <FontelloIcon name="left-open-mini" size={24} color="#000" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Pregnancy Settings</Text>
+            <View style={styles.placeholder} />
+          </View>
+        </LinearGradient>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <ScreenLoader message="Loading pregnancy data..." />
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -151,7 +223,7 @@ export default function PregnancySettings() {
             onPress={() => navigation.goBack()}
             style={styles.backButton}
           >
-            <FontelloIcon name="left-open-mini" size={24} color="#fff" />
+            <FontelloIcon name="left-open-mini" size={24} color="#000" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Pregnancy Settings</Text>
           <View style={styles.placeholder} />
@@ -178,7 +250,7 @@ export default function PregnancySettings() {
               </View>
             </View>
             <Switch
-              value={pregnancyEnabled}
+              value={togglePregnancy || isPregnant}
               onValueChange={handlePregnancyToggle}
               trackColor={{ false: '#ddd', true: THEME_COLORS.primary }}
               thumbColor="#fff"
@@ -186,8 +258,7 @@ export default function PregnancySettings() {
           </View>
         </View>
 
-        {pregnancyEnabled && (
-          <>
+
             {/* Pregnancy Information */}
             <View style={styles.card}>
               <View style={styles.sectionHeader}>
@@ -215,13 +286,19 @@ export default function PregnancySettings() {
                   </View>
                   <View style={styles.inputTextContainer}>
                     <Text style={styles.inputLabel}>Due Date</Text>
-                    <Text style={styles.inputValue}>
-                      {dueDate.toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })}
-                    </Text>
+                    {dueDate ? (
+                      <Text style={styles.inputValue}>
+                        {dueDate.toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })}
+                      </Text>
+                    ) : (
+                      <Text style={[styles.inputValue, { color: '#999' }]}>
+                        Select due date
+                      </Text>
+                    )}
                   </View>
                 </View>
                 <FontelloIcon name="right-open-mini" size={20} color="#999" />
@@ -243,7 +320,7 @@ export default function PregnancySettings() {
                   <View style={styles.inputTextContainer}>
                     <Text style={styles.inputLabel}>Current Week</Text>
                     <Text style={styles.inputValue}>
-                      Week {calculateWeeks()} of 40
+                      Week {pregnancy?.weeks_pregnant || 0} of 40
                     </Text>
                   </View>
                 </View>
@@ -338,128 +415,6 @@ export default function PregnancySettings() {
               </View>
             </View>
 
-            {/* Tracking Features */}
-            <View style={styles.card}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Tracking Features</Text>
-                <FontelloIcon
-                  name="chart-line"
-                  size={18}
-                  color={THEME_COLORS.primary}
-                />
-              </View>
-
-              <View style={styles.toggleRow}>
-                <View style={styles.toggleLeft}>
-                  <View
-                    style={[
-                      styles.toggleIconBox,
-                      { backgroundColor: '#FEF3C7' },
-                    ]}
-                  >
-                    <FontelloIcon name="child" size={20} color="#F59E0B" />
-                  </View>
-                  <View>
-                    <Text style={styles.toggleLabel}>Kick Counter</Text>
-                    <Text style={styles.toggleSubtext}>
-                      Track baby movements
-                    </Text>
-                  </View>
-                </View>
-                <Switch
-                  value={kickCounter}
-                  onValueChange={setKickCounter}
-                  trackColor={{ false: '#ddd', true: THEME_COLORS.primary }}
-                  thumbColor="#fff"
-                />
-              </View>
-
-              <View style={styles.divider} />
-
-              <View style={styles.toggleRow}>
-                <View style={styles.toggleLeft}>
-                  <View
-                    style={[
-                      styles.toggleIconBox,
-                      { backgroundColor: '#FCE7F3' },
-                    ]}
-                  >
-                    <FontelloIcon name="clock" size={20} color="#EC4899" />
-                  </View>
-                  <View>
-                    <Text style={styles.toggleLabel}>Contraction Timer</Text>
-                    <Text style={styles.toggleSubtext}>
-                      Monitor contractions
-                    </Text>
-                  </View>
-                </View>
-                <Switch
-                  value={contractionTimer}
-                  onValueChange={setContractionTimer}
-                  trackColor={{ false: '#ddd', true: THEME_COLORS.primary }}
-                  thumbColor="#fff"
-                />
-              </View>
-
-              <View style={styles.divider} />
-
-              <View style={styles.toggleRow}>
-                <View style={styles.toggleLeft}>
-                  <View
-                    style={[
-                      styles.toggleIconBox,
-                      { backgroundColor: '#D1FAE5' },
-                    ]}
-                  >
-                    <FontelloIcon name="bell" size={20} color="#10B981" />
-                  </View>
-                  <View>
-                    <Text style={styles.toggleLabel}>Weekly Updates</Text>
-                    <Text style={styles.toggleSubtext}>Get pregnancy tips</Text>
-                  </View>
-                </View>
-                <Switch
-                  value={weeklyUpdates}
-                  onValueChange={setWeeklyUpdates}
-                  trackColor={{ false: '#ddd', true: THEME_COLORS.primary }}
-                  thumbColor="#fff"
-                />
-              </View>
-
-              <View style={styles.divider} />
-
-              <View style={styles.toggleRow}>
-                <View style={styles.toggleLeft}>
-                  <View
-                    style={[
-                      styles.toggleIconBox,
-                      { backgroundColor: '#E0E7FF' },
-                    ]}
-                  >
-                    <FontelloIcon
-                      name="calendar-check-o"
-                      size={20}
-                      color="#6366F1"
-                    />
-                  </View>
-                  <View>
-                    <Text style={styles.toggleLabel}>
-                      Appointment Reminders
-                    </Text>
-                    <Text style={styles.toggleSubtext}>
-                      Never miss checkups
-                    </Text>
-                  </View>
-                </View>
-                <Switch
-                  value={appointmentReminders}
-                  onValueChange={setAppointmentReminders}
-                  trackColor={{ false: '#ddd', true: THEME_COLORS.primary }}
-                  thumbColor="#fff"
-                />
-              </View>
-            </View>
-
             {/* Information Card */}
             <View style={styles.infoCard}>
               <FontelloIcon name="info-circled" size={24} color="#3B82F6" />
@@ -473,33 +428,43 @@ export default function PregnancySettings() {
                 </Text>
               </View>
             </View>
-          </>
-        )}
 
-        {/* Save Button */}
-        <TouchableOpacity
-          style={styles.saveButton}
-          onPress={handleSave}
-          activeOpacity={0.8}
-        >
-          <LinearGradient
-            colors={[THEME_COLORS.primary, THEME_COLORS.secondary]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
+          <TouchableOpacity
+            style={[styles.saveButton, (isUpdating || (!isPregnant && !togglePregnancy)) && styles.saveButtonDisabled]}
+            onPress={handleSave}
+            activeOpacity={0.8}
+            disabled={isUpdating || (!isPregnant && !togglePregnancy)}
           >
-            <View style={styles.saveButtonGradient}>
-              <FontelloIcon name="floppy" size={20} color="#fff" />
-              <Text style={styles.saveButtonText}>Save Settings</Text>
-            </View>
-          </LinearGradient>
-        </TouchableOpacity>
+            <LinearGradient
+              colors={[THEME_COLORS.primary, THEME_COLORS.secondary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <View style={styles.saveButtonGradient}>
+                {isUpdating ? (
+                  <>
+                    <ActivityIndicator size="small" color="#fff" />
+                    <Text style={styles.saveButtonText}>
+                      Saving...
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <FontelloIcon name="floppy" size={20} color="#fff" />
+                    <Text style={styles.saveButtonText}>Save Settings</Text>
+                  </>
+                )}
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+
       </ScrollView>
 
       {/* Due Date Picker Modal */}
       <DateTimePickerModal
         isVisible={showDueDatePicker}
         mode="date"
-        date={dueDate}
+        date={dueDate || new Date()}
         minimumDate={new Date()}
         onConfirm={handleDueDateConfirm}
         onCancel={() => setShowDueDatePicker(false)}
@@ -521,6 +486,7 @@ export default function PregnancySettings() {
         onClose={() => {
           setShowTurnOffModal(false);
           setTurnOffReason(null);
+          setTogglePregnancy(isPregnant);
         }}
         title="Why are you turning off Pregnancy Mode?"
       >
@@ -610,7 +576,8 @@ export default function PregnancySettings() {
         visible={showChildBornModal}
         onClose={() => {
           setShowChildBornModal(false);
-          setPregnancyEnabled(true);
+          setTogglePregnancy(isPregnant);
+          // Keep pregnancy enabled if user cancels
         }}
         title="Baby Details"
         showScrollView={true}
@@ -844,35 +811,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f0f0',
     marginVertical: 12,
   },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-  },
-  toggleLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  toggleIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  toggleLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 2,
-  },
-  toggleSubtext: {
-    fontSize: 12,
-    color: '#666',
-  },
   infoCard: {
     flexDirection: 'row',
     backgroundColor: '#EFF6FF',
@@ -906,6 +844,9 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
     marginTop: 8,
+  },
+  saveButtonDisabled: {
+    opacity: 0.6,
   },
   saveButtonGradient: {
     flexDirection: 'row',

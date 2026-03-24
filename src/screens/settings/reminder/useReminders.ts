@@ -36,7 +36,7 @@ export function useReminders() {
     try {
       setIsLoading(true);
       const response = await apiClient.get<ReminderSettingsResponse>(
-        APIS.V1.REMINDER.SETTINGS,
+        APIS.v1.reminder.settings(),
         { is_auth: true },
       );
 
@@ -55,7 +55,7 @@ export function useReminders() {
   const fetchReminderInfo = useCallback(async () => {
     try {
       const response = await apiClient.get<{ reminder_info: string[] }>(
-        APIS.V1.REMINDER.INFO,
+        APIS.v1.reminder.info(),
         { is_auth: true },
       );
       setReminderInfo(response.reminder_info || []);
@@ -78,7 +78,7 @@ export function useReminders() {
           reminder: Reminder;
           detail: { title: string; message: string };
         }>(
-          APIS.V1.REMINDER.SETTINGS,
+          APIS.v1.reminder.settings(),
           { reminder_settings: [updatedReminder] },
           { is_auth: true },
         );

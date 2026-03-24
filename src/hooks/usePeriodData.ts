@@ -53,7 +53,7 @@ export function usePeriodData(): UsePeriodDataReturn {
       setIsLoading(true);
       setError(null);
       const response = await apiClient.get<CustomerPeriodData>(
-        APIS.V1.PERIOD.CUSTOMER_DATA,
+        APIS.v1.period.customerData(),
       );
       setPeriodData(response);
     } catch (err: any) {

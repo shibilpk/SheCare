@@ -6,20 +6,24 @@ import {
   TouchableOpacity,
   Alert,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { THEME_COLORS } from '../../constants/colors';
+import { THEME_COLORS } from '@src/constants/colors';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../constants/navigation';
-import Input from '../../components/widgets/Input';
-import FontelloIcon from '../../services/FontelloIcons';
-import BackButton from '../../components/widgets/BackButton';
-import { STYLE } from '../../constants/app';
+import { RootStackParamList } from '@src/constants/navigation';
+import Input from '@src/components/widgets/Input';
+import FontelloIcon from '@src/services/FontelloIcons';
+import BackButton from '@src/components/widgets/BackButton';
+import { STYLE } from '@src/constants/app';
+import { useChangePassword } from './useChangePassword';
+import LinearGradient from 'react-native-linear-gradient';
 
 export default function ChangePasswordScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { changePassword, isChanging } = useChangePassword();
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -32,7 +36,7 @@ export default function ChangePasswordScreen() {
     { text: 'At least 8 characters', met: newPassword.length >= 8 },
     { text: 'Contains uppercase letter', met: /[A-Z]/.test(newPassword) },
     { text: 'Contains lowercase letter', met: /[a-z]/.test(newPassword) },
-    { text: 'Contains number', met: /[0-9]/.test(newPassword) },
+    { text: 'Contains number', met: /\d/.test(newPassword) },
     { text: 'Contains special character', met: /[!@#$%^&*]/.test(newPassword) },
   ];
 
@@ -40,7 +44,7 @@ export default function ChangePasswordScreen() {
   const passwordsMatch =
     newPassword === confirmPassword && confirmPassword.length > 0;
 
-  const handleChangePassword = () => {
+  const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
       Alert.alert('Error', 'Please fill all fields.');
       return;
@@ -53,9 +57,29 @@ export default function ChangePasswordScreen() {
       Alert.alert('Error', 'New passwords do not match.');
       return;
     }
-    // TODO: Implement password change logic (API call)
-    Alert.alert('Success', 'Password changed successfully!');
-    navigation.goBack();
+
+    try {
+      const response = await changePassword({
+        current_password: currentPassword,
+        new_password: newPassword,
+      });
+
+      Alert.alert(
+        response.detail.title,
+        response.detail.message,
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.goBack(),
+          },
+        ]
+      );
+    } catch (err: any) {
+      Alert.alert(
+        'Error',
+        err?.normalizedError?.message || 'Failed to change password'
+      );
+    }
   };
 
   return (
@@ -71,35 +95,48 @@ export default function ChangePasswordScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Info Card */}
-        <View style={styles.infoCard}>
+        {/* Info Card with Gradient */}
+        <LinearGradient
+          colors={['#EFF6FF', '#DBEAFE']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.infoCard}
+        >
           <View style={styles.infoIconBox}>
-            <FontelloIcon name="lock" size={24} color={THEME_COLORS.primary} />
+            <FontelloIcon name="lock" size={22} color={THEME_COLORS.primary} />
           </View>
-          <Text style={styles.infoText}>
-            Choose a strong password to keep your account secure. Your password
-            should be unique and not used elsewhere.
-          </Text>
-        </View>
+          <View style={styles.infoTextContainer}>
+            <Text style={styles.infoTitle}>Secure Your Account</Text>
+            <Text style={styles.infoText}>
+              Choose a strong password to keep your account secure. Your password
+              should be unique and not used elsewhere.
+            </Text>
+          </View>
+        </LinearGradient>
 
         {/* Current Password */}
         <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Current Password</Text>
+          <Text style={styles.inputLabel}>
+            <FontelloIcon name="lock" size={13} color={THEME_COLORS.text} /> Current Password
+          </Text>
           <View style={styles.inputWrapper}>
             <Input
+              label=""
               value={currentPassword}
               onChangeText={setCurrentPassword}
               secureTextEntry={!showCurrentPassword}
               placeholder="Enter current password"
               style={styles.input}
+              editable={!isChanging}
             />
             <TouchableOpacity
               style={styles.eyeIcon}
               onPress={() => setShowCurrentPassword(!showCurrentPassword)}
+              disabled={isChanging}
             >
               <FontelloIcon
                 name={showCurrentPassword ? 'eye' : 'eye-off'}
-                size={20}
+                size={18}
                 color="#999"
               />
             </TouchableOpacity>
@@ -108,22 +145,27 @@ export default function ChangePasswordScreen() {
 
         {/* New Password */}
         <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>New Password</Text>
+          <Text style={styles.inputLabel}>
+            <FontelloIcon name="lock-open" size={13} color={THEME_COLORS.text} /> New Password
+          </Text>
           <View style={styles.inputWrapper}>
             <Input
+              label=""
               value={newPassword}
               onChangeText={setNewPassword}
               secureTextEntry={!showNewPassword}
               placeholder="Enter new password"
               style={styles.input}
+              editable={!isChanging}
             />
             <TouchableOpacity
               style={styles.eyeIcon}
               onPress={() => setShowNewPassword(!showNewPassword)}
+              disabled={isChanging}
             >
               <FontelloIcon
                 name={showNewPassword ? 'eye' : 'eye-off'}
-                size={20}
+                size={18}
                 color="#999"
               />
             </TouchableOpacity>
@@ -133,9 +175,12 @@ export default function ChangePasswordScreen() {
         {/* Password Requirements */}
         {newPassword.length > 0 && (
           <View style={styles.requirementsCard}>
-            <Text style={styles.requirementsTitle}>Password Requirements</Text>
-            {passwordRequirements.map((req, index) => (
-              <View key={index} style={styles.requirementRow}>
+            <View style={styles.requirementsHeader}>
+              <FontelloIcon name="shield" size={14} color={THEME_COLORS.primary} />
+              <Text style={styles.requirementsTitle}>Password Requirements</Text>
+            </View>
+            {passwordRequirements.map((req) => (
+              <View key={req.text} style={styles.requirementRow}>
                 <View
                   style={[
                     styles.requirementCheck,
@@ -143,7 +188,7 @@ export default function ChangePasswordScreen() {
                   ]}
                 >
                   {req.met ? (
-                    <FontelloIcon name="check" size={12} color="#fff" />
+              <FontelloIcon name="check" size={11} color="#fff" />
                   ) : (
                     <View style={styles.requirementDot} />
                   )}
@@ -158,27 +203,48 @@ export default function ChangePasswordScreen() {
                 </Text>
               </View>
             ))}
+            {/* Progress indicator */}
+            <View style={styles.requirementProgress}>
+              <View style={styles.progressBar}>
+                <View
+                  style={[
+                    styles.progressFill,
+                    {
+                      width: `${(passwordRequirements.filter(r => r.met).length / passwordRequirements.length) * 100}%`,
+                    },
+                  ]}
+                />
+              </View>
+              <Text style={styles.progressText}>
+                {passwordRequirements.filter(r => r.met).length}/{passwordRequirements.length}
+              </Text>
+            </View>
           </View>
         )}
 
         {/* Confirm Password */}
         <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Confirm New Password</Text>
+          <Text style={styles.inputLabel}>
+            <FontelloIcon name="lock-open" size={13} color={THEME_COLORS.text} /> Confirm New Password
+          </Text>
           <View style={styles.inputWrapper}>
             <Input
+              label=""
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry={!showConfirmPassword}
               placeholder="Re-enter new password"
               style={styles.input}
+              editable={!isChanging}
             />
             <TouchableOpacity
               style={styles.eyeIcon}
               onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+              disabled={isChanging}
             >
               <FontelloIcon
                 name={showConfirmPassword ? 'eye' : 'eye-off'}
-                size={20}
+                size={18}
                 color="#999"
               />
             </TouchableOpacity>
@@ -187,12 +253,12 @@ export default function ChangePasswordScreen() {
             <View style={styles.matchIndicator}>
               {passwordsMatch ? (
                 <View style={styles.matchSuccess}>
-                  <FontelloIcon name="check" size={14} color="#10B981" />
+                  <FontelloIcon name="check" size={12} color="#10B981" />
                   <Text style={styles.matchSuccessText}>Passwords match</Text>
                 </View>
               ) : (
                 <View style={styles.matchError}>
-                  <FontelloIcon name="cancel" size={14} color="#EF4444" />
+                  <FontelloIcon name="cancel" size={12} color="#EF4444" />
                   <Text style={styles.matchErrorText}>
                     Passwords do not match
                   </Text>
@@ -207,20 +273,25 @@ export default function ChangePasswordScreen() {
           <TouchableOpacity
             style={[
               styles.button,
-              (!allRequirementsMet || !passwordsMatch || !currentPassword) &&
+              (!allRequirementsMet || !passwordsMatch || !currentPassword || isChanging) &&
                 styles.buttonDisabled,
             ]}
             onPress={handleChangePassword}
             disabled={
-              !allRequirementsMet || !passwordsMatch || !currentPassword
+              !allRequirementsMet || !passwordsMatch || !currentPassword || isChanging
             }
           >
-            <Text style={styles.buttonText}>Update Password</Text>
+            {isChanging ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>Update Password</Text>
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.cancelButton}
             onPress={() => navigation.goBack()}
+            disabled={isChanging}
           >
             <Text style={styles.cancelButtonText}>Cancel</Text>
           </TouchableOpacity>
@@ -229,19 +300,37 @@ export default function ChangePasswordScreen() {
         {/* Security Tips */}
         <View style={styles.tipsCard}>
           <View style={styles.tipsHeader}>
-            <FontelloIcon name="info" size={20} color="#3B82F6" />
+            <View style={styles.tipsIconContainer}>
+              <FontelloIcon name="lightbulb" size={16} color="#3B82F6" />
+            </View>
             <Text style={styles.tipsTitle}>Security Tips</Text>
           </View>
-          <Text style={styles.tipText}>
-            • Use a unique password for each account
-          </Text>
-          <Text style={styles.tipText}>
-            • Avoid common words or personal information
-          </Text>
-          <Text style={styles.tipText}>
-            • Consider using a password manager
-          </Text>
-          <Text style={styles.tipText}>• Change your password regularly</Text>
+          <View style={styles.tipsList}>
+            <View style={styles.tipItem}>
+              <Text style={styles.tipBullet}>•</Text>
+              <Text style={styles.tipText}>
+                Use a unique password for each account
+              </Text>
+            </View>
+            <View style={styles.tipItem}>
+              <Text style={styles.tipBullet}>•</Text>
+              <Text style={styles.tipText}>
+                Avoid common words or personal information
+              </Text>
+            </View>
+            <View style={styles.tipItem}>
+              <Text style={styles.tipBullet}>•</Text>
+              <Text style={styles.tipText}>
+                Consider using a password manager
+              </Text>
+            </View>
+            <View style={styles.tipItem}>
+              <Text style={styles.tipBullet}>•</Text>
+              <Text style={styles.tipText}>
+                Change your password regularly
+              </Text>
+            </View>
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -267,36 +356,54 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 8,
+    paddingBottom: 20,
   },
   infoCard: {
     flexDirection: 'row',
-    backgroundColor: '#EFF6FF',
     padding: 12,
-    borderRadius: 10,
-    marginBottom: 12,
+    borderRadius: 12,
+    marginBottom: 14,
     alignItems: 'flex-start',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   infoIconBox: {
     width: 40,
     height: 40,
-    borderRadius: 12,
-    backgroundColor: '#DBEAFE',
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 10,
+    shadowColor: THEME_COLORS.primary,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  infoTextContainer: {
+    flex: 1,
+    gap: 4,
+  },
+  infoTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1E40AF',
   },
   infoText: {
-    flex: 1,
-    fontSize: 13,
+    fontSize: 12,
     color: '#1E40AF',
-    lineHeight: 20,
+    lineHeight: 17,
   },
   inputGroup: {
-    marginBottom: 12,
+    marginBottom: 14,
   },
   inputLabel: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
     color: '#333',
     marginBottom: 8,
@@ -306,24 +413,37 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: 0,
+    borderWidth: 1.5,
+    borderColor: THEME_COLORS.LightBg,
+    backgroundColor: '#fff',
   },
   eyeIcon: {
     position: 'absolute',
-    right: 16,
-    top: 16,
+    right: 14,
+    top: 14,
     padding: 4,
   },
   requirementsCard: {
     backgroundColor: '#fff',
-    padding: 10,
-    borderRadius: 10,
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  requirementsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 10,
+    gap: 6,
   },
   requirementsTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: '#333',
-    marginBottom: 12,
   },
   requirementRow: {
     flexDirection: 'row',
@@ -331,9 +451,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   requirementCheck: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     backgroundColor: '#E5E7EB',
     alignItems: 'center',
     justifyContent: 'center',
@@ -343,9 +463,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#10B981',
   },
   requirementDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
     backgroundColor: '#9CA3AF',
   },
   requirementText: {
@@ -356,42 +476,73 @@ const styles = StyleSheet.create({
     color: '#10B981',
     fontWeight: '500',
   },
-  matchIndicator: {
+  requirementProgress: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginTop: 8,
+    gap: 8,
+  },
+  progressBar: {
+    flex: 1,
+    height: 6,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#10B981',
+    borderRadius: 3,
+  },
+  progressText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#6B7280',
+    minWidth: 28,
+    textAlign: 'right',
+  },
+  matchIndicator: {
+    marginTop: 6,
   },
   matchSuccess: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    backgroundColor: '#ECFDF5',
+    padding: 8,
+    borderRadius: 6,
   },
   matchSuccessText: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#10B981',
-    fontWeight: '500',
+    fontWeight: '600',
   },
   matchError: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    backgroundColor: '#FEF2F2',
+    padding: 8,
+    borderRadius: 6,
   },
   matchErrorText: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#EF4444',
-    fontWeight: '500',
+    fontWeight: '600',
   },
   buttonGroup: {
-    marginTop: 8,
-    marginBottom: 12,
+    marginTop: 6,
+    marginBottom: 16,
   },
   button: {
     backgroundColor: THEME_COLORS.primary,
     borderRadius: 12,
-    paddingVertical: 16,
+    paddingVertical: 14,
     alignItems: 'center',
     shadowColor: THEME_COLORS.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
     elevation: 3,
   },
   buttonDisabled: {
@@ -401,41 +552,68 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#fff',
     fontWeight: '700',
-    fontSize: 16,
+    fontSize: 15,
   },
   cancelButton: {
-    marginTop: 12,
-    paddingVertical: 16,
+    marginTop: 10,
+    paddingVertical: 12,
     alignItems: 'center',
   },
   cancelButtonText: {
     color: '#6B7280',
     fontWeight: '600',
-    fontSize: 15,
+    fontSize: 14,
   },
   tipsCard: {
     backgroundColor: '#F0F9FF',
-    padding: 10,
+    padding: 12,
     borderRadius: 10,
     borderLeftWidth: 3,
     borderLeftColor: '#3B82F6',
     marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 2,
+    elevation: 1,
   },
   tipsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
     gap: 8,
   },
+  tipsIconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   tipsTitle: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
     color: '#1E40AF',
   },
+  tipsList: {
+    gap: 8,
+  },
+  tipItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+  },
+  tipBullet: {
+    fontSize: 14,
+    color: '#3B82F6',
+    fontWeight: '700',
+    marginTop: -2,
+  },
   tipText: {
+    flex: 1,
     fontSize: 13,
     color: '#1E40AF',
-    lineHeight: 20,
-    marginBottom: 4,
+    lineHeight: 18,
   },
 });

@@ -71,7 +71,7 @@ const ContactUsScreen: React.FC = () => {
 
     try {
       setLoading(true);
-      await apiClient.post(APIS.V1.CONTACT_FEEDBACK.submitContactUs(), formData);
+      await apiClient.post(APIS.v1.contactFeedback.submitContactUs(), formData);
 
       Alert.alert(
         'Success',

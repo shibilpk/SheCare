@@ -38,7 +38,7 @@ export default function PeriodHistoryScreen() {
   const fetchPeriods = async (page: number): Promise<PaginatedResponse> => {
     try {
       const response = await apiClient.get<PaginatedResponse>(
-        `${APIS.V1.PERIOD.LIST}?page=${page}&page_size=10`,
+        `${APIS.v1.period.list()}?page=${page}&page_size=10`,
       );
       return response;
     } catch (error) {

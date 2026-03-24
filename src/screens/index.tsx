@@ -1,5 +1,5 @@
-export { default as LoginScreen } from './auth/LoginScreen';
-export { default as RegisterScreen } from './auth/RegisterScreen';
+export { default as LoginScreen } from './auth/login/LoginScreen';
+export { default as RegisterScreen } from './auth/regsiter/RegisterScreen';
 export { default as OTPVerificationScreen } from './auth/OTPVerificationScreen';
 
 export { default as CalendarScreen } from './tabs/Calendar';
@@ -8,7 +8,7 @@ export { default as Profile } from './tabs/Profile';
 export { default as AnalysisScreen } from './tabs/Analysis';
 
 export { default as LifestyleDetailsScreen } from './screens/LifestyleDetails';
-export { default as ChangePasswordScreen } from './auth/ChangePassword';
+export { default as ChangePasswordScreen } from './auth/changePassword/ChangePassword';
 export { default as DeleteAccount } from './auth/DeleteAccount';
 export { default as Reminders } from './settings/reminder/Reminders';
 

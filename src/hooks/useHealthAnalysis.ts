@@ -41,7 +41,7 @@ export function useHealthAnalysis(): UseHealthAnalysisReturn {
       setError(null);
 
       const response = await apiClient.get<HealthAnalysisData>(
-        APIS.V1.CUSTOMER.HEALTH_ANALYSIS,
+        APIS.v1.customer.healthAnalysis(),
       );
       setHealthAnalysis(response);
     } catch (e) {

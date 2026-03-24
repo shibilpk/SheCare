@@ -64,7 +64,7 @@ export function useNutrition(date: string) {
     try {
       setIsLoading(true);
       const response = await apiClient.get<NutritionSummary>(
-        APIS.V1.NUTRITION.getSummary(date),
+        APIS.v1.nutrition.summary(date),
         { is_auth: true }
       );
       setSummary(response);
@@ -81,7 +81,7 @@ export function useNutrition(date: string) {
     try {
       setIsUpdating(true);
       const response = await apiClient.post<NutritionLog>(
-        APIS.V1.NUTRITION.LOGS,
+        APIS.v1.nutrition.logs(),
         payload,
         { is_auth: true }
       );
@@ -104,7 +104,7 @@ export function useNutrition(date: string) {
     try {
       setIsUpdating(true);
       const response = await apiClient.put<NutritionLog>(
-        APIS.V1.NUTRITION.updateLog(logId),
+        APIS.v1.nutrition.updateLog(logId),
         payload,
         { is_auth: true }
       );
@@ -127,7 +127,7 @@ export function useNutrition(date: string) {
     try {
       setIsUpdating(true);
       await apiClient.delete(
-        APIS.V1.NUTRITION.deleteLog(logId),
+        APIS.v1.nutrition.deleteLog(logId),
         { is_auth: true }
       );
 
@@ -148,7 +148,7 @@ export function useNutrition(date: string) {
     try {
       setIsUpdating(true);
       const response = await apiClient.post<NutritionGoal>(
-        APIS.V1.NUTRITION.GOAL,
+        APIS.v1.nutrition.goal(),
         goal,
         { is_auth: true }
       );
@@ -181,6 +181,7 @@ export function useNutrition(date: string) {
   useEffect(() => {
     if (hasInitialized.current) {
       return;
+
     }
     hasInitialized.current = true;
     fetchNutritionSummary();

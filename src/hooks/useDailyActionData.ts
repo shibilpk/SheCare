@@ -40,7 +40,7 @@ export function useDailyActionData(): DailyActionData {
       setError(null);
       try {
         const res = await apiClient.get<DailyActionResponse>(
-          APIS.V1.ACTIVITIES.DAILY_ACTION_LIST,
+          APIS.v1.activities.dailyActionList(),
         );
         setMoods(res.moods || []);
         setSymptoms(res.symptoms || []);

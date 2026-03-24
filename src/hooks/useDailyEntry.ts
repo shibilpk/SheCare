@@ -79,7 +79,7 @@ export function useDailyEntry(): UseDailyEntryReturn {
 
       const dateStr = date.toISOString().split('T')[0];
       const response = await apiClient.get<DailyEntryResponse>(
-        APIS.V1.ACTIVITIES.getDailyEntires(dateStr)
+        APIS.v1.activities.dailyEntries(dateStr)
       );
 
       setDailyEntry(response);
@@ -106,7 +106,7 @@ export function useDailyEntry(): UseDailyEntryReturn {
 
       const dateStr = date.toISOString().split('T')[0];
       const response = await apiClient.get<DailySummaryResponse>(
-        APIS.V1.ACTIVITIES.getDailyDetailed(dateStr)
+        APIS.v1.activities.dailyEntriesDetailed(dateStr)
       );
 
       setDailySummary(response);
@@ -132,7 +132,7 @@ export function useDailyEntry(): UseDailyEntryReturn {
       setError(null);
 
       const response = await apiClient.post<DailyEntryResponse>(
-        APIS.V1.ACTIVITIES.CREATE_DAILY_ENTRY,
+        APIS.v1.activities.createDailyEntry(),
         payload,
       );
 

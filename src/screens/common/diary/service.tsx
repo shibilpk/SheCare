@@ -12,7 +12,7 @@ export interface DiaryEntry {
 export async function fetchDiaryEntry(date: Date): Promise<DiaryEntry | null> {
   try {
     const response = await apiClient.get<DiaryEntry>(
-      APIS.V1.DAIRY.ENTRY_FROM_DATE,
+      APIS.v1.diary.entryFromDate(),
       {
         params: {
           entry_date: date.toISOString().split('T')[0],
@@ -45,7 +45,7 @@ export async function saveDiaryEntry(
     content,
   };
 
-  const response = await apiClient.post<any>(APIS.V1.DAIRY.ENTRY, payload);
+  const response = await apiClient.post<any>(APIS.v1.diary.entry(), payload);
 
   return response?.detail?.message ?? 'Diary entry saved successfully!';
 }

@@ -413,7 +413,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
 
             <Image
-              source={require('../../assets/images/cat.png')}
+              source={require('@src/assets/images/cat.png')}
               style={styles.decorImage}
               resizeMode="contain"
             />

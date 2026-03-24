@@ -42,7 +42,7 @@ const StaticContentScreen: React.FC<StaticContentScreenProps> = ({
     try {
       setLoading(true);
       const response = await apiClient.get<StaticContentType>(
-        APIS.V1.STATIC_CONTENT.getContent(contentType),
+        APIS.v1.staticContent.content(contentType),
       );
       setContent(response);
     } catch (error) {

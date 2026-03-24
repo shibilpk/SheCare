@@ -23,7 +23,7 @@ interface PaginatedResponse<T> {
 export function useBlogListPaginated() {
   const fetchBlogPage = useCallback(async (page: number): Promise<PaginatedResponse<BlogPost>> => {
     const response = await apiClient.get<PaginatedBlogResponse>(
-      APIS.V1.BLOG.getPaginatedPosts(page)
+      APIS.v1.blog.paginatedPosts(page)
     );
 
     // Transform the response to match InfiniteScrollList expectations
@@ -50,8 +50,8 @@ export function useBlogList(limit?: number) {
     try {
       setIsLoading(true);
       const endpoint = limit
-        ? APIS.V1.BLOG.getLatestPosts(limit)
-        : APIS.V1.BLOG.LIST_POSTS;
+        ? APIS.v1.blog.latestPosts(limit)
+        : APIS.v1.blog.listPosts();
       const response = await apiClient.get<PaginatedBlogResponse>(endpoint);
       setBlogs(response.results || []);
       setError(null);
@@ -88,7 +88,7 @@ export function useBlogDetail(blogId?: string) {
     try {
       setIsLoading(true);
       const response = await apiClient.get<BlogPost>(
-        APIS.V1.BLOG.getPost(blogId)
+        APIS.v1.blog.post(blogId)
       );
       setBlog(response);
       setError(null);

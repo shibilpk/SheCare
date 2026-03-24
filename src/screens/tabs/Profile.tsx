@@ -413,7 +413,7 @@ export default function Profile() {
                     ? { uri: avatar.uri }
                     : profile?.photo
                       ? { uri: profile.photo }
-                      : require('../../assets/images/calendar-woman2.png')
+                      : require('@src/assets/images/calendar-woman2.png')
                 }
                 style={styles.avatar}
               />
@@ -840,30 +840,6 @@ export default function Profile() {
             />
           </View>
 
-          <View style={styles.divider} />
-
-          <TouchableOpacity
-            style={styles.actionRow}
-            onPress={() => {
-              Alert.alert(
-                'Privacy Settings',
-                'Navigate to privacy settings screen',
-              );
-            }}
-          >
-            <View style={styles.actionLeft}>
-              <View
-                style={[styles.actionIconBox, { backgroundColor: '#E8F5E9' }]}
-              >
-                <FontelloIcon name="lock" size={18} color="#4CAF50" />
-              </View>
-              <View>
-                <Text style={styles.actionLabel}>Privacy & Security</Text>
-                <Text style={styles.preferenceSubtext}>Manage your data</Text>
-              </View>
-            </View>
-            <FontelloIcon name="right-open-mini" size={20} color="#999" />
-          </TouchableOpacity>
 
           <View style={styles.divider} />
 

@@ -18,7 +18,7 @@ export function useDailyTip() {
       try {
         setIsLoading(true);
         const response = await apiClient.get<DailyTip>(
-          APIS.V1.GENERAL.DAILY_TIPS,
+          APIS.v1.general.dailyTips(),
         );
         setTip(response);
         setError(null);

@@ -28,7 +28,7 @@ export function usePregnancyChance(): UsePregnancyChanceReturn {
       setIsLoading(true);
       setError(null);
       const response = await apiClient.get<PregnancyChance>(
-        APIS.V1.PERIOD.PREGNANCY_CHANCE,
+        APIS.v1.period.pregnancyChance(),
       );
       setPregnancyChance(response);
     } catch (err: any) {

@@ -10,22 +10,32 @@
 		0C80B921A6F3F58F76C31292 /* libPods-SheCare.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5DCACB8F33CDC322A6C60F78 /* libPods-SheCare.a */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		2EB31987E9DD4B5EB15220C8 /* fontello.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2C7204B7F0F741E6913C5D8A /* fontello.ttf */; };
+		3399F43523DB454A9F80F86F /* Colors.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0D9C7E55148545DAB2F03F65 /* Colors.xcassets */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		9B8ACDC36B9302C4590847BA /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
+		A00C18413A99491AB26A0384 /* BootSplash.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D028F66CE99D4D37B9F79F44 /* BootSplash.storyboard */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0D9C7E55148545DAB2F03F65 /* Colors.xcassets */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = folder.assetcatalog; name = Colors.xcassets; path = SheCare/Colors.xcassets; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* SheCare.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SheCare.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = SheCare/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = SheCare/Info.plist; sourceTree = "<group>"; };
 		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = SheCare/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		2C7204B7F0F741E6913C5D8A /* fontello.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = fontello.ttf; path = ../src/assets/fonts/fontello.ttf; sourceTree = "<group>"; };
+		2C7204B7F0F741E6913C5D8A /* fontello.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = fontello.ttf; path = ../src/assets/fonts/fontello.ttf; sourceTree = "<group>"; };
 		3B4392A12AC88292D35C810B /* Pods-SheCare.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SheCare.debug.xcconfig"; path = "Target Support Files/Pods-SheCare/Pods-SheCare.debug.xcconfig"; sourceTree = "<group>"; };
 		5709B34CF0A7D63546082F79 /* Pods-SheCare.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SheCare.release.xcconfig"; path = "Target Support Files/Pods-SheCare/Pods-SheCare.release.xcconfig"; sourceTree = "<group>"; };
+		57EB37FA2F6FDDDB00121B10 /* logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = logo.png; sourceTree = "<group>"; };
+		57EB37FB2F6FDDDB00121B10 /* logo@1,5x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "logo@1,5x.png"; sourceTree = "<group>"; };
+		57EB37FC2F6FDDDB00121B10 /* logo@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "logo@2x.png"; sourceTree = "<group>"; };
+		57EB37FD2F6FDDDB00121B10 /* logo@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "logo@3x.png"; sourceTree = "<group>"; };
+		57EB37FE2F6FDDDB00121B10 /* logo@4x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "logo@4x.png"; sourceTree = "<group>"; };
+		57EB37FF2F6FDDDB00121B10 /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = manifest.json; sourceTree = "<group>"; };
 		5DCACB8F33CDC322A6C60F78 /* libPods-SheCare.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-SheCare.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = SheCare/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = SheCare/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		D028F66CE99D4D37B9F79F44 /* BootSplash.storyboard */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = BootSplash.storyboard; path = SheCare/BootSplash.storyboard; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
@@ -49,6 +59,8 @@
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
 				13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */,
+				D028F66CE99D4D37B9F79F44 /* BootSplash.storyboard */,
+				0D9C7E55148545DAB2F03F65 /* Colors.xcassets */,
 			);
 			name = SheCare;
 			sourceTree = "<group>";
@@ -60,6 +72,19 @@
 				5DCACB8F33CDC322A6C60F78 /* libPods-SheCare.a */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		57EB38002F6FDDDB00121B10 /* bootsplash */ = {
+			isa = PBXGroup;
+			children = (
+				57EB37FA2F6FDDDB00121B10 /* logo.png */,
+				57EB37FB2F6FDDDB00121B10 /* logo@1,5x.png */,
+				57EB37FC2F6FDDDB00121B10 /* logo@2x.png */,
+				57EB37FD2F6FDDDB00121B10 /* logo@3x.png */,
+				57EB37FE2F6FDDDB00121B10 /* logo@4x.png */,
+				57EB37FF2F6FDDDB00121B10 /* manifest.json */,
+			);
+			path = bootsplash;
 			sourceTree = "<group>";
 		};
 		64896D21D86A4AA38456C701 /* Resources */ = {
@@ -80,6 +105,7 @@
 		83CBB9F61A601CBA00E9B192 = {
 			isa = PBXGroup;
 			children = (
+				57EB38002F6FDDDB00121B10 /* bootsplash */,
 				13B07FAE1A68108700A75B9A /* SheCare */,
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
@@ -173,6 +199,8 @@
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				9B8ACDC36B9302C4590847BA /* PrivacyInfo.xcprivacy in Resources */,
 				2EB31987E9DD4B5EB15220C8 /* fontello.ttf in Resources */,
+				A00C18413A99491AB26A0384 /* BootSplash.storyboard in Resources */,
+				3399F43523DB454A9F80F86F /* Colors.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -270,6 +298,7 @@
 			baseConfigurationReference = 3B4392A12AC88292D35C810B /* Pods-SheCare.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 5KX3GP3B4H;
@@ -299,6 +328,7 @@
 			baseConfigurationReference = 5709B34CF0A7D63546082F79 /* Pods-SheCare.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 5KX3GP3B4H;

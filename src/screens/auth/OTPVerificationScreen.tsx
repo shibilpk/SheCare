@@ -168,8 +168,8 @@ const OTPVerificationScreen: React.FC = () => {
     setLoading(true);
     try {
       const endpoint = isLoginFlow
-        ? APIS.V1.AUTH.LOGIN_WITH_OTP
-        : APIS.V1.AUTH.getVerifyOTP(id || '');
+        ? APIS.v1.auth.loginWithOtp()
+        : APIS.v1.auth.verifyOtp(id || '');
       const response = await apiClient.post<any>(
         endpoint,
         { email, otp: otpValue },
@@ -196,7 +196,7 @@ const OTPVerificationScreen: React.FC = () => {
     setResendLoading(true);
     try {
       const response = await apiClient.post<any>(
-        APIS.V1.AUTH.SEND_OTP,
+        APIS.v1.auth.sendOtp(),
         { email },
         { is_auth: false },
       );
@@ -239,7 +239,7 @@ const OTPVerificationScreen: React.FC = () => {
       >
         <View style={styles.inner}>
           <Image
-            source={require('../../assets/images/calendar-woman.png')}
+            source={require('@src/assets/images/calendar-woman.png')}
             style={styles.calendarWoman}
             resizeMode="contain"
           />

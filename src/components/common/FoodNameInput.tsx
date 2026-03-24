@@ -59,8 +59,8 @@ export const FoodNameInput: React.FC<FoodNameInputProps> = ({
         has_next: boolean;
         total: number;
       }>(
-        `${APIS.V1.NUTRITION.FOOD_SUGGESTIONS}?q=${encodeURIComponent(query)}&page=${pageNum}&page_size=10`,
-        { is_auth: true , abortPrevious: true},
+        `${APIS.v1.nutrition.foodSuggestions()}?q=${encodeURIComponent(query)}&page=${pageNum}&page_size=10`,
+        { is_auth: true, abortPrevious: true },
       );
 
       if (pageNum === 1) {

@@ -32,7 +32,7 @@ export function useDiary(): UseDiaryReturn {
       setError(null);
 
       const response = await apiClient.get<DiaryEntry>(
-        APIS.V1.DAIRY.ENTRY_FROM_DATE,
+        APIS.v1.diary.entryFromDate(),
         {
           params: {
             entry_date: date.toISOString().split('T')[0],
@@ -70,7 +70,7 @@ export function useDiary(): UseDiaryReturn {
       };
 
       console.log('useDiary - Sending diary entry:', payload);
-      const response = await apiClient.post<any>(APIS.V1.DAIRY.ENTRY, payload);
+      const response = await apiClient.post<any>(APIS.v1.diary.entry(), payload);
       console.log('useDiary - Server response:', response);
 
       // Update local state with saved entry
