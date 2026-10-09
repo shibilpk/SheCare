@@ -1,8 +1,8 @@
 // constants/apis.ts
 // Use your computer's IP address for physical devices/emulators
 // Find your IP: macOS: ifconfig | grep "inet " | grep -v 127.0.0.1
-// export const BASE_URL = 'http://192.168.108.134:7865';
-export const BASE_URL = 'http://localhost:7865'; // Only works in web browser
+export const BASE_URL = 'http://192.168.108.151:7865';
+// export const BASE_URL = 'http://localhost:7865'; // Only works in web browser
 const API_VERSION = 'v1';
 
 const auth = {

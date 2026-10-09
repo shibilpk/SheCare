@@ -1,7 +1,7 @@
 import React from 'react';
 
 export type GlobalModalContextType = {
-  open: () => void;
+  open: (date?: Date) => void;
   close: () => void;
 };
 

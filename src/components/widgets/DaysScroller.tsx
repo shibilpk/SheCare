@@ -4,6 +4,7 @@ import React, {
   useCallback,
   useImperativeHandle,
   forwardRef,
+  useEffect,
 } from 'react';
 import {
   View,
@@ -29,10 +30,11 @@ const DaysScroller = forwardRef(function DaysScroller(
 ) {
   const today = new Date();
 
-  // initial dates: 1 month before & after today
+  // initial dates: 1 month before & after the selectedDate (or today if not set)
   const [days, setDays] = useState(() => {
-    const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-    const end = new Date(today.getFullYear(), today.getMonth() + 2, 0);
+    const referenceDate = selectedDate || today;
+    const start = new Date(referenceDate.getFullYear(), referenceDate.getMonth() - 1, 1);
+    const end = new Date(referenceDate.getFullYear(), referenceDate.getMonth() + 2, 0);
     const arr: Date[] = [];
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
       arr.push(new Date(d));
@@ -41,6 +43,13 @@ const DaysScroller = forwardRef(function DaysScroller(
   });
 
   const listRef = useRef<FlatList<Date>>(null);
+
+  // Initialize month display with the selectedDate's month on mount
+  useEffect(() => {
+    if (onMonthChange && selectedDate) {
+      onMonthChange(selectedDate.getMonth(), selectedDate.getFullYear());
+    }
+  }, []);
 
   const getItemLayout = useCallback(
     (_: any, index: number) => ({
@@ -143,8 +152,11 @@ const DaysScroller = forwardRef(function DaysScroller(
         }}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewConfigRef}
-        initialScrollIndex={days.findIndex(
-          d => d.toDateString() === today.toDateString(),
+        initialScrollIndex={Math.max(
+          0,
+          days.findIndex(
+            d => d.toDateString() === (selectedDate || today).toDateString(),
+          ),
         )}
         initialNumToRender={30}
         windowSize={15}

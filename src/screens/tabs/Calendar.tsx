@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useContext } from 'react';
 import {
   FlatList,
   Modal,
@@ -7,6 +7,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import {
   SafeAreaView,
@@ -24,6 +25,8 @@ import { useErrorToast, useToastMessage } from '@src/utils/toastMessage';
 import { useDiary } from '@src/hooks/useDiary';
 import { APIError } from '@src/services/ApiClient';
 import { usePregnancyChance } from '@src/hooks/usePregnancyChance';
+import { log } from 'node_modules/react-native-bootsplash/dist/typescript/module/extras/utils';
+import CalendarDateContext from '@src/services/CalendarDateContext';
 
 // Memoized MonthCard component for better performance in year view
 const MonthCard = React.memo<{
@@ -57,8 +60,17 @@ const CalendarScreen: React.FC = () => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [diaryText, setDiaryText] = useState('');
   const [diaryDate, setDiaryDate] = useState<Date>(today);
+  const [isYearViewLoading, setIsYearViewLoading] = useState(false);
   // Removed full screen activity animation logic
   const insets = useSafeAreaInsets();
+
+  // Get global calendar date context
+  const calendarDateContext = useContext(CalendarDateContext);
+
+  // Sync currentDate with global context
+  useEffect(() => {
+    calendarDateContext.setSelectedDate(currentDate);
+  }, [currentDate, calendarDateContext]);
 
   // Daily entry hook
   const { dailySummary, isLoading, error, fetchDailyDetailed } =
@@ -76,6 +88,7 @@ const CalendarScreen: React.FC = () => {
 
   // Fetch daily entry when current date changes
   useEffect(() => {
+    console.log('Fetching daily entry for date:', currentDate);
     const loadDailyEntry = async () => {
       try {
         const entry = await fetchDailyDetailed(currentDate);
@@ -171,7 +184,24 @@ const CalendarScreen: React.FC = () => {
   }, []);
 
   const handleYearChange = (offset: number) => {
+    setIsYearViewLoading(true);
     setSelectedYear(selectedYear + offset);
+    setTimeout(() => {
+      setIsYearViewLoading(false);
+    }, 300);
+  };
+
+  // Handle view switching with loading state
+  const handleViewSwitch = (newView: 'month' | 'year') => {
+    if (newView === 'year' && view !== 'year') {
+      setIsYearViewLoading(true);
+      setView(newView);
+      setTimeout(() => {
+        setIsYearViewLoading(false);
+      }, 300);
+    } else {
+      setView(newView);
+    }
   };
 
   // Memoized callback for month day press in year view
@@ -311,7 +341,7 @@ const CalendarScreen: React.FC = () => {
               styles.switchBtn,
               view === 'month' && styles.switchBtnActive,
             ]}
-            onPress={() => setView('month')}
+            onPress={() => handleViewSwitch('month')}
           >
             <Text
               style={
@@ -327,7 +357,7 @@ const CalendarScreen: React.FC = () => {
               styles.switchBtn,
               view === 'year' && styles.switchBtnActive,
             ]}
-            onPress={() => setView('year')}
+            onPress={() => handleViewSwitch('year')}
           >
             <Text
               style={
@@ -606,36 +636,43 @@ const CalendarScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
 
-          <FlatList
-            data={Array.from({ length: 12 })}
-            keyExtractor={(_, idx) => `${selectedYear}-${idx}`}
-            numColumns={2}
-            contentContainerStyle={styles.yearGrid}
-            initialNumToRender={4}
-            maxToRenderPerBatch={4}
-            windowSize={5}
-            removeClippedSubviews={true}
-            getItemLayout={(_, index) => ({
-              length: 200,
-              offset: 200 * Math.floor(index / 2),
-              index,
-            })}
-            renderItem={({ index: monthIdx }) => {
-              const row = Math.floor(monthIdx / 2);
-              const col = monthIdx % 2;
-              const isEven =
-                (row % 2 === 0 && col === 0) || (row % 2 === 1 && col === 1);
+          {isYearViewLoading ? (
+            <View style={styles.yearLoadingContainer}>
+              <ActivityIndicator size="large" color={THEME_COLORS.primary} />
+              <Text style={styles.yearLoadingText}>Loading calendar...</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={Array.from({ length: 12 })}
+              keyExtractor={(_, idx) => `${selectedYear}-${idx}`}
+              numColumns={2}
+              contentContainerStyle={styles.yearGrid}
+              initialNumToRender={4}
+              maxToRenderPerBatch={4}
+              windowSize={5}
+              removeClippedSubviews={true}
+              getItemLayout={(_, index) => ({
+                length: 200,
+                offset: 200 * Math.floor(index / 2),
+                index,
+              })}
+              renderItem={({ index: monthIdx }) => {
+                const row = Math.floor(monthIdx / 2);
+                const col = monthIdx % 2;
+                const isEven =
+                  (row % 2 === 0 && col === 0) || (row % 2 === 1 && col === 1);
 
-              return (
-                <MonthCard
-                  monthIdx={monthIdx}
-                  selectedYear={selectedYear}
-                  isEven={isEven}
-                  onDayPress={handleMonthDayPress}
-                />
-              );
-            }}
-          />
+                return (
+                  <MonthCard
+                    monthIdx={monthIdx}
+                    selectedYear={selectedYear}
+                    isEven={isEven}
+                    onDayPress={handleMonthDayPress}
+                  />
+                );
+              }}
+            />
+          )}
         </>
       )}
     </SafeAreaView>
@@ -904,6 +941,18 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: THEME_COLORS.primary,
     letterSpacing: 0.5,
+  },
+  yearLoadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  yearLoadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#666',
+    fontWeight: '500',
   },
   yearGrid: {
     paddingHorizontal: 12,

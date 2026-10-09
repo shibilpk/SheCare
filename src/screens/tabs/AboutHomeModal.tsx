@@ -32,11 +32,13 @@ import { useDiary } from '@src/hooks/useDiary';
 interface AboutHomeModalProps {
   dailyActionData: DailyActionData;
   ratingData: RatingData;
+  initialDate?: Date;
 }
 
 export default function AboutHomeModal({
   dailyActionData,
   ratingData,
+  initialDate,
 }: AboutHomeModalProps) {
   // Initialize hooks
   const { saveEntry: saveDailyEntryData, fetchEntry: fetchDailyEntryData } =
@@ -98,11 +100,14 @@ export default function AboutHomeModal({
   const modal = useContext(GlobalModalContext);
   const insets = useSafeAreaInsets();
 
+  // Use initialDate if provided, otherwise use today
+  const startDate = initialDate || today;
   const [monthYear, setMonthYear] = useState<{ month: number; year: number }>({
-    month: today.getMonth(),
-    year: today.getFullYear(),
+    month: startDate.getMonth(),
+    year: startDate.getFullYear(),
   });
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  console.log("Start Date", startDate.toISOString());
+  const [selectedDate, setSelectedDate] = useState<Date>(startDate);
   const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
   const [selectedFlow, setSelectedFlow] = useState<string | null>(null);

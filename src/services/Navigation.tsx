@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,7 @@ import {
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import GlobalModalContext from './GlobalContext';
+import CalendarDateContext from './CalendarDateContext';
 import { SCREENS, type RootStackParamList } from '../constants/navigation';
 import * as Screens from '../screens';
 import { tabOptions, todayTabBarIcon } from '../components/widgets/TabIcon';
@@ -48,6 +49,7 @@ const EmptyScreen = () => null;
 /* ---------------------- Tabs ---------------------- */
 function TabNavigator() {
   const modal = useContext(GlobalModalContext);
+  const calendarDate = useContext(CalendarDateContext);
 
   return (
     <Tab.Navigator
@@ -73,7 +75,7 @@ function TabNavigator() {
         options={{
           tabBarLabel: '',
           tabBarButton: (props: any) =>
-            todayTabBarIcon({ onPress: modal.open }),
+            todayTabBarIcon({ onPress: () => modal.open(calendarDate.selectedDate) }),
         }}
       />
       <Tab.Screen
@@ -92,6 +94,7 @@ function TabNavigator() {
 
 function SecondaryTabNavigator() {
   const modal = useContext(GlobalModalContext);
+  const calendarDate = useContext(CalendarDateContext);
 
   return (
     <Tab.Navigator
@@ -117,7 +120,7 @@ function SecondaryTabNavigator() {
         options={{
           tabBarLabel: '',
           tabBarButton: (props: any) =>
-            todayTabBarIcon({ onPress: modal.open }),
+            todayTabBarIcon({ onPress: () => modal.open(calendarDate.selectedDate) }),
         }}
       />
       <Tab.Screen
@@ -475,12 +478,35 @@ export default function RootNavigation() {
   const isDarkMode = useIsDarkMode();
   const isLoggedIn = useStore(state => state.isLoggedIn());
   const [modalVisible, setModalVisible] = useState(false);
-  const open = () => setModalVisible(true);
-  const close = () => setModalVisible(false);
+  const [modalInitialDate, setModalInitialDate] = useState<Date | undefined>(undefined);
+  const [calendarSelectedDate, setCalendarSelectedDate] = useState<Date>(new Date());
+
+  const open = useCallback((date?: Date) => {
+    setModalInitialDate(date);
+    setModalVisible(true);
+  }, []);
+
+  const close = useCallback(() => {
+    setModalVisible(false);
+  }, []);
 
   // Fetch daily action data once at root level to avoid re-fetching on every modal open
   const dailyActionData = useDailyActionData();
   const ratingData = useRatingData();
+
+  // Memoize context values to prevent unnecessary re-renders
+  const calendarDateContextValue = useMemo(
+    () => ({
+      selectedDate: calendarSelectedDate,
+      setSelectedDate: setCalendarSelectedDate,
+    }),
+    [calendarSelectedDate]
+  );
+
+  const modalContextValue = useMemo(
+    () => ({ open, close }),
+    [open, close]
+  );
 
   return (
     <SafeAreaProvider>
@@ -489,7 +515,8 @@ export default function RootNavigation() {
           <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
           <NavigationContainer ref={navigationRef}>
             {isLoggedIn ? (
-              <GlobalModalContext.Provider value={{ open, close }}>
+              <CalendarDateContext.Provider value={calendarDateContextValue}>
+                <GlobalModalContext.Provider value={modalContextValue}>
                 <Stack.Navigator screenOptions={{ headerShown: false }}>
                   <Stack.Screen
                     name={SCREENS.LANDING}
@@ -606,9 +633,14 @@ export default function RootNavigation() {
                   transparent
                   onRequestClose={close}
                 >
-                  <AboutHomeModal dailyActionData={dailyActionData} ratingData={ratingData} />
+                  <AboutHomeModal
+                    dailyActionData={dailyActionData}
+                    ratingData={ratingData}
+                    initialDate={modalInitialDate}
+                  />
                 </Modal>
               </GlobalModalContext.Provider>
+              </CalendarDateContext.Provider>
             ) : (
               <Stack.Navigator screenOptions={{ headerShown: false }}>
                 <Stack.Screen
