@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useContext, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,54 +6,276 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
+  RefreshControl,
+  Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import FontelloIcon from '../../../services/FontelloIcons';
-import QuickActions from '../../../components/common/QuickActions';
-import NotificationsModal from '../../../components/common/NotificationsModal';
+import NotificationsModal, {
+  NotificationItem,
+} from '../../../components/common/NotificationsModal';
 import { THEME_COLORS } from '../../../constants/colors';
 import LinearGradient from 'react-native-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
 import { RootStackParamList, SCREENS } from '../../../constants/navigation';
 import { STYLE } from '../../../constants/app';
+import { monthNames, monthNamesShort } from '../../../constants/common';
 import HomeQuickActions from '@src/screens/common/quickAction/HomeQuickActions';
+import { ScreenLoader } from '@src/components';
+import GlobalModalContext from '@src/services/GlobalContext';
+import apiClient from '@src/services/ApiClient';
+import { APIS } from '@src/constants/apis';
+import { parseLocalDate } from '@src/utils/date';
+import {
+  DashboardAppointment,
+  usePregnancyDashboard,
+} from '@src/hooks/usePregnancyDashboard';
+
+interface MoodOption {
+  id: string;
+  name: string;
+  emoji: string;
+}
+
+interface ChecklistSummary {
+  packed_count: number;
+  total_count: number;
+}
+
+const NEUTRAL_MOOD = '😐';
+
+/** 'March 15, 2026' from a backend YYYY-MM-DD date. */
+function formatLongDate(dateStr: string): string {
+  const d = parseLocalDate(dateStr);
+  return `${monthNames[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+}
+
+/** '2:30 PM' from a backend HH:MM[:SS] time. */
+function formatTime(time: string | null): string | null {
+  if (!time) return null;
+  const [h, m] = time.split(':').map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return null;
+  const suffix = h >= 12 ? 'PM' : 'AM';
+  const hour12 = h % 12 === 0 ? 12 : h % 12;
+  return `${hour12}:${String(m).padStart(2, '0')} ${suffix}`;
+}
+
+/** Whole days from today (local) until a YYYY-MM-DD date. */
+function daysUntil(dateStr: string): number {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round(
+    (parseLocalDate(dateStr).getTime() - today.getTime()) / 86400000,
+  );
+}
+
+function relativeDayLabel(dateStr: string): string {
+  const days = daysUntil(dateStr);
+  if (days <= 0) return 'Today';
+  if (days === 1) return 'Tomorrow';
+  return `In ${days} days`;
+}
+
+function formatBabyWeight(grams: number): string {
+  if (grams < 1) return 'less than 1 g';
+  if (grams < 1000) return `~${grams} g`;
+  return `~${(grams / 1000).toFixed(1)} kg`;
+}
+
+function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function withArticle(noun: string): string {
+  return `${/^[aeiou]/i.test(noun) ? 'an' : 'a'} ${noun}`;
+}
+
+function formatNumber(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
 
 export default function PregnancyScreen() {
   const navigation = useNavigation<DrawerNavigationProp<RootStackParamList>>();
+  const modal = useContext(GlobalModalContext);
+  const { data, isLoading, error, notFound, refetch } = usePregnancyDashboard();
 
   const [showNotifications, setShowNotifications] = useState(false);
+  const [moods, setMoods] = useState<MoodOption[]>([]);
+  const [checklist, setChecklist] = useState<ChecklistSummary | null>(null);
+  // Spinner only for pull-to-refresh; focus refetches update silently
+  const [pullRefreshing, setPullRefreshing] = useState(false);
 
-  // Dummy pregnancy data
-  const currentWeek = 24;
-  const currentTrimester = 2;
-  const dueDate = 'March 15, 2026';
-  const daysRemaining = 112;
+  // Mood list (id -> emoji) comes from the daily-actions endpoint
+  useEffect(() => {
+    let cancelled = false;
+    apiClient
+      .get<{ moods: MoodOption[] }>(APIS.v1.activities.dailyActionList())
+      .then(res => {
+        if (!cancelled) setMoods(res.moods || []);
+      })
+      .catch(e => console.info('Failed to fetch moods', e));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const fetchChecklist = useCallback(async () => {
+    try {
+      const res = await apiClient.get<ChecklistSummary>(
+        APIS.v1.pregnancy.checklist(),
+      );
+      setChecklist({
+        packed_count: res.packed_count,
+        total_count: res.total_count,
+      });
+    } catch (e) {
+      console.info('Failed to fetch hospital checklist', e);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchChecklist();
+    }, [fetchChecklist]),
+  );
+
+  const onRefresh = useCallback(async () => {
+    setPullRefreshing(true);
+    await Promise.all([refetch(), fetchChecklist()]);
+    setPullRefreshing(false);
+  }, [refetch, fetchChecklist]);
+
+  const header = (subtitle: string | null, badgeCount = 0) => (
+    <View style={styles.header}>
+      <TouchableOpacity
+        onPress={() => navigation.openDrawer()}
+        style={styles.headerBtn}
+      >
+        <FontelloIcon name="cog-1" size={26} color="#333" />
+      </TouchableOpacity>
+      <View style={styles.headerCenter}>
+        <Text style={styles.headerTitle}>My Pregnancy</Text>
+        {subtitle ? <Text style={styles.headerDate}>{subtitle}</Text> : null}
+      </View>
+      <TouchableOpacity
+        onPress={() => setShowNotifications(true)}
+        style={styles.headerBtn}
+        disabled={!data}
+      >
+        {badgeCount > 0 && (
+          <View style={styles.appointmentBadge}>
+            <Text style={styles.appointmentBadgeText}>{badgeCount}</Text>
+          </View>
+        )}
+        <FontelloIcon name="bell-alt" size={26} color="#333" />
+      </TouchableOpacity>
+    </View>
+  );
+
+  if (!data) {
+    let body: React.ReactNode;
+    if (isLoading) {
+      body = <ScreenLoader message="Loading your pregnancy..." />;
+    } else if (notFound) {
+      body = (
+        <View style={styles.stateContainer}>
+          <Text style={styles.stateEmoji}>🤰</Text>
+          <Text style={styles.stateTitle}>No active pregnancy</Text>
+          <Text style={styles.stateMessage}>
+            Add your due date in pregnancy settings to see your week-by-week
+            progress, baby's growth and health summary here.
+          </Text>
+          <TouchableOpacity
+            style={styles.stateBtn}
+            onPress={() => navigation.navigate(SCREENS.PREGNANCY_SETTINGS)}
+          >
+            <Text style={styles.stateBtnText}>Open Pregnancy Settings</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    } else {
+      body = (
+        <View style={styles.stateContainer}>
+          <FontelloIcon name="attention" size={40} color="#F59E0B" />
+          <Text style={styles.stateTitle}>Couldn't load your pregnancy</Text>
+          <Text style={styles.stateMessage}>
+            {error || 'Something went wrong. Please try again.'}
+          </Text>
+          <TouchableOpacity style={styles.stateBtn} onPress={refetch}>
+            <Text style={styles.stateBtnText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        {header(null)}
+        {body}
+      </SafeAreaView>
+    );
+  }
+
+  const { pregnancy, baby, maternal, today, recent_symptoms } = data;
+  const appointment: DashboardAppointment | null = data.upcoming_appointment;
+  const dueDate = formatLongDate(pregnancy.due_date);
+
+  const moodId = today.mood_ids[0];
+  const mood = moodId ? moods.find(m => String(m.id) === moodId) : undefined;
 
   const quickStats = [
-    { id: 1, label: 'Weight', value: '+8kg', bgColor: ['#E9D5FF', '#C084FC'] },
-    { id: 2, label: 'Mood', emoji: '😊', bgColor: ['#FED7AA', '#FB923C'] },
-    { id: 3, label: 'Energy', emoji: '⚡', bgColor: ['#BAE6FD', '#38BDF8'] },
-    { id: 4, label: 'Sleep', emoji: '😴', bgColor: ['#DDD6FE', '#A78BFA'] },
-    { id: 5, label: 'Water', value: '6/8', bgColor: ['#BBF7D0', '#4ADE80'] },
+    {
+      id: 'weight',
+      label: 'Weight',
+      value:
+        maternal.weight_gain_kg === null
+          ? '—'
+          : `${maternal.weight_gain_kg >= 0 ? '+' : ''}${formatNumber(
+              maternal.weight_gain_kg,
+            )}kg`,
+      bgColor: ['#E9D5FF', '#C084FC'],
+    },
+    {
+      id: 'mood',
+      label: 'Mood',
+      emoji: mood?.emoji || NEUTRAL_MOOD,
+      bgColor: ['#FED7AA', '#FB923C'],
+    },
+    {
+      id: 'sleep',
+      label: 'Sleep',
+      value:
+        today.sleep_hours === null
+          ? '—'
+          : `${formatNumber(today.sleep_hours)}h`,
+      bgColor: ['#DDD6FE', '#A78BFA'],
+    },
+    {
+      id: 'water',
+      label: 'Water',
+      value: `${formatNumber(today.water_glasses)}/${today.water_goal_glasses}`,
+      bgColor: ['#BBF7D0', '#4ADE80'],
+    },
   ];
 
   const weeklyMilestones = [
     {
       id: 1,
-      icon: 'baby',
+      icon: 'heart',
       title: 'Baby Size',
-      description: 'Your baby is the size of a papaya!',
-      detail: '~30cm length',
+      description: `Your baby is the size of ${withArticle(
+        baby.size_comparison,
+      )}!`,
+      detail: `~${formatNumber(baby.length_cm)}cm length`,
       color: '#EC4899',
       bgColor: '#FCE7F3',
     },
     {
       id: 2,
-      icon: 'heartbeat',
+      icon: 'chart-line',
       title: 'Development',
-      description: 'Baby can hear sounds and respond to light',
-      detail: 'Lungs developing',
+      description: baby.development,
+      detail: `Week ${baby.week}`,
       color: '#8B5CF6',
       bgColor: '#F3E8FF',
     },
@@ -64,7 +286,7 @@ export default function PregnancyScreen() {
       id: 1,
       category: 'Nutrition',
       tip: 'Include iron-rich foods like spinach and lean meat',
-      icon: 'pitch',
+      icon: 'food',
       color: '#10B981',
     },
     {
@@ -78,79 +300,93 @@ export default function PregnancyScreen() {
       id: 3,
       category: 'Wellness',
       tip: 'Practice deep breathing exercises',
-      icon: 'leaf',
+      icon: 'feather',
       color: '#3B82F6',
     },
   ];
 
-  const symptoms = [
-    { id: 1, name: 'Backache', severity: 'Moderate', icon: 'attention' },
-    { id: 2, name: 'Fatigue', severity: 'Mild', icon: 'moon' },
-    { id: 3, name: 'Heartburn', severity: 'Mild', icon: 'fire' },
-  ];
+  // Notifications derived from today's dashboard data
+  const notifications: NotificationItem[] = [];
+  if (appointment) {
+    notifications.push({
+      id: `appointment-${appointment.id}`,
+      title: 'Appointment',
+      message: `${appointment.title} – ${relativeDayLabel(
+        appointment.date,
+      ).toLowerCase()}`,
+      time: formatLongDate(appointment.date),
+      icon: 'calendar',
+      color: '#8B5CF6',
+    });
+  }
+  if (today.water_glasses < today.water_goal_glasses) {
+    notifications.push({
+      id: 'hydration',
+      title: 'Hydration',
+      message: `${formatNumber(today.water_glasses)}/${
+        today.water_goal_glasses
+      } glasses completed today`,
+      icon: 'glass',
+      color: '#3B82F6',
+    });
+  }
+  if (today.mood_ids.length === 0) {
+    notifications.push({
+      id: 'checkin',
+      title: 'Daily Check-in',
+      message: "You haven't logged how you feel today",
+      icon: 'smile',
+      color: '#F59E0B',
+    });
+  }
+
+  const checklistPercent =
+    checklist && checklist.total_count > 0
+      ? Math.round((checklist.packed_count / checklist.total_count) * 100)
+      : 0;
+
+  const partnerTip =
+    pregnancy.current_week >= 23
+      ? 'Encourage bonding by talking to the baby. They can hear voices now!'
+      : 'Offer support at appointments and help with daily tasks. Small gestures make a big difference.';
+
+  const sharePartnerTip = () => {
+    Share.share({
+      message: `Week ${pregnancy.current_week} of our pregnancy: baby is the size of ${withArticle(
+        baby.size_comparison,
+      )}. ${partnerTip}`,
+    }).catch(e => console.info('Share failed', e));
+  };
+
+  const appointmentTime = appointment ? formatTime(appointment.time) : null;
+  const appointmentDate = appointment ? parseLocalDate(appointment.date) : null;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.openDrawer()}
-          style={styles.headerBtn}
-        >
-          <FontelloIcon name="cog-1" size={26} color="#333" />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>My Pregnancy</Text>
-          <Text style={styles.headerDate}>
-            Week {currentWeek} • Trimester {currentTrimester}
-          </Text>
-        </View>
-        <TouchableOpacity
-          onPress={() => setShowNotifications(true)}
-          style={styles.headerBtn}
-        >
-          <View style={styles.appointmentBadge}>
-            <Text style={styles.appointmentBadgeText}>3</Text>
-          </View>
-          <FontelloIcon name="bell-alt" size={26} color="#333" />
-        </TouchableOpacity>
-      </View>
+      {header(
+        `Week ${pregnancy.current_week} • Trimester ${pregnancy.trimester}`,
+        notifications.length,
+      )}
 
       {/* Notifications Modal (common) */}
       <NotificationsModal
         visible={showNotifications}
-        items={[
-          {
-            id: 1,
-            title: 'Kick Counter',
-            message: 'You logged 12 kicks today',
-            time: '2h ago',
-            icon: 'heart',
-            color: '#F59E0B',
-          },
-          {
-            id: 2,
-            title: 'Hydration',
-            message: '6/8 glasses completed',
-            time: '4h ago',
-            icon: 'glass',
-            color: '#3B82F6',
-          },
-          {
-            id: 3,
-            title: 'Appointment',
-            message: 'Ultrasound in 2 days',
-            time: '1d ago',
-            icon: 'calendar',
-            color: '#8B5CF6',
-          },
-        ]}
+        items={notifications}
         onClose={() => setShowNotifications(false)}
       />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={pullRefreshing}
+            onRefresh={onRefresh}
+            colors={[THEME_COLORS.primary]}
+            tintColor={THEME_COLORS.primary}
+          />
+        }
       >
         {/* Main Progress Card */}
         <LinearGradient
@@ -161,7 +397,10 @@ export default function PregnancyScreen() {
         >
           <View style={styles.mainCardContent}>
             <Text style={styles.mainCardLabel}>Due Date</Text>
-            <Text style={styles.mainCardValue}>{daysRemaining} Days</Text>
+            <Text style={styles.mainCardValue}>
+              {pregnancy.days_remaining}{' '}
+              {pregnancy.days_remaining === 1 ? 'Day' : 'Days'}
+            </Text>
             <Text style={styles.mainCardSubtitle}>{dueDate}</Text>
 
             <View style={styles.progressBarContainer}>
@@ -169,12 +408,12 @@ export default function PregnancyScreen() {
                 <View
                   style={[
                     styles.progressFill,
-                    { width: `${(currentWeek / 40) * 100}%` },
+                    { width: `${pregnancy.progress_percent}%` },
                   ]}
                 />
               </View>
               <Text style={styles.progressText}>
-                {Math.round((currentWeek / 40) * 100)}% Complete
+                {pregnancy.progress_percent}% Complete
               </Text>
             </View>
 
@@ -186,6 +425,24 @@ export default function PregnancyScreen() {
           </View>
         </LinearGradient>
 
+        {/* Today's Quick Stats */}
+        <View style={styles.quickStatsRow}>
+          {quickStats.map(stat => (
+            <LinearGradient
+              key={stat.id}
+              colors={stat.bgColor}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.quickStatCard}
+            >
+              <Text style={styles.quickStatValue}>
+                {stat.emoji ?? stat.value}
+              </Text>
+              <Text style={styles.quickStatLabel}>{stat.label}</Text>
+            </LinearGradient>
+          ))}
+        </View>
+
         {/* Baby Growth Visualization */}
         <View style={styles.babyGrowthCard}>
           <LinearGradient
@@ -195,10 +452,20 @@ export default function PregnancyScreen() {
           >
             <View style={styles.babyGrowthContent}>
               <View style={styles.babyGrowthLeft}>
-                <Text style={styles.babyGrowthTitle}>Baby's Growth</Text>
-                <Text style={styles.babyGrowthSize}>Size of Papaya 🥭</Text>
-                <Text style={styles.babyGrowthDetails}>Length: ~30cm</Text>
-                <Text style={styles.babyGrowthDetails}>Weight: ~600g</Text>
+                <Text style={styles.babyGrowthTitle}>
+                  {pregnancy.baby_name
+                    ? `${pregnancy.baby_name}'s Growth`
+                    : "Baby's Growth"}
+                </Text>
+                <Text style={styles.babyGrowthSize}>
+                  Size of {withArticle(capitalize(baby.size_comparison))}
+                </Text>
+                <Text style={styles.babyGrowthDetails}>
+                  Length: ~{formatNumber(baby.length_cm)}cm
+                </Text>
+                <Text style={styles.babyGrowthDetails}>
+                  Weight: {formatBabyWeight(baby.weight_g)}
+                </Text>
               </View>
               <View style={styles.babyImageContainer}>
                 <Text style={styles.babyEmoji}>👶</Text>
@@ -213,7 +480,10 @@ export default function PregnancyScreen() {
             <Text style={styles.checkInTitle}>How are you feeling today?</Text>
             <Text style={styles.checkInSubtitle}>Track symptoms and mood</Text>
           </View>
-          <TouchableOpacity style={styles.checkInBtn}>
+          <TouchableOpacity
+            style={styles.checkInBtn}
+            onPress={() => modal.open()}
+          >
             <FontelloIcon
               name="plus"
               size={24}
@@ -222,31 +492,88 @@ export default function PregnancyScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Upcoming Appointment */}
+        {appointment && appointmentDate && (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Next Appointment</Text>
+              <TouchableOpacity
+                onPress={() => navigation.navigate(SCREENS.APPOINTMENTS)}
+              >
+                <Text style={styles.seeAllText}>See All</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              style={styles.appointmentCard}
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate(SCREENS.APPOINTMENTS)}
+            >
+              <View
+                style={[
+                  styles.appointmentDateBox,
+                  { backgroundColor: `${appointment.color || '#8B5CF6'}22` },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.appointmentDay,
+                    { color: appointment.color || '#8B5CF6' },
+                  ]}
+                >
+                  {appointmentDate.getDate()}
+                </Text>
+                <Text style={styles.appointmentMonth}>
+                  {monthNamesShort[appointmentDate.getMonth()]}
+                </Text>
+              </View>
+              <View style={styles.appointmentContent}>
+                <Text style={styles.appointmentTitle} numberOfLines={1}>
+                  {appointment.title}
+                </Text>
+                {appointment.doctor ? (
+                  <Text style={styles.appointmentMeta} numberOfLines={1}>
+                    {appointment.doctor}
+                  </Text>
+                ) : null}
+                <Text style={styles.appointmentMeta} numberOfLines={1}>
+                  {relativeDayLabel(appointment.date)}
+                  {appointmentTime ? ` • ${appointmentTime}` : ''}
+                  {appointment.location ? ` • ${appointment.location}` : ''}
+                </Text>
+              </View>
+              <FontelloIcon name="right-open-mini" size={20} color="#999" />
+            </TouchableOpacity>
+          </>
+        )}
+
         {/* Current Symptoms */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Current Symptoms</Text>
-          <TouchableOpacity>
-            <Text style={styles.seeAllText}>Manage</Text>
+          <Text style={styles.sectionTitle}>Recent Symptoms</Text>
+          <TouchableOpacity onPress={() => modal.open()}>
+            <Text style={styles.seeAllText}>Log</Text>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.symptomsContainer}>
-          {symptoms.map(symptom => (
-            <View key={symptom.id} style={styles.symptomChip}>
-              <FontelloIcon name={symptom.icon} size={14} color="#666" />
-              <Text style={styles.symptomName}>{symptom.name}</Text>
-              <View
-                style={[
-                  styles.severityDot,
-                  {
-                    backgroundColor:
-                      symptom.severity === 'Moderate' ? '#F59E0B' : '#10B981',
-                  },
-                ]}
-              />
-            </View>
-          ))}
-        </View>
+        {recent_symptoms.length > 0 ? (
+          <View style={styles.symptomsContainer}>
+            {recent_symptoms.map(symptom => (
+              <View key={symptom.id} style={styles.symptomChip}>
+                <FontelloIcon name="attention" size={14} color="#666" />
+                <Text style={styles.symptomName}>{symptom.name}</Text>
+                <Text style={styles.symptomDays}>
+                  {symptom.days} {symptom.days === 1 ? 'day' : 'days'}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View style={styles.symptomsEmpty}>
+            <Text style={styles.symptomsEmptyText}>
+              No symptoms logged in the last 7 days. Use the daily check-in to
+              track how you feel.
+            </Text>
+          </View>
+        )}
 
         {/* Weekly Milestones */}
         <View style={styles.sectionHeader}>
@@ -304,41 +631,27 @@ export default function PregnancyScreen() {
           ))}
         </ScrollView>
 
-        {/* Kick Counter */}
-        <LinearGradient
-          colors={['#DBEAFE', '#BFDBFE']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.kickCounterCard}
-        >
-          <View style={styles.kickCounterCardWrapper}>
-            <View style={styles.kickCounterHeader}>
-              <View style={styles.kickCounterLeft}>
-                <Text style={styles.kickCounterTitle}>Baby Kicks Today</Text>
-                <Text style={styles.kickCounterCount}>12 kicks</Text>
-              </View>
-              <TouchableOpacity style={styles.kickBtn}>
-                <FontelloIcon name="plus" size={28} color="#3B82F6" />
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.kickCounterSubtext}>
-              Tap + when you feel baby move
-            </Text>
-          </View>
-        </LinearGradient>
-
         {/* Pregnancy Essentials */}
         <HomeQuickActions />
 
         {/* Hospital Bag Checklist */}
         <View style={styles.checklistCard}>
           <View style={styles.checklistHeader}>
-            <FontelloIcon name="suitcase" size={24} color="#8B5CF6" />
+            <FontelloIcon name="bag" size={24} color="#8B5CF6" />
             <Text style={styles.checklistTitle}>Hospital Bag Checklist</Text>
           </View>
-          <Text style={styles.checklistSubtext}>5 of 20 items packed</Text>
+          <Text style={styles.checklistSubtext}>
+            {checklist
+              ? `${checklist.packed_count} of ${checklist.total_count} items packed`
+              : 'Get your bag ready before the big day'}
+          </Text>
           <View style={styles.checklistProgress}>
-            <View style={[styles.checklistProgressFill, { width: '25%' }]} />
+            <View
+              style={[
+                styles.checklistProgressFill,
+                { width: `${checklistPercent}%` },
+              ]}
+            />
           </View>
           <TouchableOpacity
             style={styles.checklistBtn}
@@ -360,10 +673,8 @@ export default function PregnancyScreen() {
               </Text>
             </View>
           </View>
-          <Text style={styles.partnerContent}>
-            Encourage bonding by talking to the baby. They can hear voices now!
-          </Text>
-          <TouchableOpacity style={styles.partnerBtn}>
+          <Text style={styles.partnerContent}>{partnerTip}</Text>
+          <TouchableOpacity style={styles.partnerBtn} onPress={sharePartnerTip}>
             <Text style={styles.partnerBtnText}>Share with Partner</Text>
           </TouchableOpacity>
         </View>
@@ -425,7 +736,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   scrollContent: {
-    paddingBottom: 40,
+    ...STYLE.scrollContent,
+    paddingHorizontal: 0,
   },
   mainCard: {
     marginHorizontal: STYLE.spacing.mh,
@@ -489,6 +801,63 @@ const styles = StyleSheet.create({
     width: 90,
     height: 90,
     opacity: 0.5,
+  },
+  quickStatsRow: {
+    flexDirection: 'row',
+    marginHorizontal: STYLE.spacing.mh,
+    marginTop: 16,
+    gap: 10,
+  },
+  quickStatCard: {
+    flex: 1,
+    borderRadius: 16,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  quickStatValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: THEME_COLORS.text,
+  },
+  quickStatLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#555',
+    marginTop: 4,
+  },
+  stateContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    gap: 12,
+  },
+  stateEmoji: {
+    fontSize: 56,
+  },
+  stateTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: THEME_COLORS.text,
+    textAlign: 'center',
+  },
+  stateMessage: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+  stateBtn: {
+    marginTop: 8,
+    backgroundColor: THEME_COLORS.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  stateBtnText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: THEME_COLORS.textLight,
   },
   babyGrowthCard: {
     marginHorizontal: STYLE.spacing.mh,
@@ -619,15 +988,72 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
   },
+  symptomDays: {
+    fontSize: 12,
+    color: '#999',
+  },
+  symptomsEmpty: {
+    backgroundColor: THEME_COLORS.textLight,
+    marginHorizontal: STYLE.spacing.mh,
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 24,
+  },
+  symptomsEmptyText: {
+    fontSize: 14,
+    color: '#999',
+    lineHeight: 20,
+  },
+  appointmentCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: THEME_COLORS.textLight,
+    marginHorizontal: STYLE.spacing.mh,
+    marginBottom: 24,
+    padding: 16,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  appointmentDateBox: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  appointmentDay: {
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  appointmentMonth: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#666',
+    textTransform: 'uppercase',
+  },
+  appointmentContent: {
+    flex: 1,
+  },
+  appointmentTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: THEME_COLORS.text,
+    marginBottom: 2,
+  },
+  appointmentMeta: {
+    fontSize: 13,
+    color: '#666',
+    marginTop: 2,
+  },
   symptomName: {
     fontSize: 14,
     fontWeight: '500',
     color: THEME_COLORS.text,
-  },
-  severityDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
   },
   milestoneCard: {
     flexDirection: 'row',
@@ -705,56 +1131,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     lineHeight: 20,
-  },
-  kickCounterCard: {
-    marginHorizontal: STYLE.spacing.mh,
-    borderRadius: 20,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  kickCounterCardWrapper: {
-    padding: 20,
-  },
-  kickCounterHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  kickCounterLeft: {
-    flex: 1,
-  },
-  kickCounterTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: THEME_COLORS.text,
-    marginBottom: 4,
-  },
-  kickCounterCount: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#3B82F6',
-  },
-  kickBtn: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: THEME_COLORS.textLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#3B82F6',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  kickCounterSubtext: {
-    fontSize: 13,
-    color: '#666',
   },
   checklistCard: {
     backgroundColor: '#F3E8FF',

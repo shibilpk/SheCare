@@ -13,6 +13,17 @@ export interface PeriodEndPayload {
   end_date: string;
 }
 
+export interface PeriodUpdatePayload {
+  start_date: string;
+  end_date: string;
+}
+
+export interface UpdatedPeriod {
+  id: string;
+  start_date: string;
+  end_date: string;
+}
+
 export interface ActivePeriod {
   id: string;
   start_date: string;
@@ -23,9 +34,14 @@ export interface ActivePeriod {
 export interface UsePeriodActionsReturn {
   isStarting: boolean;
   isEnding: boolean;
+  isUpdating: boolean;
   error: string | null;
   startPeriod: (payload: PeriodStartPayload) => Promise<any>;
   endPeriod: (payload: PeriodEndPayload) => Promise<any>;
+  updatePeriod: (
+    id: string,
+    payload: PeriodUpdatePayload,
+  ) => Promise<UpdatedPeriod>;
   getActivePeriod: () => Promise<ActivePeriod | null>;
 }
 
@@ -36,6 +52,7 @@ export interface UsePeriodActionsReturn {
 export function usePeriodActions(): UsePeriodActionsReturn {
   const [isStarting, setIsStarting] = useState(false);
   const [isEnding, setIsEnding] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const startPeriod = useCallback(async (payload: PeriodStartPayload) => {
@@ -78,6 +95,27 @@ export function usePeriodActions(): UsePeriodActionsReturn {
     }
   }, []);
 
+  const updatePeriod = useCallback(
+    async (id: string, payload: PeriodUpdatePayload) => {
+      try {
+        setIsUpdating(true);
+        setError(null);
+
+        return await apiClient.put<UpdatedPeriod>(
+          APIS.v1.period.detail(id),
+          payload,
+        );
+      } catch (err: any) {
+        console.info('Failed to update period:', err);
+        setError(err.message || 'Failed to update period');
+        throw err;
+      } finally {
+        setIsUpdating(false);
+      }
+    },
+    [],
+  );
+
   const getActivePeriod = useCallback(async (): Promise<ActivePeriod | null> => {
     try {
       setError(null);
@@ -105,9 +143,11 @@ export function usePeriodActions(): UsePeriodActionsReturn {
   return {
     isStarting,
     isEnding,
+    isUpdating,
     error,
     startPeriod,
     endPeriod,
+    updatePeriod,
     getActivePeriod,
   };
 }

@@ -1,17 +1,7 @@
 import { useState, useCallback } from 'react';
 import apiClient from '@src/services/ApiClient';
 import { APIS } from '@src/constants/apis';
-
-export interface DailyDataItem {
-  id: string;
-  type: 'mood' | 'symptom' | 'activity' | 'flow' | 'intimacy';
-  tag?: string;
-  name?: string;
-  label?: string;
-  emoji?: string;
-  icon?: string;
-  color?: string;
-}
+import { toLocalDateString } from '../utils/date';
 
 export interface RatingItem {
   id: string;
@@ -20,14 +10,22 @@ export interface RatingItem {
 
 export interface DailyEntryPayload {
   date: string;
-  daily_data: DailyDataItem[];
+  moods: string[];
+  symptoms: string[];
+  activities: string[];
+  intimacy: string[];
+  flow: string[];
   ratings: RatingItem[];
 }
 
 export interface DailyEntryResponse {
   id: number;
   date: string;
-  daily_data: DailyDataItem[];
+  moods: string[];
+  symptoms: string[];
+  activities: string[];
+  intimacy: string[];
+  flow: string[];
   ratings: RatingItem[];
   created_at: string;
   updated_at: string;
@@ -42,12 +40,21 @@ export interface SummaryCard {
   color: string;
 }
 
+export interface PregnancyChance {
+  level: 'low' | 'medium' | 'high';
+  percentage: number;
+  is_ovulation_day?: boolean;
+  is_fertile_window?: boolean;
+  ovulation_date?: string | null;
+}
+
 export interface DailySummaryResponse {
-  id: number;
+  id: number | null;
   date: string;
   summary_cards: SummaryCard[];
-  created_at: string;
-  updated_at: string;
+  pregnancy_chance: PregnancyChance | null;
+  created_at: string | null;
+  updated_at?: string | null;
 }
 
 export interface UseDailyEntryReturn {
@@ -77,7 +84,7 @@ export function useDailyEntry(): UseDailyEntryReturn {
       setIsLoading(true);
       setError(null);
 
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = toLocalDateString(date);
       const response = await apiClient.get<DailyEntryResponse>(
         APIS.v1.activities.dailyEntries(dateStr)
       );
@@ -104,7 +111,7 @@ export function useDailyEntry(): UseDailyEntryReturn {
       setIsLoading(true);
       setError(null);
 
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = toLocalDateString(date);
       const response = await apiClient.get<DailySummaryResponse>(
         APIS.v1.activities.dailyEntriesDetailed(dateStr)
       );

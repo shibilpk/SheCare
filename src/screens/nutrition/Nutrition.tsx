@@ -21,12 +21,13 @@ import { STYLE } from '../../constants/app';
 import { useNutrition, type NutritionLog } from './useNutrition';
 import { FoodNameInput, type FoodSuggestion } from '../../components/common/FoodNameInput';
 import { ScreenLoader } from '../../components/common/ScreenLoader';
+import { toLocalDateString } from '../../utils/date';
 
 export default function NutritionScreen() {
   const navigation = useNavigation();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const dateString = selectedDate.toISOString().split('T')[0];
+  const dateString = toLocalDateString(selectedDate);
 
   const {
     summary,

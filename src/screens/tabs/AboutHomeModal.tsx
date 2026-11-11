@@ -28,6 +28,7 @@ import { DailyActionData } from '@src/hooks/useDailyActionData';
 import { RatingData } from '@src/hooks/useRatingData';
 import { useDailyEntry } from '@src/hooks/useDailyEntry';
 import { useDiary } from '@src/hooks/useDiary';
+import { toLocalDateString } from '../../utils/date';
 
 interface AboutHomeModalProps {
   dailyActionData: DailyActionData;
@@ -48,25 +49,18 @@ export default function AboutHomeModal({
 
   // Save entry to API
   const handleSave = async () => {
-    // Transform state into daily_data format with id and type
-    const daily_data = [
-      ...selectedMoods.map(id => ({ id, type: 'mood' as const })),
-      ...selectedSymptoms.map(id => ({ id, type: 'symptom' as const })),
-      ...selectedActivities.map(id => ({ id, type: 'activity' as const })),
-      ...(selectedFlow ? [{ id: selectedFlow, type: 'flow' as const }] : []),
-      ...(selectedIntimacy
-        ? [{ id: selectedIntimacy, type: 'intimacy' as const }]
-        : []),
-    ];
-
     // Convert itemRatings Record to array format for API
     const ratingsArray = Object.entries(itemRatings)
       .filter(([_, rating]) => rating > 0)
       .map(([id, rating]) => ({ id, rating }));
 
     const payload = {
-      date: selectedDate.toISOString().split('T')[0],
-      daily_data,
+      date: toLocalDateString(selectedDate),
+      moods: selectedMoods,
+      symptoms: selectedSymptoms,
+      activities: selectedActivities,
+      intimacy: selectedIntimacy ? [selectedIntimacy] : [],
+      flow: selectedFlow ? [selectedFlow] : [],
       ratings: ratingsArray,
     };
 
@@ -163,27 +157,12 @@ export default function AboutHomeModal({
       const entry = await fetchDailyEntryData(date);
 
       if (entry) {
-        // Transform daily_data back to separate arrays by type
-        const savedMoods = entry.daily_data
-          .filter(item => item.type === 'mood')
-          .map(item => item.id);
-        const savedSymptoms = entry.daily_data
-          .filter(item => item.type === 'symptom')
-          .map(item => item.id);
-        const savedActivities = entry.daily_data
-          .filter(item => item.type === 'activity')
-          .map(item => item.id);
-        const savedFlow =
-          entry.daily_data.find(item => item.type === 'flow')?.id || null;
-        const savedIntimacy =
-          entry.daily_data.find(item => item.type === 'intimacy')?.id || null;
-
-        // Populate state with saved data
-        setSelectedMoods(savedMoods);
-        setSelectedSymptoms(savedSymptoms);
-        setSelectedFlow(savedFlow);
-        setSelectedIntimacy(savedIntimacy);
-        setSelectedActivities(savedActivities);
+        // Populate state with saved data (flow/intimacy are single choice)
+        setSelectedMoods(entry.moods ?? []);
+        setSelectedSymptoms(entry.symptoms ?? []);
+        setSelectedFlow(entry.flow?.[0] ?? null);
+        setSelectedIntimacy(entry.intimacy?.[0] ?? null);
+        setSelectedActivities(entry.activities ?? []);
         // Convert ratings array to Record format for state
         const ratingsRecord = (entry.ratings || []).reduce(
           (acc, item) => {

@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -14,130 +16,76 @@ import FontelloIcon from '../../services/FontelloIcons';
 import { THEME_COLORS } from '../../constants/colors';
 import { RootStackParamList } from '../../constants/navigation';
 import { STYLE } from '../../constants/app';
+import { useHealthTips } from '../../hooks/useHealthTips';
 
-interface Tip {
-  id: number;
-  category: string;
-  icon: string;
-  title: string;
-  description: string;
-  color: string;
-}
-
-const healthTips: Tip[] = [
-  {
-    id: 1,
-    category: 'Hydration',
-    icon: 'glass',
-    title: 'Stay Hydrated',
-    description:
-      'Drink at least 8 glasses of water daily. Proper hydration helps reduce bloating, improves skin health, and supports your menstrual cycle. Add lemon or cucumber for flavor!',
-    color: '#3B82F6',
-  },
-  {
-    id: 2,
-    category: 'Sleep',
-    icon: 'moon',
-    title: 'Quality Sleep',
-    description:
-      'Aim for 7-8 hours of quality sleep each night. Good sleep helps regulate hormones, reduces stress, and improves mood. Create a bedtime routine and avoid screens before bed.',
-    color: '#8B5CF6',
-  },
-  {
-    id: 3,
-    category: 'Exercise',
-    icon: 'heartbeat',
-    title: 'Regular Exercise',
-    description:
-      'Exercise for at least 30 minutes daily. Regular physical activity helps regulate your cycle, reduces cramps, boosts mood, and improves overall health. Try yoga, walking, or dancing!',
-    color: '#10B981',
-  },
-  {
-    id: 4,
-    category: 'Nutrition',
-    icon: 'pitch',
-    title: 'Balanced Diet',
-    description:
-      'Eat a balanced diet rich in iron, calcium, and vitamins. Include leafy greens, whole grains, lean proteins, and fruits. Avoid excessive caffeine and processed foods during your period.',
-    color: '#F59E0B',
-  },
-  {
-    id: 5,
-    category: 'Stress Management',
-    icon: 'heart',
-    title: 'Manage Stress',
-    description:
-      'Practice stress-reduction techniques like meditation, deep breathing, or journaling. Chronic stress can affect your menstrual cycle and overall health. Take time for self-care daily.',
-    color: '#EC4899',
-  },
-  {
-    id: 6,
-    category: 'Iron Intake',
-    icon: 'battery-4',
-    title: 'Boost Iron Levels',
-    description:
-      'Iron is crucial during menstruation. Eat iron-rich foods like spinach, beans, red meat, and fortified cereals. Pair with vitamin C for better absorption. Consider supplements if needed.',
-    color: '#EF4444',
-  },
-  {
-    id: 7,
-    category: 'Heat Therapy',
-    icon: 'fire',
-    title: 'Heat for Cramps',
-    description:
-      'Apply heat to your lower abdomen to relieve menstrual cramps. Use a heating pad or hot water bottle for 15-20 minutes. Heat helps relax muscles and improve blood flow.',
-    color: '#F97316',
-  },
-  {
-    id: 8,
-    category: 'Track Your Cycle',
-    icon: 'calendar',
-    title: 'Monitor Your Cycle',
-    description:
-      'Keep track of your menstrual cycle, symptoms, and moods. This helps predict your period, identify patterns, and notice any irregularities that may need medical attention.',
-    color: '#6366F1',
-  },
-  {
-    id: 9,
-    category: 'Omega-3',
-    icon: 'fish',
-    title: 'Omega-3 Fatty Acids',
-    description:
-      'Include omega-3 rich foods like salmon, walnuts, and flaxseeds. Omega-3s help reduce inflammation, ease period pain, and support hormonal balance.',
-    color: '#06B6D4',
-  },
-  {
-    id: 10,
-    category: 'Avoid Smoking',
-    icon: 'block',
-    title: 'Say No to Smoking',
-    description:
-      'Smoking can worsen period symptoms and increase the risk of reproductive health issues. If you smoke, consider quitting for better overall health and easier periods.',
-    color: '#DC2626',
-  },
-];
+const FALLBACK_ICON = 'heart';
+const FALLBACK_COLOR = THEME_COLORS.primary;
 
 const HealthTipsScreen: React.FC = () => {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { tips, isLoading, error, refetch } = useHealthTips();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  };
+
+  const renderStatus = () => {
+    if (isLoading && !refreshing && !tips.length) {
+      return (
+        <View style={styles.statusBox}>
+          <ActivityIndicator size="large" color={THEME_COLORS.primary} />
+        </View>
+      );
+    }
+    if (error && !tips.length) {
+      return (
+        <View style={styles.statusBox}>
+          <Text style={styles.statusText}>{error}</Text>
+          <TouchableOpacity onPress={refetch}>
+            <Text style={styles.retryText}>Tap to retry</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    if (!tips.length) {
+      return (
+        <View style={styles.statusBox}>
+          <Text style={styles.statusText}>No health tips available yet.</Text>
+        </View>
+      );
+    }
+    return null;
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
-          style={styles.backBtn}
+          style={styles.closeBtn}
           onPress={() => navigation.goBack()}
         >
           <FontelloIcon name="left-open-mini" size={26} color="#333" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Health Tips</Text>
-        <View style={{ width: 26 }} />
+        <View style={styles.placeholder} />
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={THEME_COLORS.primary}
+            colors={[THEME_COLORS.primary]}
+          />
+        }
       >
         {/* Intro */}
         <View style={styles.introCard}>
@@ -149,28 +97,33 @@ const HealthTipsScreen: React.FC = () => {
           </Text>
         </View>
 
-        {/* Tips */}
-        {healthTips.map(tip => (
-          <View key={tip.id} style={styles.tipCard}>
-            <View style={styles.tipHeader}>
-              <View
-                style={[
-                  styles.tipIconBox,
-                  { backgroundColor: tip.color + '20' },
-                ]}
-              >
-                <FontelloIcon name={tip.icon} size={22} color={tip.color} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.tipCategory}>{tip.category}</Text>
-                <Text style={styles.tipTitle}>{tip.title}</Text>
-              </View>
-            </View>
-            <Text style={styles.tipDescription}>{tip.description}</Text>
-          </View>
-        ))}
+        {renderStatus()}
 
-        <View style={{ height: 30 }} />
+        {/* Tips */}
+        {tips.map(tip => {
+          const color = /^#[0-9a-fA-F]{6}$/.test(tip.color)
+            ? tip.color
+            : FALLBACK_COLOR;
+          const icon = FontelloIcon.hasIcon(tip.icon) ? tip.icon : FALLBACK_ICON;
+          return (
+            <View key={tip.id} style={styles.tipCard}>
+              <View style={styles.tipHeader}>
+                <View
+                  style={[styles.tipIconBox, { backgroundColor: color + '20' }]}
+                >
+                  <FontelloIcon name={icon} size={22} color={color} />
+                </View>
+                <View style={styles.tipHeaderText}>
+                  <Text style={styles.tipCategory}>{tip.category}</Text>
+                  <Text style={styles.tipTitle}>{tip.title}</Text>
+                </View>
+              </View>
+              <Text style={styles.tipDescription}>{tip.description}</Text>
+            </View>
+          );
+        })}
+
+        <View style={styles.bottomPadding} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -196,6 +149,22 @@ const styles = StyleSheet.create({
   },
   placeholder: {
     width: 32,
+  },
+  statusBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+    gap: 10,
+  },
+  statusText: {
+    fontSize: 15,
+    color: '#666',
+    textAlign: 'center',
+  },
+  retryText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: THEME_COLORS.primary,
   },
   scrollView: {
     flex: 1,

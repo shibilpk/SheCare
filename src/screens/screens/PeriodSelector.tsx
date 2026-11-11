@@ -16,10 +16,10 @@ import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import LinearGradient from 'react-native-linear-gradient';
 import { STYLE } from '../../constants/app';
 import { RootStackParamList, SCREENS } from '@src/constants/navigation';
-import { APIS } from '@src/constants/apis';
-import apiClient, { APIError } from '@src/services/ApiClient';
+import { APIError } from '@src/services/ApiClient';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { usePeriodActions } from '@src/hooks/usePeriodActions';
+import { toLocalDateString } from '../../utils/date';
 
 type ScreenRouteProp = RouteProp<
   RootStackParamList,
@@ -32,11 +32,15 @@ const PeriodSelector: React.FC = () => {
     endDate = null,
     rangeDays = null,
     periodId = null,
+    mode,
   } = route.params || {};
+  const isEditMode = mode === 'edit' && !!periodId;
 
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { startPeriod, endPeriod } = usePeriodActions();
+  const { startPeriod, endPeriod, updatePeriod, isStarting, isEnding, isUpdating } =
+    usePeriodActions();
+  const isSubmitting = isStarting || isEnding || isUpdating;
 
   const [range, setRange] = useState<DateRange>({
     startDate: startDate,
@@ -98,21 +102,29 @@ const PeriodSelector: React.FC = () => {
     }
 
     try {
-
+      if (isEditMode) {
+        // Editing a period from the history list
+        await updatePeriod(periodId!, {
+          start_date: toLocalDateString(range.startDate!),
+          end_date: toLocalDateString(range.endDate!),
+        });
+        navigation.goBack();
+        return;
+      }
 
       if (periodId) {
         // Updating an existing period - send period_id, start_date and end_date
         const payload = {
           period_id: periodId,
-          start_date: range.startDate!.toISOString().split('T')[0],
-          end_date: range.endDate!.toISOString().split('T')[0],
+          start_date: toLocalDateString(range.startDate!),
+          end_date: toLocalDateString(range.endDate!),
         };
         await endPeriod(payload);
       } else {
         // Starting a new period - send both dates
         const payload = {
-          start_date: range.startDate!.toISOString().split('T')[0],
-          end_date: range.endDate!.toISOString().split('T')[0],
+          start_date: toLocalDateString(range.startDate!),
+          end_date: toLocalDateString(range.endDate!),
         };
         await startPeriod(payload);
       }
@@ -147,7 +159,11 @@ const PeriodSelector: React.FC = () => {
           <FontelloIcon name="left-open-mini" size={26} color="#333" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
-          {periodId ? 'Update Period' : 'Select Period'}
+          {isEditMode
+            ? 'Edit Period'
+            : periodId
+            ? 'Update Period'
+            : 'Select Period'}
         </Text>
         <TouchableOpacity style={styles.clearBtn} onPress={handleClear}>
           <Text style={styles.clearBtnText}>Clear</Text>
@@ -300,9 +316,12 @@ const PeriodSelector: React.FC = () => {
 
         {/* Confirm Button */}
         <TouchableOpacity
-          style={[styles.confirmBtn, !isComplete && styles.confirmBtnDisabled]}
+          style={[
+            styles.confirmBtn,
+            (!isComplete || isSubmitting) && styles.confirmBtnDisabled,
+          ]}
           onPress={handleConfirm}
-          disabled={!isComplete}
+          disabled={!isComplete || isSubmitting}
           activeOpacity={0.8}
         >
           <FontelloIcon
@@ -316,7 +335,11 @@ const PeriodSelector: React.FC = () => {
               !isComplete && styles.confirmTextDisabled,
             ]}
           >
-            Confirm Period
+            {isSubmitting
+              ? 'Saving...'
+              : isEditMode
+              ? 'Save Changes'
+              : 'Confirm Period'}
           </Text>
         </TouchableOpacity>
 

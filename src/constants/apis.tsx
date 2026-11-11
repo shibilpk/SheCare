@@ -12,12 +12,18 @@ const auth = {
   verifyOtp: (id: string) => `/api/${API_VERSION}/auth/verify-otp/${id}/`,
   loginWithOtp: () => `/api/${API_VERSION}/auth/login-otp/`,
   changePassword: () => `/api/${API_VERSION}/auth/change-password/`,
+  deactivateAccount: () => `/api/${API_VERSION}/auth/deactivate-account/`,
+  deleteAccount: () => `/api/${API_VERSION}/auth/delete-account/`,
 };
 
 const customer = {
   register: () => `/api/${API_VERSION}/customer/register/`,
   profile: () => `/api/${API_VERSION}/customer/profile/`,
   weightEntry: () => `/api/${API_VERSION}/customer/profile/wight-entry/`,
+  weightEntries: (months: number = 6) =>
+    `/api/${API_VERSION}/customer/weight-entries/?months=${months}`,
+  deleteWeightEntry: (id: number) =>
+    `/api/${API_VERSION}/customer/weight-entries/${id}/`,
   healthAnalysis: () => `/api/${API_VERSION}/customer/health-analysis/`,
   preferences: () => `/api/${API_VERSION}/customer/preferences/`,
   preferencesOptions: () => `/api/${API_VERSION}/customer/preferences/options/`,
@@ -37,6 +43,8 @@ const period = {
   list: () => `/api/${API_VERSION}/period/list/`,
   customerData: () => `/api/${API_VERSION}/period/customer-data/`,
   pregnancyChance: () => `/api/${API_VERSION}/period/pregnancy-chance/`,
+  // PUT {start_date, end_date} to edit, DELETE to remove
+  detail: (id: string) => `/api/${API_VERSION}/period/${id}/`,
 };
 
 const activities = {
@@ -46,6 +54,8 @@ const activities = {
     `/api/${API_VERSION}/activities/daily-entries/${dateStr}/`,
   dailyEntriesDetailed: (dateStr: string) =>
     `/api/${API_VERSION}/activities/daily-entries-detailed/${dateStr}/`,
+  calendarMarkers: (startDate: string, endDate: string) =>
+    `/api/${API_VERSION}/activities/calendar-markers/?start_date=${startDate}&end_date=${endDate}`,
   createDailyEntry: () => `/api/${API_VERSION}/activities/daily-entries/`,
 };
 
@@ -60,9 +70,9 @@ const medication = {
   medications: () => `/api/${API_VERSION}/medication/medications/`,
   medicationsByDate: (dateStr: string) =>
     `/api/${API_VERSION}/medication/medications/by-date/${dateStr}/`,
-  updateMedication: (id: number) =>
+  updateMedication: (id: string) =>
     `/api/${API_VERSION}/medication/medications/${id}/`,
-  deleteMedication: (id: number) =>
+  deleteMedication: (id: string) =>
     `/api/${API_VERSION}/medication/medications/${id}/`,
   toggleDose: () => `/api/${API_VERSION}/medication/medication-log/`,
   stats: (dateStr: string) =>
@@ -71,6 +81,7 @@ const medication = {
 
 const general = {
   dailyTips: () => `/api/${API_VERSION}/general/daily-tips/`,
+  healthTips: () => `/api/${API_VERSION}/general/health-tips/`,
   appVersion: (os: string) => `/api/${API_VERSION}/general/app-version/${os}/`,
   animation: (name: string) =>
     `/api/${API_VERSION}/general/animations/${name}/`,
@@ -113,8 +124,34 @@ const contactFeedback = {
   listFeedback: () => `/api/${API_VERSION}/contact-feedback/feedback/`,
 };
 
+const exercise = {
+  types: () => `/api/${API_VERSION}/exercise/types/`,
+  // Mon-Sun week containing dateStr (YYYY-MM-DD)
+  weekSummary: (dateStr: string) =>
+    `/api/${API_VERSION}/exercise/summary/${dateStr}/`,
+  logs: () => `/api/${API_VERSION}/exercise/logs/`,
+  log: (id: number) => `/api/${API_VERSION}/exercise/logs/${id}/`,
+};
+
+const sleep = {
+  // GET list (+7-day stats); POST upserts the entry for a date
+  logs: () => `/api/${API_VERSION}/sleep/logs/`,
+  log: (id: number) => `/api/${API_VERSION}/sleep/logs/${id}/`,
+};
+
 const pregnancy = {
   status: () => `/api/${API_VERSION}/pregnancy/status/`,
+  dashboard: () => `/api/${API_VERSION}/pregnancy/dashboard/`,
+  appointments: () => `/api/${API_VERSION}/pregnancy/appointments/`,
+  appointment: (id: number) =>
+    `/api/${API_VERSION}/pregnancy/appointments/${id}/`,
+  checklist: () => `/api/${API_VERSION}/pregnancy/checklist/`,
+  checklistItems: () => `/api/${API_VERSION}/pregnancy/checklist/items/`,
+  checklistItem: (id: number) =>
+    `/api/${API_VERSION}/pregnancy/checklist/items/${id}/`,
+  childWeights: () => `/api/${API_VERSION}/pregnancy/child-weights/`,
+  childWeight: (id: number) =>
+    `/api/${API_VERSION}/pregnancy/child-weights/${id}/`,
   active: () => `/api/${API_VERSION}/pregnancy/active/`,
   create: () => `/api/${API_VERSION}/pregnancy/create/`,
   update: () => `/api/${API_VERSION}/pregnancy/update/`,
@@ -138,5 +175,7 @@ export const APIS = {
     static_content: staticContent,
     contact_feedback: contactFeedback,
     pregnancy: pregnancy,
+    exercise: exercise,
+    sleep: sleep,
   }
 };

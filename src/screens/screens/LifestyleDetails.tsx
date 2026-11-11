@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import {
   View,
@@ -9,6 +9,9 @@ import {
   StyleSheet,
   Dimensions,
   ScrollView,
+  ActivityIndicator,
+  RefreshControl,
+  Alert,
 } from 'react-native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { LineChart } from 'react-native-chart-kit';
@@ -16,54 +19,237 @@ import { THEME_COLORS } from '../../constants/colors';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import FontelloIcon from '../../services/FontelloIcons';
 import { STYLE } from '../../constants/app';
+import { useProfile } from '../../hooks/useProfile';
+import { useWeightEntries } from '../../hooks/useWeightEntries';
+import { APIError } from '../../services/ApiClient';
+import { parseLocalDate, toLocalDateString } from '../../utils/date';
+import { useToastMessage } from '../../utils/toastMessage';
+
+type EditField = 'weight' | 'height';
+type WeightUnit = 'kg' | 'lb';
+
+const MAX_CHART_LABELS = 6;
+
+const formatShortDate = (dateStr: string) =>
+  parseLocalDate(dateStr).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+  });
+
+const showApiError = (error: unknown, fallback: string) => {
+  const apiError = error as APIError;
+  Alert.alert(
+    apiError?.normalizedError?.title || 'Error',
+    apiError?.normalizedError?.message || fallback,
+  );
+};
 
 const LifestyleDetailsScreen = () => {
   const navigation = useNavigation();
+  const { showToast } = useToastMessage();
+  const {
+    profile,
+    isLoading: isProfileLoading,
+    isSaving,
+    error: profileError,
+    fetchProfile,
+    updateProfile,
+    saveWeight,
+  } = useProfile();
+  const {
+    entries,
+    isLoading: isEntriesLoading,
+    error: entriesError,
+    refetch: refetchEntries,
+  } = useWeightEntries(6);
+
   const [weight, setWeight] = useState('');
-  const [height, setHeight] = useState('170');
-  const [age, setAge] = useState('25');
-  const [unit, setUnit] = useState('kg');
+  const [height, setHeight] = useState('');
+  const [unit, setUnit] = useState<WeightUnit>('kg');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [datePickerVisible, setDatePickerVisible] = useState(false);
-  const [editField, setEditField] = useState(null);
+  const [dobPickerVisible, setDobPickerVisible] = useState(false);
+  const [editField, setEditField] = useState<EditField | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const [chartData, setChartData] = useState({
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-    datasets: [
-      {
-        data: [70, 68, 67, 66, 65, 64],
-        color: () => THEME_COLORS.primary,
-        strokeWidth: 3,
-      },
-    ],
-  });
+  const chartData = useMemo(() => {
+    // Thin out labels so they don't overlap when there are many entries.
+    const step = Math.max(1, Math.ceil(entries.length / MAX_CHART_LABELS));
+    return {
+      labels: entries.map((e, i) =>
+        i % step === 0 ? formatShortDate(e.entry_date) : '',
+      ),
+      datasets: [
+        {
+          data: entries.map(e => Number(e.weight_kg)),
+          color: () => THEME_COLORS.primary,
+          strokeWidth: 3,
+        },
+      ],
+    };
+  }, [entries]);
 
-  const handleConfirm = date => {
+  const latestEntry = entries.length ? entries[entries.length - 1] : null;
+  const weightChange =
+    entries.length >= 2
+      ? Number(entries[entries.length - 1].weight_kg) -
+        Number(entries[0].weight_kg)
+      : null;
+
+  const currentWeightValue = latestEntry
+    ? `${Number(latestEntry.weight)}`
+    : profile?.weight?.weight
+    ? `${Number(profile.weight.weight)}`
+    : '--';
+  const currentWeightUnit =
+    latestEntry?.unit || profile?.weight?.unit || 'kg';
+  const heightValue =
+    profile?.height !== undefined && profile?.height !== null
+      ? `${profile.height}`
+      : '--';
+  const ageValue =
+    profile?.age !== undefined && profile?.age !== null
+      ? `${profile.age}`
+      : '--';
+
+  const isInitialLoading =
+    (isProfileLoading && !profile) || (isEntriesLoading && !entries.length);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([fetchProfile(), refetchEntries()]);
+    setRefreshing(false);
+  };
+
+  const openEdit = (field: EditField) => {
+    if (field === 'weight') {
+      setWeight('');
+      setUnit(currentWeightUnit === 'lb' ? 'lb' : 'kg');
+      setSelectedDate(new Date());
+    } else {
+      setHeight(heightValue === '--' ? '' : heightValue);
+    }
+    setEditField(field);
+  };
+
+  const handleConfirm = (date: Date) => {
     setSelectedDate(date);
     setDatePickerVisible(false);
   };
 
-  const handleSave = () => {
-    if (editField === 'weight' && weight) {
-      const newWeight = parseFloat(weight);
-      if (!isNaN(newWeight)) {
-        setChartData(prev => ({
-          ...prev,
-          datasets: [
-            {
-              ...prev.datasets[0],
-              data: [...prev.datasets[0].data.slice(1), newWeight],
-            },
-          ],
-        }));
-      }
+  const handleDobConfirm = async (date: Date) => {
+    setDobPickerVisible(false);
+    try {
+      const response = await updateProfile({
+        date_of_birth: toLocalDateString(date),
+      });
+      showToast(response?.detail?.message || 'Date of birth updated', {
+        type: 'success',
+      });
+    } catch (error) {
+      showApiError(error, 'Failed to update date of birth');
     }
-    setEditField(null);
   };
 
-  const currentWeight =
-    chartData.datasets[0].data[chartData.datasets[0].data.length - 1];
-  const weightChange = currentWeight - chartData.datasets[0].data[0];
+  const handleSave = async () => {
+    if (editField === 'weight') {
+      const newWeight = parseFloat(weight);
+      if (isNaN(newWeight) || newWeight <= 0) {
+        Alert.alert('Invalid weight', 'Please enter a valid weight.');
+        return;
+      }
+      try {
+        const response = await saveWeight({
+          weight: String(newWeight),
+          weight_unit: unit,
+          weight_date: toLocalDateString(selectedDate),
+        });
+        setEditField(null);
+        showToast(response?.detail?.message || 'Weight saved', {
+          type: 'success',
+        });
+        await Promise.all([refetchEntries(), fetchProfile()]);
+      } catch (error) {
+        showApiError(error, 'Failed to save weight');
+      }
+    } else if (editField === 'height') {
+      const newHeight = parseFloat(height);
+      if (isNaN(newHeight) || newHeight <= 0) {
+        Alert.alert('Invalid height', 'Please enter a valid height in cm.');
+        return;
+      }
+      try {
+        const response = await updateProfile({ height: newHeight });
+        setEditField(null);
+        showToast(response?.detail?.message || 'Height updated', {
+          type: 'success',
+        });
+      } catch (error) {
+        showApiError(error, 'Failed to update height');
+      }
+    }
+  };
+
+  const renderChart = () => {
+    if (isEntriesLoading && !entries.length) {
+      return (
+        <View style={styles.chartPlaceholder}>
+          <ActivityIndicator color={THEME_COLORS.primary} />
+        </View>
+      );
+    }
+    if (entriesError && !entries.length) {
+      return (
+        <View style={styles.chartPlaceholder}>
+          <Text style={styles.placeholderText}>{entriesError}</Text>
+          <TouchableOpacity onPress={refetchEntries}>
+            <Text style={styles.retryText}>Tap to retry</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    // react-native-chart-kit misbehaves with fewer than 2 points.
+    if (entries.length < 2) {
+      return (
+        <View style={styles.chartPlaceholder}>
+          <FontelloIcon name="balance-scale" size={32} color="#ccc" />
+          <Text style={styles.placeholderText}>
+            {entries.length === 0
+              ? 'No weight entries yet. Add your weight to start tracking.'
+              : 'Add one more weight entry to see your progress chart.'}
+          </Text>
+        </View>
+      );
+    }
+    return (
+      <LineChart
+        data={chartData}
+        width={Dimensions.get('window').width - 64}
+        height={200}
+        yAxisSuffix=" kg"
+        chartConfig={{
+          backgroundColor: '#fff',
+          backgroundGradientFrom: '#fff',
+          backgroundGradientTo: '#fff',
+          decimalPlaces: 1,
+          color: (opacity = 1) => `rgba(134, 65, 244, ${opacity})`,
+          labelColor: (opacity = 1) => `rgba(60, 60, 60, ${opacity})`,
+          propsForDots: {
+            r: '6',
+            strokeWidth: '2',
+            stroke: THEME_COLORS.primary,
+            fill: '#fff',
+          },
+          propsForBackgroundLines: {
+            strokeDasharray: '',
+            stroke: '#f0f0f0',
+          },
+        }}
+        bezier
+        style={styles.chart}
+      />
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -79,105 +265,118 @@ const LifestyleDetailsScreen = () => {
         <View style={styles.headerPlaceholder} />
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {/* Weight Progress Card */}
-        <View style={styles.progressCard}>
-          <View style={styles.progressHeader}>
-            <View>
-              <Text style={styles.progressTitle}>Weight Progress</Text>
-              <Text style={styles.progressSubtitle}>Last 6 months</Text>
-            </View>
-            <View style={styles.progressBadge}>
-              <Text style={styles.progressBadgeText}>
-                {weightChange > 0 ? '+' : ''}
-                {weightChange.toFixed(1)} kg
+      {isInitialLoading ? (
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={THEME_COLORS.primary} />
+        </View>
+      ) : (
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={THEME_COLORS.primary}
+              colors={[THEME_COLORS.primary]}
+            />
+          }
+        >
+          {profileError && !profile ? (
+            <TouchableOpacity style={styles.errorBanner} onPress={fetchProfile}>
+              <Text style={styles.errorBannerText}>
+                {profileError} — tap to retry
               </Text>
+            </TouchableOpacity>
+          ) : null}
+
+          {/* Weight Progress Card */}
+          <View style={styles.progressCard}>
+            <View style={styles.progressHeader}>
+              <View>
+                <Text style={styles.progressTitle}>Weight Progress</Text>
+                <Text style={styles.progressSubtitle}>Last 6 months</Text>
+              </View>
+              {weightChange !== null && (
+                <View style={styles.progressBadge}>
+                  <Text style={styles.progressBadgeText}>
+                    {weightChange > 0 ? '+' : ''}
+                    {weightChange.toFixed(1)} kg
+                  </Text>
+                </View>
+              )}
             </View>
+
+            {renderChart()}
           </View>
 
-          <LineChart
-            data={chartData}
-            width={Dimensions.get('window').width - 64}
-            height={200}
-            chartConfig={{
-              backgroundColor: '#fff',
-              backgroundGradientFrom: '#fff',
-              backgroundGradientTo: '#fff',
-              decimalPlaces: 1,
-              color: (opacity = 1) => `rgba(134, 65, 244, ${opacity})`,
-              labelColor: (opacity = 1) => `rgba(60, 60, 60, ${opacity})`,
-              propsForDots: {
-                r: '6',
-                strokeWidth: '2',
-                stroke: THEME_COLORS.primary,
-                fill: '#fff',
-              },
-              propsForBackgroundLines: {
-                strokeDasharray: '',
-                stroke: '#f0f0f0',
-              },
-            }}
-            bezier
-            style={styles.chart}
-          />
-        </View>
-
-        {/* Health Stats Cards */}
-        <View style={styles.statsGrid}>
-          <TouchableOpacity
-            style={styles.statCard}
-            onPress={() => setEditField('weight')}
-          >
-            <View style={[styles.statIcon, { backgroundColor: '#E0E7FF' }]}>
-              <FontelloIcon name="balance-scale" size={24} color="#6366F1" />
-            </View>
-            <Text style={styles.statLabel}>Weight</Text>
-            <Text style={styles.statValue}>
-              {currentWeight} <Text style={styles.statUnit}>{unit}</Text>
-            </Text>
-            <TouchableOpacity style={styles.editBtn}>
-              <FontelloIcon name="pencil" size={12} color="#999" />
+          {/* Health Stats Cards */}
+          <View style={styles.statsGrid}>
+            <TouchableOpacity
+              style={styles.statCard}
+              onPress={() => openEdit('weight')}
+            >
+              <View style={[styles.statIcon, styles.statIconWeight]}>
+                <FontelloIcon name="balance-scale" size={24} color="#6366F1" />
+              </View>
+              <Text style={styles.statLabel}>Weight</Text>
+              <Text style={styles.statValue}>
+                {currentWeightValue}{' '}
+                <Text style={styles.statUnit}>{currentWeightUnit}</Text>
+              </Text>
+              <View style={styles.editBtn}>
+                <FontelloIcon name="plus" size={12} color="#999" />
+              </View>
             </TouchableOpacity>
-          </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.statCard}
-            onPress={() => setEditField('height')}
-          >
-            <View style={[styles.statIcon, { backgroundColor: '#FCE7F3' }]}>
-              <FontelloIcon name="person" size={24} color="#EC4899" />
-            </View>
-            <Text style={styles.statLabel}>Height</Text>
-            <Text style={styles.statValue}>
-              {height} <Text style={styles.statUnit}>cm</Text>
-            </Text>
-            <TouchableOpacity style={styles.editBtn}>
-              <FontelloIcon name="pencil" size={12} color="#999" />
+            <TouchableOpacity
+              style={styles.statCard}
+              onPress={() => openEdit('height')}
+            >
+              <View style={[styles.statIcon, styles.statIconHeight]}>
+                <FontelloIcon name="person" size={24} color="#EC4899" />
+              </View>
+              <Text style={styles.statLabel}>Height</Text>
+              <Text style={styles.statValue}>
+                {heightValue} <Text style={styles.statUnit}>cm</Text>
+              </Text>
+              <View style={styles.editBtn}>
+                <FontelloIcon name="pencil" size={12} color="#999" />
+              </View>
             </TouchableOpacity>
-          </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.statCard}
-            onPress={() => setEditField('age')}
-          >
-            <View style={[styles.statIcon, { backgroundColor: '#D1FAE5' }]}>
-              <FontelloIcon name="calendar" size={24} color="#10B981" />
-            </View>
-            <Text style={styles.statLabel}>Age</Text>
-            <Text style={styles.statValue}>
-              {age} <Text style={styles.statUnit}>yrs</Text>
-            </Text>
-            <TouchableOpacity style={styles.editBtn}>
-              <FontelloIcon name="pencil" size={12} color="#999" />
+            <TouchableOpacity
+              style={styles.statCard}
+              onPress={() => setDobPickerVisible(true)}
+            >
+              <View style={[styles.statIcon, styles.statIconAge]}>
+                <FontelloIcon name="calendar" size={24} color="#10B981" />
+              </View>
+              <Text style={styles.statLabel}>Age</Text>
+              <Text style={styles.statValue}>
+                {ageValue} <Text style={styles.statUnit}>yrs</Text>
+              </Text>
+              <View style={styles.editBtn}>
+                <FontelloIcon name="pencil" size={12} color="#999" />
+              </View>
             </TouchableOpacity>
-          </TouchableOpacity>
-        </View>
+          </View>
+        </ScrollView>
+      )}
 
-
-      </ScrollView>
+      {/* Age is derived from date of birth, so editing it edits the DOB */}
+      <DateTimePickerModal
+        isVisible={dobPickerVisible}
+        mode="date"
+        date={
+          profile?.date_of_birth
+            ? parseLocalDate(profile.date_of_birth)
+            : new Date(2000, 0, 1)
+        }
+        maximumDate={new Date()}
+        onConfirm={handleDobConfirm}
+        onCancel={() => setDobPickerVisible(false)}
+      />
 
       {/* Edit Modal */}
       <Modal visible={editField !== null} animationType="slide" transparent>
@@ -185,9 +384,7 @@ const LifestyleDetailsScreen = () => {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                Edit{' '}
-                {editField &&
-                  editField.charAt(0).toUpperCase() + editField.slice(1)}
+                {editField === 'weight' ? 'Add Weight' : 'Edit Height'}
               </Text>
               <TouchableOpacity onPress={() => setEditField(null)}>
                 <FontelloIcon name="cancel" size={24} color="#999" />
@@ -260,6 +457,7 @@ const LifestyleDetailsScreen = () => {
                     isVisible={datePickerVisible}
                     mode="date"
                     date={selectedDate}
+                    maximumDate={new Date()}
                     onConfirm={handleConfirm}
                     onCancel={() => setDatePickerVisible(false)}
                   />
@@ -280,31 +478,24 @@ const LifestyleDetailsScreen = () => {
               </View>
             )}
 
-            {editField === 'age' && (
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Age</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter age"
-                  keyboardType="numeric"
-                  value={age}
-                  onChangeText={setAge}
-                />
-              </View>
-            )}
-
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={styles.modalCancelBtn}
                 onPress={() => setEditField(null)}
+                disabled={isSaving}
               >
                 <Text style={styles.modalCancelText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.modalSaveBtn}
                 onPress={handleSave}
+                disabled={isSaving}
               >
-                <Text style={styles.modalSaveText}>Save</Text>
+                {isSaving ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.modalSaveText}>Save</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -540,6 +731,48 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#fff',
+  },
+  centered: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chartPlaceholder: {
+    height: 200,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  placeholderText: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+  },
+  retryText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: THEME_COLORS.primary,
+  },
+  errorBanner: {
+    backgroundColor: '#FEF2F2',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+  },
+  errorBannerText: {
+    fontSize: 13,
+    color: '#991B1B',
+    textAlign: 'center',
+  },
+  statIconWeight: {
+    backgroundColor: '#E0E7FF',
+  },
+  statIconHeight: {
+    backgroundColor: '#FCE7F3',
+  },
+  statIconAge: {
+    backgroundColor: '#D1FAE5',
   },
 });
 

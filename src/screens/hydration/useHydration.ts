@@ -3,7 +3,7 @@ import apiClient from '../../services/ApiClient';
 import { APIS } from '../../constants/apis';
 
 export interface HydrationLog {
-  id: number;
+  id: string;
   date: string;
   amount_ml: number;
   glass_size_ml: number;

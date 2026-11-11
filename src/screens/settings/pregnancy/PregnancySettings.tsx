@@ -20,6 +20,7 @@ import { KeyboardAvoidingModal } from '../../../components';
 import { ScreenLoader } from '../../../components/common/ScreenLoader';
 import { STYLE } from '../../../constants/app';
 import { usePregnancy, BabyDetails } from './usePregnancy';
+import { toLocalDateString } from '../../../utils/date';
 
 export default function PregnancySettings() {
   const navigation = useNavigation();
@@ -67,7 +68,7 @@ export default function PregnancySettings() {
   const handleSave = async () => {
 
     const payload = {
-      ...(dueDate && { due_date: dueDate.toISOString().split('T')[0] }),
+      ...(dueDate && { due_date: toLocalDateString(dueDate) }),
       baby_name: babyName,
       doctor_name: doctorName,
       hospital_name: hospitalName,
@@ -153,7 +154,7 @@ export default function PregnancySettings() {
     try {
       const baby_details: BabyDetails = {
         child_name: childName,
-        birth_date: birthDate.toISOString().split('T')[0],
+        birth_date: toLocalDateString(birthDate),
         birth_weight: birthWeight ? Number.parseFloat(birthWeight) : undefined,
         birth_length: birthLength ? Number.parseFloat(birthLength) : undefined,
         child_gender: (childGender || '') as '' | 'boy' | 'girl',

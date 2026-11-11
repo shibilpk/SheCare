@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Dimensions,
   Modal,
   TextInput,
+  RefreshControl,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import FontelloIcon from '../../services/FontelloIcons';
@@ -16,20 +18,48 @@ import { useNavigation } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { STYLE } from '../../constants/app';
+import { ScreenLoader } from '../../components/common/ScreenLoader';
+import { useToastMessage } from '../../utils/toastMessage';
+import { parseLocalDate, toLocalDateString } from '../../utils/date';
+import { ChildWeightEntry, useChildWeights } from './useChildWeights';
 
-const { width } = Dimensions.get('window');
+// Max bars shown in the chart (most recent entries)
+const CHART_MAX_BARS = 8;
 
-interface WeightEntry {
-  id: number;
-  age: string;
-  ageInMonths: number;
-  weight: number;
-  date: string;
-  gain: number;
-}
+/** Round to at most 2 decimals for display (7.5, 10.25). */
+const fmtKg = (kg: number) => String(Number(kg.toFixed(2)));
+
+/** 'YYYY-MM-DD' -> 'Jul 15, 2025' */
+const formatDate = (dateStr: string) =>
+  parseLocalDate(dateStr).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
 
 export default function WeightTrackScreen() {
   const navigation = useNavigation();
+  const { showToast } = useToastMessage();
+  const {
+    entries: weightData,
+    isLoading,
+    isRefreshing,
+    isSaving,
+    error,
+    refetch,
+    addEntry,
+    deleteEntry,
+  } = useChildWeights();
+  // Refresh failures while data is already shown surface as a toast
+  const refreshError = weightData.length ? error : null;
+  useEffect(() => {
+    if (refreshError) {
+      showToast(refreshError);
+    }
+    // showToast is recreated every render; only react to new errors
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshError]);
+
   const [showAddModal, setShowAddModal] = useState(false);
   const [newWeight, setNewWeight] = useState('');
   const [newAge, setNewAge] = useState('');
@@ -37,164 +67,254 @@ export default function WeightTrackScreen() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [datePickerVisible, setDatePickerVisible] = useState(false);
 
-  const [weightData, setWeightData] = useState<WeightEntry[]>([
-    { id: 1, age: '6 months', ageInMonths: 6, weight: 7.5, date: 'Jul 15, 2025', gain: 0 },
-    { id: 2, age: '9 months', ageInMonths: 9, weight: 8.9, date: 'Aug 12, 2025', gain: 1.4 },
-    { id: 3, age: '12 months', ageInMonths: 12, weight: 9.6, date: 'Sep 9, 2025', gain: 0.7 },
-    { id: 4, age: '15 months', ageInMonths: 15, weight: 10.3, date: 'Oct 7, 2025', gain: 0.7 },
-    { id: 5, age: '18 months', ageInMonths: 18, weight: 10.9, date: 'Nov 4, 2025', gain: 0.6 },
-  ]);
+  const hasData = weightData.length > 0;
+  const first = hasData ? weightData[0] : null;
+  const latest = hasData ? weightData[weightData.length - 1] : null;
+  const totalGain = first && latest ? latest.weight_kg - first.weight_kg : 0;
 
-  const startWeight = weightData[0].weight;
-  const currentWeight = weightData[weightData.length - 1].weight;
-  const totalGain = currentWeight - startWeight;
-  const currentAge = weightData[weightData.length - 1].age;
-  const currentAgeMonths = weightData[weightData.length - 1].ageInMonths;
+  const chartData = weightData.slice(-CHART_MAX_BARS);
+  const chartWeights = chartData.map(d => d.weight_kg);
+  const maxWeight = chartWeights.length ? Math.max(...chartWeights) : 0;
+  const minWeight = chartWeights.length ? Math.min(...chartWeights) : 0;
+  const chartSpanMonths =
+    chartData.length > 1
+      ? chartData[chartData.length - 1].age_months - chartData[0].age_months
+      : 0;
 
-  const maxWeight = Math.max(...weightData.map(d => d.weight));
-  const minWeight = Math.min(...weightData.map(d => d.weight));
+  const resetForm = () => {
+    setNewWeight('');
+    setNewAge('');
+    setUnit('kg');
+    setSelectedDate(new Date());
+  };
+
+  const openAddModal = () => {
+    resetForm();
+    setShowAddModal(true);
+  };
 
   const handleConfirmDate = (date: Date) => {
     setSelectedDate(date);
     setDatePickerVisible(false);
   };
 
-  const handleSaveWeight = () => {
-    if (newWeight && newAge) {
-      let weightInKg = parseFloat(newWeight);
-      if (isNaN(weightInKg)) return;
+  const handleSaveWeight = async () => {
+    let weightInKg = parseFloat(newWeight.replace(',', '.'));
+    const ageMonths = parseInt(newAge, 10);
 
-      // Convert grams to kg if needed
-      if (unit === 'g') {
-        weightInKg = weightInKg / 1000;
-      }
+    if (isNaN(ageMonths) || ageMonths < 0 || ageMonths > 240) {
+      showToast('Enter an age between 0 and 240 months');
+      return;
+    }
+    if (isNaN(weightInKg) || weightInKg <= 0) {
+      showToast('Enter a valid weight');
+      return;
+    }
 
-      const ageMonths = parseInt(newAge);
-      if (isNaN(ageMonths)) return;
+    // Convert grams to kg if needed
+    if (unit === 'g') {
+      weightInKg = weightInKg / 1000;
+    }
 
-      const ageString = ageMonths >= 12
-        ? `${Math.floor(ageMonths / 12)} year${Math.floor(ageMonths / 12) > 1 ? 's' : ''}${ageMonths % 12 > 0 ? ` ${ageMonths % 12}m` : ''}`
-        : `${ageMonths} month${ageMonths > 1 ? 's' : ''}`;
-
-      const previousWeight = weightData.length > 0 ? weightData[weightData.length - 1].weight : weightInKg;
-      const gain = weightInKg - previousWeight;
-
-      const newEntry: WeightEntry = {
-        id: weightData.length + 1,
-        age: ageString,
-        ageInMonths: ageMonths,
-        weight: parseFloat(weightInKg.toFixed(1)),
-        date: selectedDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
-        gain: parseFloat(gain.toFixed(1)),
-      };
-
-      setWeightData([...weightData, newEntry]);
+    try {
+      await addEntry({
+        entry_date: toLocalDateString(selectedDate),
+        age_months: ageMonths,
+        weight_kg: Number(weightInKg.toFixed(2)),
+      });
+      showToast('Weight saved');
       setShowAddModal(false);
-      setNewWeight('');
-      setNewAge('');
-      setUnit('kg');
-      setSelectedDate(new Date());
+      resetForm();
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to save weight');
     }
   };
 
+  const confirmDelete = (entry: ChildWeightEntry) => {
+    Alert.alert(
+      'Delete Entry',
+      `Delete ${fmtKg(entry.weight_kg)} kg from ${formatDate(entry.entry_date)}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteEntry(entry.id);
+              showToast('Entry deleted');
+            } catch (err: any) {
+              showToast(err?.message || 'Failed to delete entry');
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const header = (
+    <View style={styles.header}>
+      <TouchableOpacity
+        onPress={() => navigation.goBack()}
+        style={styles.backBtn}
+      >
+        <FontelloIcon name="left-open-mini" size={26} color="#333" />
+      </TouchableOpacity>
+      <Text style={styles.headerTitle}>Child's Weight</Text>
+      <TouchableOpacity onPress={openAddModal} style={styles.addBtn}>
+        <FontelloIcon name="plus" size={22} color="#333" />
+      </TouchableOpacity>
+    </View>
+  );
+
+  if (isLoading && !hasData) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        {header}
+        <ScreenLoader message="Loading weight history..." />
+      </SafeAreaView>
+    );
+  }
+
+  if (error && !hasData) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        {header}
+        <View style={styles.stateBox}>
+          <FontelloIcon name="attention" size={40} color="#EF4444" />
+          <Text style={styles.stateTitle}>Couldn't load weight history</Text>
+          <Text style={styles.stateText}>{error}</Text>
+          <TouchableOpacity style={styles.stateBtn} onPress={() => refetch()}>
+            <Text style={styles.stateBtnText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backBtn}
-        >
-          <FontelloIcon name="left-open-mini" size={26} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Child's Weight</Text>
-        <TouchableOpacity
-          onPress={() => setShowAddModal(true)}
-          style={styles.addBtn}
-        >
-          <FontelloIcon name="plus" size={22} color="#333" />
-        </TouchableOpacity>
-      </View>
+      {header}
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={() => refetch(true)}
+            tintColor={THEME_COLORS.primary}
+            colors={[THEME_COLORS.primary]}
+          />
+        }
       >
-        {/* Current Stats Card */}
-        <LinearGradient
-          colors={['#FEE2E2', '#FECACA']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.statsCard}
-        >
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Current</Text>
-              <Text style={styles.statValue}>{currentWeight} kg</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Age</Text>
-              <Text style={styles.statValue}>{currentAge}</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Total Gain</Text>
-              <Text style={styles.statValue}>+{totalGain.toFixed(1)} kg</Text>
-            </View>
-          </View>
-        </LinearGradient>
+        {latest ? (
+          <>
+            {/* Current Stats Card */}
+            <LinearGradient
+              colors={['#FEE2E2', '#FECACA']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.statsCard}
+            >
+              <View style={styles.statsRow}>
+                <View style={styles.statItem}>
+                  <Text style={styles.statLabel}>Current</Text>
+                  <Text style={styles.statValue}>
+                    {fmtKg(latest.weight_kg)} kg
+                  </Text>
+                </View>
+                <View style={styles.statDivider} />
+                <View style={styles.statItem}>
+                  <Text style={styles.statLabel}>Age</Text>
+                  <Text style={styles.statValue}>{latest.age_label}</Text>
+                </View>
+                <View style={styles.statDivider} />
+                <View style={styles.statItem}>
+                  <Text style={styles.statLabel}>Total Gain</Text>
+                  <Text style={styles.statValue}>
+                    {totalGain >= 0 ? '+' : ''}
+                    {totalGain.toFixed(1)} kg
+                  </Text>
+                </View>
+              </View>
+            </LinearGradient>
 
-        {/* Chart Card */}
-        <View style={styles.chartCard}>
-          <View style={styles.chartHeader}>
-            <Text style={styles.chartTitle}>Growth Progress</Text>
-            <Text style={styles.chartSubtitle}>Last {currentAgeMonths - weightData[0].ageInMonths} months</Text>
-          </View>
+            {/* Chart Card */}
+            <View style={styles.chartCard}>
+              <View style={styles.chartHeader}>
+                <Text style={styles.chartTitle}>Growth Progress</Text>
+                <Text style={styles.chartSubtitle}>
+                  {chartData.length > 1
+                    ? `Last ${chartSpanMonths} month${
+                        chartSpanMonths === 1 ? '' : 's'
+                      } · ${chartData.length} entries`
+                    : 'Add more entries to see the trend'}
+                </Text>
+              </View>
 
-          {/* Simple Bar Chart */}
-          <View style={styles.chartContainer}>
-            <View style={styles.chartYAxis}>
-              <Text style={styles.yAxisLabel}>{maxWeight}</Text>
-              <Text style={styles.yAxisLabel}>
-                {Math.round((maxWeight + minWeight) / 2)}
-              </Text>
-              <Text style={styles.yAxisLabel}>{minWeight}</Text>
-            </View>
-            <View style={styles.chartContent}>
-              {weightData.map((entry, index) => {
-                const heightPercent =
-                  ((entry.weight - minWeight) / (maxWeight - minWeight)) * 100;
-                return (
-                  <View key={entry.id} style={styles.barContainer}>
-                    <View style={styles.barWrapper}>
-                      <View
-                        style={[
-                          styles.bar,
-                          {
-                            height: `${heightPercent}%`,
-                            backgroundColor:
-                              index === weightData.length - 1
-                                ? '#EF4444'
-                                : '#FCA5A5',
-                          },
-                        ]}
-                      >
-                        <Text style={styles.barValue}>{entry.weight}</Text>
+              {/* Simple Bar Chart */}
+              <View style={styles.chartContainer}>
+                <View style={styles.chartYAxis}>
+                  <Text style={styles.yAxisLabel}>{fmtKg(maxWeight)}</Text>
+                  <Text style={styles.yAxisLabel}>
+                    {fmtKg((maxWeight + minWeight) / 2)}
+                  </Text>
+                  <Text style={styles.yAxisLabel}>{fmtKg(minWeight)}</Text>
+                </View>
+                <View style={styles.chartContent}>
+                  {chartData.map((entry, index) => {
+                    const range = maxWeight - minWeight;
+                    const heightPercent =
+                      range > 0
+                        ? ((entry.weight_kg - minWeight) / range) * 100
+                        : 100;
+                    return (
+                      <View key={entry.id} style={styles.barContainer}>
+                        <View style={styles.barWrapper}>
+                          <View
+                            style={[
+                              styles.bar,
+                              index === chartData.length - 1
+                                ? styles.barLatest
+                                : styles.barPrevious,
+                              { height: `${heightPercent}%` },
+                            ]}
+                          >
+                            <Text style={styles.barValue}>
+                              {fmtKg(entry.weight_kg)}
+                            </Text>
+                          </View>
+                        </View>
+                        <Text style={styles.barLabel}>{entry.age_months}m</Text>
                       </View>
-                    </View>
-                    <Text style={styles.barLabel}>{entry.ageInMonths}m</Text>
-                  </View>
-                );
-              })}
+                    );
+                  })}
+                </View>
+              </View>
             </View>
+          </>
+        ) : (
+          <View style={styles.emptyCard}>
+            <FontelloIcon
+              name="balance-scale"
+              size={40}
+              color={THEME_COLORS.primary}
+            />
+            <Text style={styles.stateTitle}>No weight entries yet</Text>
+            <Text style={styles.stateText}>
+              Log your child's weight to track growth over time.
+            </Text>
+            <TouchableOpacity style={styles.stateBtn} onPress={openAddModal}>
+              <Text style={styles.stateBtnText}>Add First Entry</Text>
+            </TouchableOpacity>
           </View>
-        </View>
+        )}
 
         {/* Guidelines Card */}
         <View style={styles.guidelinesCard}>
           <View style={styles.guidelinesHeader}>
-            <FontelloIcon name="info-circled" size={20} color="#8B5CF6" />
+            <FontelloIcon name="attention" size={20} color="#8B5CF6" />
             <Text style={styles.guidelinesTitle}>Growth Guidelines</Text>
           </View>
           <View style={styles.guidelineItem}>
@@ -232,22 +352,44 @@ export default function WeightTrackScreen() {
         </View>
 
         {/* History List */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Weight History</Text>
-        </View>
+        {hasData && (
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Weight History</Text>
+          </View>
+        )}
 
         {[...weightData].reverse().map(entry => (
           <View key={entry.id} style={styles.historyCard}>
             <View style={styles.historyLeft}>
-              <Text style={styles.historyWeek}>{entry.age}</Text>
-              <Text style={styles.historyDate}>{entry.date}</Text>
+              <Text style={styles.historyWeek}>{entry.age_label}</Text>
+              <Text style={styles.historyDate}>
+                {formatDate(entry.entry_date)}
+              </Text>
             </View>
             <View style={styles.historyRight}>
-              <Text style={styles.historyWeight}>{entry.weight} kg</Text>
-              {entry.gain > 0 && (
-                <Text style={styles.historyGain}>+{entry.gain.toFixed(1)} kg</Text>
+              <Text style={styles.historyWeight}>
+                {fmtKg(entry.weight_kg)} kg
+              </Text>
+              {entry.gain_kg !== 0 && (
+                <Text
+                  style={[
+                    styles.historyGain,
+                    entry.gain_kg < 0 && styles.historyLoss,
+                  ]}
+                >
+                  {entry.gain_kg > 0 ? '+' : ''}
+                  {fmtKg(entry.gain_kg)} kg
+                </Text>
               )}
             </View>
+            <TouchableOpacity
+              style={styles.historyDeleteBtn}
+              onPress={() => confirmDelete(entry)}
+              disabled={isSaving}
+              hitSlop={8}
+            >
+              <FontelloIcon name="trash-empty" size={18} color="#EF4444" />
+            </TouchableOpacity>
           </View>
         ))}
       </ScrollView>
@@ -273,9 +415,11 @@ export default function WeightTrackScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="e.g., 6, 12, 18"
-                keyboardType="numeric"
+                placeholderTextColor="#999"
+                keyboardType="number-pad"
                 value={newAge}
                 onChangeText={setNewAge}
+                maxLength={3}
               />
             </View>
 
@@ -283,7 +427,8 @@ export default function WeightTrackScreen() {
               <Text style={styles.inputLabel}>Weight</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Enter weight"
+                placeholder={unit === 'g' ? 'e.g., 7500' : 'e.g., 7.5'}
+                placeholderTextColor="#999"
                 keyboardType="decimal-pad"
                 value={newWeight}
                 onChangeText={setNewWeight}
@@ -318,13 +463,16 @@ export default function WeightTrackScreen() {
                 onPress={() => setDatePickerVisible(true)}
                 style={styles.dateBtn}
               >
-                <Text style={styles.dateText}>{selectedDate.toLocaleDateString()}</Text>
+                <Text style={styles.dateText}>
+                  {formatDate(toLocalDateString(selectedDate))}
+                </Text>
                 <FontelloIcon name="calendar" size={20} color="#999" />
               </TouchableOpacity>
               <DateTimePickerModal
                 isVisible={datePickerVisible}
                 mode="date"
                 date={selectedDate}
+                maximumDate={new Date()}
                 onConfirm={handleConfirmDate}
                 onCancel={() => setDatePickerVisible(false)}
               />
@@ -338,10 +486,18 @@ export default function WeightTrackScreen() {
                 <Text style={styles.modalCancelText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.modalSaveBtn}
+                style={[styles.modalSaveBtn, isSaving && styles.disabled]}
                 onPress={handleSaveWeight}
+                disabled={isSaving}
               >
-                <Text style={styles.modalSaveBtnText}>Save</Text>
+                {isSaving ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={THEME_COLORS.textLight}
+                  />
+                ) : (
+                  <Text style={styles.modalSaveBtnText}>Save</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -689,5 +845,60 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: THEME_COLORS.textLight,
+  },
+  barLatest: {
+    backgroundColor: '#EF4444',
+  },
+  barPrevious: {
+    backgroundColor: '#FCA5A5',
+  },
+  historyLoss: {
+    color: '#EF4444',
+  },
+  historyDeleteBtn: {
+    marginLeft: 14,
+    padding: 4,
+  },
+  disabled: {
+    opacity: 0.6,
+  },
+  emptyCard: {
+    alignItems: 'center',
+    backgroundColor: THEME_COLORS.textLight,
+    marginHorizontal: STYLE.spacing.mh,
+    marginTop: 20,
+    paddingVertical: 32,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+  },
+  stateBox: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+  },
+  stateTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: THEME_COLORS.text,
+    marginTop: 16,
+    marginBottom: 6,
+  },
+  stateText: {
+    fontSize: 14,
+    color: '#888',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  stateBtn: {
+    backgroundColor: THEME_COLORS.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  stateBtnText: {
+    color: THEME_COLORS.textLight,
+    fontWeight: '600',
+    fontSize: 15,
   },
 });

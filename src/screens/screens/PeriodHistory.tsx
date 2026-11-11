@@ -1,28 +1,32 @@
-import React from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Dimensions,
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MenuView } from '@react-native-menu/menu';
 import FontelloIcon from '../../services/FontelloIcons';
 import { THEME_COLORS } from '../../constants/colors';
-import { useNavigation } from '@react-navigation/native';
-import LinearGradient from 'react-native-linear-gradient';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import InfiniteScrollList from '../../components/common/InfiniteScrollList';
-import apiClient from '../../services/ApiClient';
+import apiClient, { APIError } from '../../services/ApiClient';
 import { APIS } from '../../constants/apis';
 import { STYLE } from '../../constants/app';
+import { RootStackParamList, SCREENS } from '../../constants/navigation';
+import { parseLocalDate } from '../../utils/date';
+import { useToastMessage } from '../../utils/toastMessage';
 
 interface PeriodData {
+  id: string;
+  // Backend returns datetimes (e.g. "2026-10-01T00:00:00Z"); only the date part matters.
   start_date: string;
   end_date: string;
   cycle_length: number | null;
-  is_active: boolean;
+  is_active?: boolean;
 }
 
 interface PaginatedResponse {
@@ -32,45 +36,90 @@ interface PaginatedResponse {
   results: PeriodData[];
 }
 
-export default function PeriodHistoryScreen() {
-  const navigation = useNavigation();
+/** Local Date from a backend 'YYYY-MM-DD' or 'YYYY-MM-DDTHH:mm:ss...' string. */
+const toLocalDate = (value: string) => parseLocalDate(value.slice(0, 10));
 
-  const fetchPeriods = async (page: number): Promise<PaginatedResponse> => {
-    try {
-      const response = await apiClient.get<PaginatedResponse>(
-        `${APIS.v1.period.list()}?page=${page}&page_size=10`,
-      );
-      return response;
-    } catch (error) {
-      console.info('Error fetching periods:', error);
-      throw error;
-    }
-  };
+export default function PeriodHistoryScreen() {
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { showToast } = useToastMessage();
+  // Bumping this key remounts InfiniteScrollList, which refetches from page 1.
+  const [listKey, setListKey] = useState(0);
+  const hasFocusedOnce = useRef(false);
+
+  const reloadList = useCallback(() => setListKey(k => k + 1), []);
+
+  // Refresh when coming back (e.g. after editing a period in PeriodSelector).
+  useFocusEffect(
+    useCallback(() => {
+      if (hasFocusedOnce.current) {
+        reloadList();
+      } else {
+        hasFocusedOnce.current = true;
+      }
+    }, [reloadList]),
+  );
+
+  const fetchPeriods = useCallback(
+    async (page: number): Promise<PaginatedResponse> => {
+      try {
+        const response = await apiClient.get<PaginatedResponse>(
+          APIS.v1.period.list(),
+          { params: { page, page_size: 10 } },
+        );
+        return response;
+      } catch (error) {
+        console.info('Error fetching periods:', error);
+        throw error;
+      }
+    },
+    [],
+  );
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
+    return toLocalDate(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
     });
   };
 
+  // Inclusive day count (same as PeriodSelector).
   const calculateDuration = (startDate: string, endDate: string) => {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const diffTime = Math.abs(end.getTime() - start.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
+    const start = toLocalDate(startDate);
+    const end = toLocalDate(endDate);
+    const diffDays = Math.round(
+      (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
+    );
+    return Math.max(diffDays + 1, 1);
   };
 
   const handleEdit = (item: PeriodData) => {
-    // TODO: Navigate to edit screen or show edit modal
+    navigation.navigate(SCREENS.PERIOD_SELECTOR, {
+      startDate: toLocalDate(item.start_date),
+      endDate: toLocalDate(item.end_date),
+      rangeDays: null,
+      periodId: item.id,
+      mode: 'edit',
+    });
+  };
 
-    Alert.alert(
-      'Edit Period',
-      `Edit period from ${formatDate(item.start_date)} to ${formatDate(item.end_date)}`,
-    );
+  const deletePeriod = async (item: PeriodData) => {
+    try {
+      const response = await apiClient.delete<{
+        detail?: { title?: string; message?: string };
+      }>(APIS.v1.period.detail(item.id));
+      showToast(response?.detail?.message || 'Period deleted successfully', {
+        type: 'success',
+      });
+      reloadList();
+    } catch (error) {
+      const apiError = error as APIError;
+      showToast(
+        apiError?.normalizedError?.message || 'Failed to delete period',
+        { type: 'danger' },
+      );
+    }
   };
 
   const handleDelete = (item: PeriodData) => {
@@ -86,21 +135,14 @@ export default function PeriodHistoryScreen() {
           text: 'Delete',
           style: 'destructive',
           onPress: () => {
-            // TODO: Call API to delete period
-
+            deletePeriod(item);
           },
         },
       ],
     );
   };
 
-  const renderPeriodItem = ({
-    item,
-    index,
-  }: {
-    item: PeriodData;
-    index: number;
-  }) => {
+  const renderPeriodItem = ({ item }: { item: PeriodData }) => {
     const duration = calculateDuration(item.start_date, item.end_date);
     const startDate = formatDate(item.start_date);
     const endDate = formatDate(item.end_date);
@@ -181,7 +223,7 @@ export default function PeriodHistoryScreen() {
 
   const renderHeader = () => (
     <View style={styles.headerSection}>
-      <Text style={styles.headerTitle}>Period History</Text>
+      <Text style={styles.sectionTitle}>Period History</Text>
       <Text style={styles.headerSubtitle}>
         Track and manage your menstrual cycle history
       </Text>
@@ -215,9 +257,10 @@ export default function PeriodHistoryScreen() {
       </View>
 
       <InfiniteScrollList<PeriodData>
+        key={listKey}
         fetchData={fetchPeriods}
         renderItem={renderPeriodItem}
-        keyExtractor={(item, index) => `${item.start_date}-${index}`}
+        keyExtractor={(item, index) => item.id ?? `${item.start_date}-${index}`}
         ListHeaderComponent={renderHeader()}
         ListEmptyComponent={renderEmpty()}
         contentContainerStyle={styles.listContent}
@@ -255,7 +298,7 @@ const styles = StyleSheet.create({
   headerSection: {
     marginBottom: 16,
   },
-  headerTitle: {
+  sectionTitle: {
     fontSize: 24,
     fontWeight: '700',
     color: '#000',

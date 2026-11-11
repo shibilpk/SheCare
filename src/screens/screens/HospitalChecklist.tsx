@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { TextInput } from 'react-native';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +6,9 @@ import {
   TouchableOpacity,
   ScrollView,
   Animated,
+  TextInput,
+  RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import FontelloIcon from '../../services/FontelloIcons';
 import { THEME_COLORS } from '../../constants/colors';
@@ -14,120 +16,119 @@ import { useNavigation } from '@react-navigation/native';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
 import { RootStackParamList } from '../../constants/navigation';
 import { STYLE } from '../../constants/app';
+import { ScreenLoader } from '../../components/common/ScreenLoader';
+import { useToastMessage } from '../../utils/toastMessage';
+import { ChecklistItem, useHospitalChecklist } from './useHospitalChecklist';
 
-const initialCategories = [
-  {
-    id: 'mom',
-    label: "Mom's Essentials",
-    icon: 'user',
-    color: '#FF6B6B',
-    items: [
-      { id: 1, label: 'Maternity Clothes', checked: false },
-      { id: 2, label: 'Toiletries', checked: false },
-      { id: 7, label: 'Insurance Papers', checked: false },
-      { id: 8, label: 'Birth Plan', checked: false },
-      { id: 9, label: 'Nursing Bra', checked: false },
-    ],
-  },
-  {
-    id: 'baby',
-    label: "Baby's Essentials",
-    icon: 'baby',
-    color: '#4ECDC4',
-    items: [
-      { id: 3, label: 'Baby Clothes', checked: false },
-      { id: 4, label: 'Diapers', checked: false },
-      { id: 10, label: 'Blanket', checked: false },
-    ],
-  },
-  {
-    id: 'other',
-    label: 'Other Items',
-    icon: 'suitcase',
-    color: '#45B7D1',
-    items: [
-      { id: 5, label: 'Phone Charger', checked: false },
-      { id: 6, label: 'Snacks', checked: false },
-      { id: 11, label: 'Pillow', checked: false },
-    ],
-  },
-];
+// The backend sends icon names ('baby', 'suitcase') that are not in the
+// Fontello glyph map, so category icons are chosen client-side.
+const CATEGORY_ICONS: Record<string, string> = {
+  mom: 'user',
+  baby: 'smile',
+  other: 'bag',
+};
 
 export default function HospitalChecklistScreen() {
-  // ...existing code...
-  const deleteOtherItem = (itemId: number) => {
-    setCategories(cats =>
-      cats.map(cat =>
-        cat.id === 'other'
-          ? {
-              ...cat,
-              items: cat.items.filter(item => item.id !== itemId),
-            }
-          : cat
-      )
-    );
-  };
   const navigation = useNavigation<DrawerNavigationProp<RootStackParamList>>();
-  const [categories, setCategories] = useState(initialCategories);
+  const { showToast } = useToastMessage();
+  const {
+    checklist,
+    isLoading,
+    isRefreshing,
+    isSaving,
+    error,
+    refetch,
+    toggleItem,
+    addItem,
+    deleteItem,
+  } = useHospitalChecklist();
   const [newOtherItem, setNewOtherItem] = useState('');
-  const addOtherItem = () => {
-    if (!newOtherItem.trim()) return;
-    setCategories(cats =>
-      cats.map(cat =>
-        cat.id === 'other'
-          ? {
-              ...cat,
-              items: [
-                ...cat.items,
-                {
-                  id: Math.max(0, ...cat.items.map(i => i.id)) + 1,
-                  label: newOtherItem.trim(),
-                  checked: false,
-                },
-              ],
-            }
-          : cat
-      )
-    );
-    setNewOtherItem('');
+  // Refresh failures while data is already shown surface as a toast
+  const refreshError = checklist ? error : null;
+  useEffect(() => {
+    if (refreshError) {
+      showToast(refreshError);
+    }
+    // showToast is recreated every render; only react to new errors
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshError]);
+
+  const addOtherItem = async () => {
+    const label = newOtherItem.trim();
+    if (!label || isSaving) return;
+    try {
+      await addItem(label, 'other');
+      setNewOtherItem('');
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to add item');
+    }
   };
 
-  const toggleItem = (catId: string, itemId: number) => {
-    setCategories(cats =>
-      cats.map(cat =>
-        cat.id === catId
-          ? {
-              ...cat,
-              items: cat.items.map(item =>
-                item.id === itemId ? { ...item, checked: !item.checked } : item
-              ),
-            }
-          : cat
-      )
-    );
+  const handleToggle = async (item: ChecklistItem) => {
+    try {
+      await toggleItem(item.id, !item.checked);
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to update item');
+    }
   };
 
+  const handleDelete = async (itemId: number) => {
+    try {
+      await deleteItem(itemId);
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to delete item');
+    }
+  };
 
-  const packedCount = categories.reduce(
-    (acc, cat) => acc + cat.items.filter(item => item.checked).length,
-    0
+  const categories = checklist?.categories ?? [];
+  const packedCount = checklist?.packed_count ?? 0;
+  const totalCount = checklist?.total_count ?? 0;
+  const progressPercentage =
+    totalCount > 0 ? (packedCount / totalCount) * 100 : 0;
+
+  const header = (
+    <View style={styles.header}>
+      <TouchableOpacity
+        onPress={() => navigation.goBack()}
+        style={styles.backButton}
+      >
+        <FontelloIcon name="left-open-mini" size={24} color="#333" />
+      </TouchableOpacity>
+      <Text style={styles.headerTitle}>Hospital Bag Checklist</Text>
+      <View style={styles.headerRight} />
+    </View>
   );
-  const totalCount = categories.reduce((acc, cat) => acc + cat.items.length, 0);
-  const progressPercentage = (packedCount / totalCount) * 100;
+
+  if (isLoading && !checklist) {
+    return (
+      <View style={styles.container}>
+        {header}
+        <ScreenLoader message="Loading checklist..." />
+      </View>
+    );
+  }
+
+  if (!checklist) {
+    return (
+      <View style={styles.container}>
+        {header}
+        <View style={styles.stateBox}>
+          <FontelloIcon name="attention" size={40} color="#EF4444" />
+          <Text style={styles.stateTitle}>Couldn't load checklist</Text>
+          <Text style={styles.stateText}>
+            {error || 'Something went wrong.'}
+          </Text>
+          <TouchableOpacity style={styles.stateBtn} onPress={() => refetch()}>
+            <Text style={styles.stateBtnText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <FontelloIcon name="left-open-mini" size={24} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Hospital Bag Checklist</Text>
-        <View style={styles.headerRight} />
-      </View>
+      {header}
 
       {/* Progress Section */}
       <View style={styles.progressCard}>
@@ -144,7 +145,7 @@ export default function HospitalChecklistScreen() {
           />
         </View>
         <Text style={styles.progressText}>
-          {progressPercentage === 100
+          {totalCount > 0 && progressPercentage === 100
             ? '🎉 All set! You\'re ready to go!'
             : progressPercentage >= 75
             ? 'Almost there! Keep going!'
@@ -156,13 +157,26 @@ export default function HospitalChecklistScreen() {
       <ScrollView
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={() => refetch(true)}
+            tintColor={THEME_COLORS.primary}
+            colors={[THEME_COLORS.primary]}
+          />
+        }
       >
         {categories.map(cat => (
           <View key={cat.id} style={styles.categoryCard}>
             {/* Category Header */}
             <View style={styles.categoryHeader}>
               <View style={[styles.categoryIcon, { backgroundColor: cat.color }]}>
-                <FontelloIcon name={cat.icon} size={20} color="#fff" />
+                <FontelloIcon
+                  name={CATEGORY_ICONS[cat.id] ?? 'bag'}
+                  size={20}
+                  color="#fff"
+                />
               </View>
               <View style={styles.categoryInfo}>
                 <Text style={styles.categoryTitle}>{cat.label}</Text>
@@ -183,18 +197,31 @@ export default function HospitalChecklistScreen() {
                     placeholder="Add new item..."
                     placeholderTextColor="#999"
                     returnKeyType="done"
+                    maxLength={150}
                     onSubmitEditing={addOtherItem}
+                    editable={!isSaving}
                   />
-                  <TouchableOpacity style={styles.addItemBtn} onPress={addOtherItem}>
-                    <FontelloIcon name="plus" size={18} color="#fff" />
+                  <TouchableOpacity
+                    style={[styles.addItemBtn, isSaving && styles.disabled]}
+                    onPress={addOtherItem}
+                    disabled={isSaving}
+                  >
+                    {isSaving ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <FontelloIcon name="plus" size={18} color="#fff" />
+                    )}
                   </TouchableOpacity>
                 </View>
+              )}
+              {cat.items.length === 0 && (
+                <Text style={styles.emptyCategoryText}>No items yet</Text>
               )}
               {cat.items.map(item => (
                 <View key={item.id} style={styles.itemRow}>
                   <TouchableOpacity
-                    style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}
-                    onPress={() => toggleItem(cat.id, item.id)}
+                    style={styles.itemTouchable}
+                    onPress={() => handleToggle(item)}
                     activeOpacity={0.7}
                   >
                     <View style={[
@@ -203,7 +230,7 @@ export default function HospitalChecklistScreen() {
                       { borderColor: cat.color }
                     ]}>
                       {item.checked && (
-                        <FontelloIcon name="ok" size={14} color="#fff" />
+                        <FontelloIcon name="check" size={14} color="#fff" />
                       )}
                     </View>
                     <Text style={[
@@ -214,15 +241,16 @@ export default function HospitalChecklistScreen() {
                     </Text>
                     {item.checked && (
                       <View style={[styles.checkedBadge, { backgroundColor: cat.color }]}>
-                        <FontelloIcon name="ok" size={10} color="#fff" />
+                        <FontelloIcon name="check" size={10} color="#fff" />
                       </View>
                     )}
                   </TouchableOpacity>
-                  {cat.id === 'other' && (
+                  {item.is_custom && (
                     <TouchableOpacity
                       style={styles.deleteBtn}
-                      onPress={() => deleteOtherItem(item.id)}
+                      onPress={() => handleDelete(item.id)}
                       activeOpacity={0.6}
+                      disabled={isSaving}
                     >
                       <FontelloIcon name="cancel" size={18} color="#EF4444" />
                     </TouchableOpacity>
@@ -430,5 +458,49 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  itemTouchable: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  emptyCategoryText: {
+    fontSize: 14,
+    color: '#94A3B8',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  disabled: {
+    opacity: 0.6,
+  },
+  stateBox: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+  },
+  stateTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginTop: 16,
+    marginBottom: 6,
+  },
+  stateText: {
+    fontSize: 14,
+    color: '#64748B',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  stateBtn: {
+    backgroundColor: THEME_COLORS.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  stateBtnText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 15,
   },
 });

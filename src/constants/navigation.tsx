@@ -50,6 +50,8 @@ type ScreenParams = {
     endDate?: Date | null;
     rangeDays?: number | null;
     periodId?: string | null;
+    /** 'edit' = editing an existing period from the history list (PUT + go back). */
+    mode?: 'edit';
   };
 };
 

@@ -12,6 +12,9 @@ export interface PeriodRange {
 export interface PregnancyChance {
   level: 'low' | 'medium' | 'high';
   percentage: number;
+  is_ovulation_day?: boolean;
+  is_fertile_window?: boolean;
+  ovulation_date?: string | null;
 }
 
 export interface CustomerPeriodData {

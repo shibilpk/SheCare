@@ -11,6 +11,7 @@ import {
 import { LineChart, BarChart, ProgressChart } from 'react-native-chart-kit';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { THEME_COLORS } from '../../constants/colors';
+import { STYLE } from '../../constants/app';
 import { InfoCard } from '@src/components';
 import { useHealthAnalysis } from '@src/hooks/useHealthAnalysis';
 import { useErrorToast } from '@src/utils/toastMessage';
@@ -463,7 +464,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f9fa',
   },
   scrollContent: {
-    paddingHorizontal: 20,
+    ...STYLE.scrollContent,
   },
   header: {
     marginTop: 8,

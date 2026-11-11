@@ -43,6 +43,7 @@ import {
   validateRequiredFields,
 } from '@src/utils/formUtils';
 import { useProfile, ProfileUpdate, WeightData } from '@src/hooks/useProfile';
+import { toLocalDateString } from '../../utils/date';
 
 export default function Profile() {
   const clearToken = useStore(state => state.clearToken);
@@ -471,7 +472,7 @@ export default function Profile() {
               setWeightData({
                 weight: '',
                 weight_unit: 'kg',
-                weight_date: new Date().toISOString().split('T')[0],
+                weight_date: toLocalDateString(new Date()),
               });
               setEditField('weight');
             }}
@@ -887,6 +888,48 @@ export default function Profile() {
             </View>
             <FontelloIcon name="right-open-mini" size={20} color="#999" />
           </TouchableOpacity>
+          <View style={styles.divider} />
+
+          <TouchableOpacity
+            style={styles.actionRow}
+            onPress={() => navigation.navigate(SCREENS.LIFESTYLE_DETAILS)}
+          >
+            <View style={styles.actionLeft}>
+              <View
+                style={[styles.actionIconBox, { backgroundColor: '#E0E7FF' }]}
+              >
+                <FontelloIcon name="balance-scale" size={18} color="#6366F1" />
+              </View>
+              <View>
+                <Text style={styles.actionLabel}>Lifestyle Details</Text>
+                <Text style={styles.preferenceSubtext}>
+                  Weight, height & age
+                </Text>
+              </View>
+            </View>
+            <FontelloIcon name="right-open-mini" size={20} color="#999" />
+          </TouchableOpacity>
+          <View style={styles.divider} />
+
+          <TouchableOpacity
+            style={styles.actionRow}
+            onPress={() => navigation.navigate(SCREENS.TIPS_SCREEN)}
+          >
+            <View style={styles.actionLeft}>
+              <View
+                style={[styles.actionIconBox, { backgroundColor: '#E8F5E9' }]}
+              >
+                <FontelloIcon name="med-kit" size={18} color="#10B981" />
+              </View>
+              <View>
+                <Text style={styles.actionLabel}>Health Tips</Text>
+                <Text style={styles.preferenceSubtext}>
+                  Daily wellness guidance
+                </Text>
+              </View>
+            </View>
+            <FontelloIcon name="right-open-mini" size={20} color="#999" />
+          </TouchableOpacity>
         </View>
 
         {/* Account Actions */}
@@ -1120,7 +1163,7 @@ export default function Profile() {
               onChange={date => {
                 setWeightData({
                   ...weightData,
-                  weight_date: date.toISOString().split('T')[0],
+                  weight_date: toLocalDateString(date),
                 });
               }}
               mode="date"
@@ -1156,7 +1199,7 @@ export default function Profile() {
             onChange={date =>
               setProfileUpdate(prev => ({
                 ...prev,
-                date_of_birth: date.toISOString().split('T')[0],
+                date_of_birth: toLocalDateString(date),
               }))
             }
             mode="date"
@@ -1307,7 +1350,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 40,
+    ...STYLE.scrollContent,
+    paddingHorizontal: 0,
     backgroundColor: '#f8f9fa',
   },
   headerGradient: {

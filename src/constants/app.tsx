@@ -2,7 +2,7 @@ const spacing = {
   mh: 10,
   ph: 10,
   mv: 10,
-  scPb: 60
+  scPb: 100
 };
 
 export const STYLE = {

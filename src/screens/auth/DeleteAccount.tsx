@@ -1,5 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  ScrollView,
+  ActivityIndicator,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { THEME_COLORS } from '../../constants/colors';
 import { useNavigation } from '@react-navigation/native';
@@ -8,13 +16,53 @@ import { RootStackParamList } from '../../constants/navigation';
 import DeleteAccountSvg from '@src/assets/images/delete-account.svg';
 import FontelloIcon from '../../services/FontelloIcons';
 import { STYLE } from '../../constants/app';
+import apiClient, { APIError } from '../../services/ApiClient';
+import { APIS } from '../../constants/apis';
+import useStore from '../../store/useStore';
+
+interface AccountActionResponse {
+  detail?: { title?: string; message?: string };
+}
 
 export default function DeleteAccountScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [isDeactivate, setIsDeactivate] = useState(true);
   const [confirmChecked, setConfirmChecked] = useState(false);
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const runAccountAction = async (action: 'deactivate' | 'delete') => {
+    setIsSubmitting(true);
+    try {
+      const response =
+        action === 'deactivate'
+          ? await apiClient.post<AccountActionResponse>(
+              APIS.v1.auth.deactivateAccount(),
+            )
+          : await apiClient.delete<AccountActionResponse>(
+              APIS.v1.auth.deleteAccount(),
+            );
+      const fallbackTitle =
+        action === 'deactivate' ? 'Account Deactivated' : 'Account Deleted';
+      Alert.alert(
+        response?.detail?.title || fallbackTitle,
+        response?.detail?.message || '',
+      );
+      // Logging out switches navigation to the auth stack.
+      useStore.getState().clearToken();
+    } catch (error) {
+      const apiError = error as APIError;
+      Alert.alert(
+        apiError?.normalizedError?.title || 'Error',
+        apiError?.normalizedError?.message ||
+          'Something went wrong. Please try again.',
+      );
+      setIsSubmitting(false);
+    }
+  };
+
   const handleDelete = () => {
+    if (isSubmitting) return;
     if (!confirmChecked) {
       Alert.alert('Confirmation Required', 'Please confirm that you understand the consequences.');
       return;
@@ -22,9 +70,12 @@ export default function DeleteAccountScreen() {
 
     if (isDeactivate) {
       Alert.alert(
-        'Account Deactivated',
-        'Your account will be temporarily deactivated. You can restore it anytime by logging back in.',
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
+        'Deactivate Account',
+        'Your account will be temporarily deactivated and you will be logged out. You can restore it anytime by logging back in.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Deactivate', onPress: () => runAccountAction('deactivate') },
+        ],
       );
     } else {
       Alert.alert(
@@ -35,12 +86,9 @@ export default function DeleteAccountScreen() {
           {
             text: 'Delete Permanently',
             style: 'destructive',
-            onPress: () => {
-              Alert.alert('Account Deleted', 'Your account has been permanently deleted.');
-              navigation.goBack();
-            }
-          }
-        ]
+            onPress: () => runAccountAction('delete'),
+          },
+        ],
       );
     }
   };
@@ -203,14 +251,18 @@ export default function DeleteAccountScreen() {
           style={[
             styles.actionBtn,
             isDeactivate ? styles.deactivateBtn : styles.deleteBtn,
-            !confirmChecked && styles.actionBtnDisabled
+            (!confirmChecked || isSubmitting) && styles.actionBtnDisabled
           ]}
           onPress={handleDelete}
-          disabled={!confirmChecked}
+          disabled={!confirmChecked || isSubmitting}
         >
-          <Text style={styles.actionBtnText}>
-            {isDeactivate ? 'Deactivate Account' : 'Delete Account Permanently'}
-          </Text>
+          {isSubmitting ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.actionBtnText}>
+              {isDeactivate ? 'Deactivate Account' : 'Delete Account Permanently'}
+            </Text>
+          )}
         </TouchableOpacity>
 
         {/* Cancel Button */}

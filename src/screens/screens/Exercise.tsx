@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,9 @@ import {
   ScrollView,
   TextInput,
   Modal,
-  FlatList,
+  Alert,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -15,36 +17,15 @@ import LinearGradient from 'react-native-linear-gradient';
 import FontelloIcon from '../../services/FontelloIcons';
 import { THEME_COLORS } from '../../constants/colors';
 import { STYLE } from '../../constants/app';
-
-interface ExerciseSuggestion {
-  id: number;
-  name: string;
-  category: 'Cardio' | 'Strength' | 'Flexibility' | 'Sports';
-}
-
-interface WorkoutItem {
-  id: number;
-  name: string;
-  exerciseId: number;
-  minutes: number;
-  calories: number;
-  intensity: 'Low' | 'Moderate' | 'High';
-}
-
-const EXERCISE_SUGGESTIONS: ExerciseSuggestion[] = [
-  { id: 1, name: 'Cricket', category: 'Sports' },
-  { id: 2, name: 'Prenatal Yoga', category: 'Flexibility' },
-  { id: 3, name: 'Brisk Walk', category: 'Cardio' },
-  { id: 4, name: 'Swimming', category: 'Cardio' },
-  { id: 5, name: 'Cycling', category: 'Cardio' },
-  { id: 6, name: 'Dancing', category: 'Cardio' },
-  { id: 7, name: 'Pilates', category: 'Strength' },
-  { id: 8, name: 'Stretching', category: 'Flexibility' },
-  { id: 9, name: 'Jogging', category: 'Cardio' },
-  { id: 10, name: 'Aerobics', category: 'Cardio' },
-  { id: 11, name: 'Badminton', category: 'Sports' },
-  { id: 12, name: 'Tennis', category: 'Sports' },
-];
+import { ScreenLoader } from '../../components/common/ScreenLoader';
+import { useErrorToast, useToastMessage } from '../../utils/toastMessage';
+import { parseLocalDate, toLocalDateString } from '../../utils/date';
+import {
+  useExercise,
+  ExerciseType,
+  ExerciseLog,
+  ExerciseIntensity,
+} from './useExercise';
 
 const FILTER_CATEGORIES = [
   'All',
@@ -54,83 +35,131 @@ const FILTER_CATEGORIES = [
   'Sports',
 ] as const;
 
+const DEFAULT_GOAL = { minutes: 150, calories: 500 };
+
+const NAME_EMOJI: Record<string, string> = {
+  cricket: '🏏',
+  'prenatal yoga': '🧘‍♀️',
+  yoga: '🧘‍♀️',
+  'brisk walk': '🚶‍♀️',
+  walking: '🚶‍♀️',
+  swimming: '🏊‍♀️',
+  cycling: '🚴‍♀️',
+  dancing: '💃',
+  pilates: '🤸‍♀️',
+  stretching: '🧘',
+  jogging: '🏃‍♀️',
+  running: '🏃‍♀️',
+  aerobics: '🎯',
+  badminton: '🏸',
+  tennis: '🎾',
+};
+
+const CATEGORY_EMOJI: Record<ExerciseType['category'], string> = {
+  Cardio: '🏃‍♀️',
+  Strength: '🏋️‍♀️',
+  Flexibility: '🧘‍♀️',
+  Sports: '⚽',
+};
+
+function emojiFor(name: string, category?: ExerciseType['category']): string {
+  return (
+    NAME_EMOJI[name.trim().toLowerCase()] ||
+    (category ? CATEGORY_EMOJI[category] : undefined) ||
+    '💪'
+  );
+}
+
+const MONTHS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+/** "Mon, Nov 10" from YYYY-MM-DD */
+function formatDay(dateStr: string): string {
+  const d = parseLocalDate(dateStr);
+  return `${WEEKDAYS[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}`;
+}
+
+/** "Nov 10" from YYYY-MM-DD */
+function formatShort(dateStr: string): string {
+  const d = parseLocalDate(dateStr);
+  return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
+}
+
 export default function ExerciseScreen() {
   const navigation = useNavigation();
-  const [workouts, setWorkouts] = useState<WorkoutItem[]>([
-    {
-      id: 1,
-      name: 'Prenatal Yoga',
-      exerciseId: 2,
-      minutes: 30,
-      calories: 120,
-      intensity: 'Low',
-    },
-    {
-      id: 2,
-      name: 'Brisk Walk',
-      exerciseId: 3,
-      minutes: 25,
-      calories: 140,
-      intensity: 'Moderate',
-    },
-  ]);
+  const { showToast } = useToastMessage();
+  const today = useMemo(() => toLocalDateString(new Date()), []);
+  const {
+    types,
+    summary,
+    isLoading,
+    isRefreshing,
+    isUpdating,
+    error,
+    refetch,
+    addLog,
+    deleteLog,
+  } = useExercise(today);
 
   const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedExercise, setSelectedExercise] =
-    useState<ExerciseSuggestion | null>(null);
+  const [selectedExercise, setSelectedExercise] = useState<ExerciseType | null>(
+    null,
+  );
   const [minutes, setMinutes] = useState('');
   const [calories, setCalories] = useState('');
-  const [intensity, setIntensity] = useState<WorkoutItem['intensity']>('Low');
+  const [intensity, setIntensity] = useState<ExerciseIntensity>('Low');
   const [selectedFilter, setSelectedFilter] =
     useState<(typeof FILTER_CATEGORIES)[number]>('All');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredExercises = EXERCISE_SUGGESTIONS.filter(ex => {
+  // Initial load errors get a full error view; later refresh errors are toasted.
+  useErrorToast(summary ? error : null);
+
+  const filteredExercises = types.filter(ex => {
     const matchesCategory =
       selectedFilter === 'All' || ex.category === selectedFilter;
     const matchesSearch = ex.name
       .toLowerCase()
-      .includes(searchQuery.toLowerCase());
+      .includes(searchQuery.trim().toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
-  const totals = workouts.reduce(
-    (acc, w) => ({
-      minutes: acc.minutes + w.minutes,
-      calories: acc.calories + w.calories,
-    }),
-    { minutes: 0, calories: 0 },
+  const workouts: ExerciseLog[] = useMemo(
+    () =>
+      [...(summary?.logs || [])].sort(
+        (a, b) => b.date.localeCompare(a.date) || b.id - a.id,
+      ),
+    [summary],
   );
+  const totals = summary?.totals || { minutes: 0, calories: 0 };
+  const goal = summary?.goal || DEFAULT_GOAL;
+  const progress = summary?.progress || { minutes: 0, calories: 0 };
 
-  const goal = { minutes: 150, calories: 500 };
-  const progress = {
-    minutes: Math.min(100, (totals.minutes / goal.minutes) * 100),
-    calories: Math.min(100, (totals.calories / goal.calories) * 100),
-  };
+  const typeById = useMemo(() => {
+    const map = new Map<number, ExerciseType>();
+    types.forEach(t => map.set(t.id, t));
+    return map;
+  }, [types]);
 
-  const handleSelectExercise = (exercise: ExerciseSuggestion) => {
-    setSelectedExercise(exercise);
-    setShowAddModal(true);
-    setMinutes('');
-    setCalories('');
-    setIntensity('Low');
-  };
+  const estimatedCalories =
+    selectedExercise && Number(minutes) > 0
+      ? Math.round(selectedExercise.calories_per_minute * Number(minutes))
+      : null;
 
-  const addWorkout = () => {
-    if (!selectedExercise || !minutes) return;
-    const m = Number(minutes) || 0;
-    const c = Number(calories) || 0;
-    setWorkouts(prev => [
-      ...prev,
-      {
-        id: Date.now(),
-        name: selectedExercise.name,
-        exerciseId: selectedExercise.id,
-        minutes: m,
-        calories: c,
-        intensity,
-      },
-    ]);
+  const closeModal = () => {
     setShowAddModal(false);
     setSelectedExercise(null);
     setMinutes('');
@@ -138,23 +167,137 @@ export default function ExerciseScreen() {
     setIntensity('Low');
   };
 
+  const handleSelectExercise = (exercise: ExerciseType) => {
+    setSelectedExercise(exercise);
+    setShowAddModal(true);
+    setMinutes('');
+    setCalories('');
+    setIntensity('Low');
+  };
+
+  const addWorkout = async () => {
+    if (!selectedExercise || isUpdating) return;
+    const m = Number(minutes);
+    if (!minutes.trim() || !Number.isInteger(m) || m < 1 || m > 1440) {
+      Alert.alert(
+        'Invalid duration',
+        'Enter whole minutes between 1 and 1440.',
+      );
+      return;
+    }
+    let c = 0;
+    if (calories.trim()) {
+      c = Number(calories);
+      if (!Number.isFinite(c) || c < 0) {
+        Alert.alert(
+          'Invalid calories',
+          'Enter a positive number, or leave it blank to estimate.',
+        );
+        return;
+      }
+      c = Math.round(c);
+    }
+    try {
+      await addLog({
+        exercise_type_id: selectedExercise.id,
+        date: today,
+        minutes: m,
+        calories: c,
+        intensity,
+      });
+      closeModal();
+      showToast(`${selectedExercise.name} added`);
+    } catch (err: any) {
+      Alert.alert('Error', err?.message || 'Failed to add workout');
+    }
+  };
+
+  const confirmDelete = (workout: ExerciseLog) => {
+    Alert.alert(
+      'Delete Workout',
+      `Remove ${workout.name} (${workout.minutes} min) on ${formatDay(
+        workout.date,
+      )}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteLog(workout.id);
+              showToast('Workout removed');
+            } catch (err: any) {
+              Alert.alert('Error', err?.message || 'Failed to delete workout');
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const header = (
+    <View style={styles.header}>
+      <TouchableOpacity
+        onPress={() => navigation.goBack()}
+        style={styles.backBtn}
+      >
+        <FontelloIcon name="left-open-mini" size={28} color="#333" />
+      </TouchableOpacity>
+      <Text style={styles.headerTitle}>Exercise</Text>
+      <View style={styles.addBtn} />
+    </View>
+  );
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        {header}
+        <ScreenLoader message="Loading exercise data..." />
+      </SafeAreaView>
+    );
+  }
+
+  if (error && !summary) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        {header}
+        <View style={styles.errorState}>
+          <FontelloIcon name="attention" size={40} color="#F59E0B" />
+          <Text style={styles.errorTitle}>Couldn't load exercise data</Text>
+          <Text style={styles.errorMessage}>{error}</Text>
+          <TouchableOpacity
+            style={styles.retryBtn}
+            onPress={refetch}
+            disabled={isRefreshing}
+          >
+            {isRefreshing ? (
+              <ActivityIndicator size="small" color={THEME_COLORS.textLight} />
+            ) : (
+              <Text style={styles.retryBtnText}>Try Again</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backBtn}
-        >
-          <FontelloIcon name="left-open-mini" size={28} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Exercise</Text>
-        <View style={styles.addBtn} />
-      </View>
+      {header}
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={refetch}
+            tintColor={THEME_COLORS.primary}
+            colors={[THEME_COLORS.primary]}
+          />
+        }
       >
         {/* Summary Card */}
         <LinearGradient
@@ -164,7 +307,15 @@ export default function ExerciseScreen() {
           style={styles.summaryCard}
         >
           <View style={styles.summaryCardWrapper}>
-            <Text style={styles.summaryTitle}>This Week</Text>
+            <View style={styles.summaryTitleRow}>
+              <Text style={styles.summaryTitle}>This Week</Text>
+              {summary && (
+                <Text style={styles.summaryRange}>
+                  {formatShort(summary.week_start)} –{' '}
+                  {formatShort(summary.week_end)}
+                </Text>
+              )}
+            </View>
             <View style={styles.summaryRow}>
               <View style={styles.summaryItem}>
                 <Text style={styles.summaryLabel}>Minutes</Text>
@@ -192,7 +343,7 @@ export default function ExerciseScreen() {
                   style={[
                     styles.progressFill,
                     {
-                      width: `${progress.minutes}%`,
+                      width: `${Math.min(100, progress.minutes)}%`,
                       backgroundColor: '#06B6D4',
                     },
                   ]}
@@ -208,7 +359,7 @@ export default function ExerciseScreen() {
                   style={[
                     styles.progressFill,
                     {
-                      width: `${progress.calories}%`,
+                      width: `${Math.min(100, progress.calories)}%`,
                       backgroundColor: '#0EA5E9',
                     },
                   ]}
@@ -221,24 +372,51 @@ export default function ExerciseScreen() {
         {/* Workouts List */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Workouts</Text>
-          <Text style={styles.sectionCount}>{workouts.length} items</Text>
+          <Text style={styles.sectionCount}>
+            {workouts.length} {workouts.length === 1 ? 'item' : 'items'}
+          </Text>
         </View>
 
-        {workouts.map((w, idx) => (
-          <View key={w.id} style={styles.workoutCard}>
-            <View style={styles.workoutIcon}>
-              <Text style={styles.workoutEmoji}>
-                {idx % 3 === 0 ? '🤰' : idx % 3 === 1 ? '🚶‍♀️' : '🧘‍♀️'}
-              </Text>
-            </View>
-            <View style={styles.workoutContent}>
-              <Text style={styles.workoutName}>{w.name}</Text>
-              <Text style={styles.workoutMeta}>
-                {w.minutes} min • {w.calories} kcal • {w.intensity}
-              </Text>
-            </View>
+        {workouts.length === 0 ? (
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyEmoji}>🏃‍♀️</Text>
+            <Text style={styles.emptyTitle}>No workouts this week yet</Text>
+            <Text style={styles.emptyText}>
+              Pick an exercise below to log your first workout.
+            </Text>
           </View>
-        ))}
+        ) : (
+          workouts.map(w => {
+            const type =
+              w.exercise_type_id != null
+                ? typeById.get(w.exercise_type_id)
+                : undefined;
+            return (
+              <View key={w.id} style={styles.workoutCard}>
+                <View style={styles.workoutIcon}>
+                  <Text style={styles.workoutEmoji}>
+                    {emojiFor(w.name, type?.category)}
+                  </Text>
+                </View>
+                <View style={styles.workoutContent}>
+                  <Text style={styles.workoutName}>{w.name}</Text>
+                  <Text style={styles.workoutMeta}>
+                    {formatDay(w.date)} • {w.minutes} min • {w.calories} kcal •{' '}
+                    {w.intensity}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => confirmDelete(w)}
+                  style={styles.deleteBtn}
+                  disabled={isUpdating}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <FontelloIcon name="trash-empty" size={18} color="#EF4444" />
+                </TouchableOpacity>
+              </View>
+            );
+          })
+        )}
 
         {/* Exercises List */}
         <View style={styles.sectionHeader}>
@@ -247,12 +425,7 @@ export default function ExerciseScreen() {
 
         {/* Search Input */}
         <View style={styles.searchContainer}>
-          <FontelloIcon
-            name="search"
-            size={20}
-            color="#999"
-            style={styles.searchIcon}
-          />
+          <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
             style={styles.searchInput}
             placeholder="Search exercises..."
@@ -294,56 +467,40 @@ export default function ExerciseScreen() {
           ))}
         </ScrollView>
 
-        <View style={styles.exercisesGrid}>
-          {filteredExercises.map(exercise => (
-            <TouchableOpacity
-              key={exercise.id}
-              style={styles.exerciseCard}
-              onPress={() => handleSelectExercise(exercise)}
-            >
-              <View style={styles.exerciseIconBox}>
-                <Text style={styles.exerciseEmoji}>
-                  {exercise.id === 1
-                    ? '🏏'
-                    : exercise.id === 2
-                      ? '🧘‍♀️'
-                      : exercise.id === 3
-                        ? '🚶‍♀️'
-                        : exercise.id === 4
-                          ? '🏊‍♀️'
-                          : exercise.id === 5
-                            ? '🚴‍♀️'
-                            : exercise.id === 6
-                              ? '💃'
-                              : exercise.id === 7
-                                ? '🤸‍♀️'
-                                : exercise.id === 8
-                                  ? '🧘'
-                                  : exercise.id === 9
-                                    ? '🏃‍♀️'
-                                    : exercise.id === 10
-                                      ? '🎯'
-                                      : exercise.id === 11
-                                        ? '🏸'
-                                        : exercise.id === 12
-                                          ? '🎾'
-                                          : '⚽'}
-                </Text>
-              </View>
-              <Text style={styles.exerciseName}>{exercise.name}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        {filteredExercises.length === 0 ? (
+          <Text style={styles.noResults}>
+            {types.length === 0
+              ? 'No exercises available right now.'
+              : 'No exercises match your search.'}
+          </Text>
+        ) : (
+          <View style={styles.exercisesGrid}>
+            {filteredExercises.map(exercise => (
+              <TouchableOpacity
+                key={exercise.id}
+                style={styles.exerciseCard}
+                onPress={() => handleSelectExercise(exercise)}
+              >
+                <View style={styles.exerciseIconBox}>
+                  <Text style={styles.exerciseEmoji}>
+                    {emojiFor(exercise.name, exercise.category)}
+                  </Text>
+                </View>
+                <Text style={styles.exerciseName}>{exercise.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
         {/* Tips */}
         <View style={styles.tipsCard}>
           <View style={styles.tipsHeader}>
-            <FontelloIcon name="lightbulb" size={20} color="#F59E0B" />
+            <Text style={styles.tipsEmoji}>💡</Text>
             <Text style={styles.tipsTitle}>Safe Exercise Tips</Text>
           </View>
           <Text style={styles.tipText}>
-            • Aim for 150 minutes/week of moderate activity (if approved by your
-            provider).
+            • Aim for {goal.minutes} minutes/week of moderate activity (if
+            approved by your provider).
           </Text>
           <Text style={styles.tipText}>
             • Stay hydrated and avoid overheating; choose low-impact activities.
@@ -355,14 +512,19 @@ export default function ExerciseScreen() {
       </ScrollView>
 
       {/* Add Workout Modal */}
-      <Modal visible={showAddModal} animationType="slide" transparent>
+      <Modal
+        visible={showAddModal}
+        animationType="slide"
+        transparent
+        onRequestClose={closeModal}
+      >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
                 Add {selectedExercise?.name}
               </Text>
-              <TouchableOpacity onPress={() => setShowAddModal(false)}>
+              <TouchableOpacity onPress={closeModal}>
                 <FontelloIcon name="cancel" size={24} color="#999" />
               </TouchableOpacity>
             </View>
@@ -372,8 +534,9 @@ export default function ExerciseScreen() {
                 <Text style={styles.inputLabel}>Minutes</Text>
                 <TextInput
                   style={styles.input}
-                  keyboardType="numeric"
+                  keyboardType="number-pad"
                   placeholder="e.g., 30"
+                  placeholderTextColor="#999"
                   value={minutes}
                   onChangeText={setMinutes}
                 />
@@ -382,13 +545,21 @@ export default function ExerciseScreen() {
                 <Text style={styles.inputLabel}>Calories</Text>
                 <TextInput
                   style={styles.input}
-                  keyboardType="numeric"
-                  placeholder="e.g., 120"
+                  keyboardType="number-pad"
+                  placeholder={
+                    estimatedCalories != null
+                      ? `Auto (~${estimatedCalories})`
+                      : 'Auto'
+                  }
+                  placeholderTextColor="#999"
                   value={calories}
                   onChangeText={setCalories}
                 />
               </View>
             </View>
+            <Text style={styles.inputHint}>
+              Leave calories blank and we'll estimate them for you.
+            </Text>
 
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Intensity</Text>
@@ -418,15 +589,27 @@ export default function ExerciseScreen() {
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={styles.modalCancelBtn}
-                onPress={() => setShowAddModal(false)}
+                onPress={closeModal}
+                disabled={isUpdating}
               >
                 <Text style={styles.modalCancelText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.modalSaveBtn}
+                style={[
+                  styles.modalSaveBtn,
+                  isUpdating && styles.modalSaveBtnDisabled,
+                ]}
                 onPress={addWorkout}
+                disabled={isUpdating}
               >
-                <Text style={styles.modalSaveBtnText}>Add</Text>
+                {isUpdating ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={THEME_COLORS.textLight}
+                  />
+                ) : (
+                  <Text style={styles.modalSaveBtnText}>Add</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -468,7 +651,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: THEME_COLORS.text,
-    marginBottom: 12,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -695,11 +877,68 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
-  searchIcon: { marginRight: 8 },
+  searchIcon: { marginRight: 8, fontSize: 16 },
   searchInput: {
     flex: 1,
     paddingVertical: 12,
     fontSize: 15,
     color: THEME_COLORS.text,
+  },
+  tipsEmoji: { fontSize: 18 },
+  summaryTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  summaryRange: { fontSize: 13, fontWeight: '600', color: '#0E7490' },
+  deleteBtn: { padding: 6, marginLeft: 8 },
+  emptyCard: {
+    alignItems: 'center',
+    backgroundColor: THEME_COLORS.textLight,
+    marginHorizontal: STYLE.spacing.mh,
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+  },
+  emptyEmoji: { fontSize: 32, marginBottom: 8 },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: THEME_COLORS.text,
+    marginBottom: 4,
+  },
+  emptyText: { fontSize: 13, color: '#999', textAlign: 'center' },
+  noResults: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+  inputHint: { fontSize: 12, color: '#999', marginTop: -8, marginBottom: 16 },
+  modalSaveBtnDisabled: { opacity: 0.7 },
+  errorState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    gap: 10,
+  },
+  errorTitle: { fontSize: 18, fontWeight: '700', color: THEME_COLORS.text },
+  errorMessage: { fontSize: 14, color: '#666', textAlign: 'center' },
+  retryBtn: {
+    marginTop: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    backgroundColor: THEME_COLORS.primary,
+    minWidth: 140,
+    alignItems: 'center',
+  },
+  retryBtnText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: THEME_COLORS.textLight,
   },
 });

@@ -21,10 +21,11 @@ import { useHydrationContent } from './useHydrationContent';
 import { ScreenLoader } from '../../components/common/ScreenLoader';
 import InfoCard from '../../components/common/InfoCard';
 import Fireworks from '../../components/common/Fireworks';
+import { toLocalDateString } from '../../utils/date';
 
 export default function HydrationScreen() {
   const navigation = useNavigation();
-  const today = new Date().toISOString().split('T')[0];
+  const today = toLocalDateString(new Date());
 
   const {
     hydrationLog,

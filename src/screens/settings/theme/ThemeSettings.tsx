@@ -82,7 +82,7 @@ const ThemeSettingsScreen: React.FC = () => {
                 styles.toggleButton,
                 isActive && styles.toggleButtonActive,
               ]}
-              onPress={() => setSelectedTheme(opt.mode)}
+              onPress={() => handleThemeSelect(opt.mode)}
               activeOpacity={0.8}
             >
               <FontelloIcon

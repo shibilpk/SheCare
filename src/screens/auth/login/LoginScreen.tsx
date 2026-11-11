@@ -120,35 +120,47 @@ const LoginScreen: React.FC = () => {
   };
 
   const handleOTPLogin = async () => {
-    const value = inputMode === 'email' ? loginData.email : loginData.phone;
-    const error = inputMode === 'email' ? validateEmail(value) : validatePhone(value);
+    // The backend only supports email OTP (POST auth/send-otp/ with { email }).
+    if (inputMode !== 'email') {
+      Alert.alert(
+        'Email Required',
+        'OTP login is only available with your email address. Please switch to email and try again.',
+      );
+      return;
+    }
+
+    const value = loginData.email;
+    const error = validateEmail(value);
 
     if (error) {
       setErrors(prev => ({
         ...prev,
-        [inputMode]: error,
+        email: error,
       }));
       return;
     }
 
     setOtpLoading(true);
     try {
-      const payload = inputMode === 'email' ? { email: loginData.email } : { phone: loginData.phone };
-
-      const response = await apiClient.post<any>(
+      await apiClient.post<any>(
         APIS.v1.auth.sendOtp(),
-        payload,
+        { email: loginData.email },
         { is_auth: false },
       );
 
-      Alert.alert('Success', `OTP has been sent to your ${inputMode}`);
+      Alert.alert('Success', 'OTP has been sent to your email');
       navigation.navigate(SCREENS.OTP_VERIFICATION, {
-        email: inputMode === 'email' ? loginData.email : loginData.phone,
+        email: loginData.email,
         isLoginFlow: true,
       });
-    } catch (error) {
-      const apiError = error as APIError;
-      Alert.alert('Failed', apiError.message || 'Failed to send OTP');
+    } catch (err) {
+      const apiError = err as APIError;
+      Alert.alert(
+        apiError?.normalizedError?.title || 'Failed',
+        apiError?.normalizedError?.message ||
+          apiError?.message ||
+          'Failed to send OTP',
+      );
     } finally {
       setOtpLoading(false);
     }

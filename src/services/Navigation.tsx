@@ -24,6 +24,7 @@ import GlobalModalContext from './GlobalContext';
 import CalendarDateContext from './CalendarDateContext';
 import { SCREENS, type RootStackParamList } from '../constants/navigation';
 import * as Screens from '../screens';
+import GlassTabBar from '../components/widgets/GlassTabBar';
 import { tabOptions, todayTabBarIcon } from '../components/widgets/TabIcon';
 import useStore from '../store/useStore';
 import { useIsDarkMode } from './theme';
@@ -53,6 +54,7 @@ function TabNavigator() {
 
   return (
     <Tab.Navigator
+      tabBar={props => <GlassTabBar {...props} />}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: THEME_COLORS.primary,
@@ -98,6 +100,7 @@ function SecondaryTabNavigator() {
 
   return (
     <Tab.Navigator
+      tabBar={props => <GlassTabBar {...props} />}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: THEME_COLORS.primary,

@@ -1,10 +1,6 @@
 import { APIS } from '@src/constants/apis';
 import apiClient from '@src/services/ApiClient';
-
-export interface DailyDataItem {
-  id: string;
-  type: 'mood' | 'symptom' | 'activity' | 'flow' | 'intimacy';
-}
+import { toLocalDateString } from '../../utils/date';
 
 export interface RatingItem {
   id: string;
@@ -13,14 +9,22 @@ export interface RatingItem {
 
 export interface DailyEntryPayload {
   date: string;
-  daily_data: DailyDataItem[];
+  moods: string[];
+  symptoms: string[];
+  activities: string[];
+  intimacy: string[];
+  flow: string[];
   ratings: RatingItem[];
 }
 
 export interface DailyEntryResponse {
   id: number;
   date: string;
-  daily_data: DailyDataItem[];
+  moods: string[];
+  symptoms: string[];
+  activities: string[];
+  intimacy: string[];
+  flow: string[];
   ratings: RatingItem[];
   created_at: string;
   updated_at: string;
@@ -41,7 +45,7 @@ export async function saveDailyEntry(payload: DailyEntryPayload): Promise<DailyE
  * Fetch a daily entry for a specific date
  */
 export async function fetchDailyEntry(date: Date): Promise<DailyEntryResponse | null> {
-  const dateStr = date.toISOString().split('T')[0];
+  const dateStr = toLocalDateString(date);
 
   try {
     const response = await apiClient.get<DailyEntryResponse>(

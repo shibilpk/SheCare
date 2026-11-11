@@ -18,6 +18,7 @@ import { KeyboardAvoidingModal } from '../../components';
 import { STYLE } from '../../constants/app';
 import { useMedication, CreateMedicationPayload, MedicationWithDoses } from './useMedication';
 import { ScreenLoader } from '../../components/common/ScreenLoader';
+import { toLocalDateString } from '../../utils/date';
 
 
 export default function MedicationsScreen() {
@@ -55,9 +56,9 @@ export default function MedicationsScreen() {
     loadData();
   }, [loadData]);
 
-  const handleToggleDose = async (medId: number, doseIndex: number, currentTaken: boolean) => {
+  const handleToggleDose = async (medId: string, doseIndex: number, currentTaken: boolean) => {
     try {
-      const dateStr = currentDate.toISOString().split('T')[0];
+      const dateStr = toLocalDateString(currentDate);
       await toggleDose({
         medication_id: medId,
         date: dateStr,

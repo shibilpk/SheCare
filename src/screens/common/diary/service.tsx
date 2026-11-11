@@ -1,5 +1,6 @@
 import { APIS } from '@src/constants/apis';
 import apiClient, { APIError } from '@src/services/ApiClient';
+import { toLocalDateString } from '../../../utils/date';
 
 export interface DiaryEntry {
   entry_date: string;
@@ -15,7 +16,7 @@ export async function fetchDiaryEntry(date: Date): Promise<DiaryEntry | null> {
       APIS.v1.diary.entryFromDate(),
       {
         params: {
-          entry_date: date.toISOString().split('T')[0],
+          entry_date: toLocalDateString(date),
         },
       },
     );
@@ -41,7 +42,7 @@ export async function saveDiaryEntry(
   content: string,
 ): Promise<string> {
   const payload = {
-    entry_date: date.toISOString().split('T')[0],
+    entry_date: toLocalDateString(date),
     content,
   };
 

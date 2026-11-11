@@ -154,7 +154,37 @@ export default function HomeScreen() {
     return days > 0 ? days : null;
   };
 
+  const isOvulationDay = !!customerPeriodData?.pregnancy_chance?.is_ovulation_day;
+  const isFertileWindow = !!customerPeriodData?.pregnancy_chance?.is_fertile_window;
+
   const quickStats = [
+    // Shown only while it applies (ovulation day / inside the fertile window)
+    ...(isOvulationDay
+      ? [
+          {
+            id: 'ovulation_day',
+            label: 'Ovulation',
+            icon: 'water',
+            iconColor: '#ff5c9d',
+            bgColor: ['#e7a6cc', '#f995bd'],
+            contentType: 'value',
+            screen: SCREENS.CALENDAR,
+          },
+        ]
+      : []),
+    ...(isFertileWindow
+      ? [
+          {
+            id: 'fertile_window',
+            label: 'Fertile Window',
+            icon: 'star',
+            iconColor: '#8E24AA',
+            bgColor: ['#E9D5FF', '#C084FC'],
+            contentType: 'value',
+            screen: SCREENS.CALENDAR,
+          },
+        ]
+      : []),
     {
       id: 'next_period',
       label: 'Next Period',
@@ -198,38 +228,6 @@ export default function HomeScreen() {
       screen: SCREENS.PERIODS_LIST,
     },
     {
-      id: 'mood',
-      label: 'Mood',
-      emoji: '😊',
-      icon: 'heart',
-      iconColor: '#EA580C',
-      bgColor: ['#FED7AA', '#FB923C'],
-      contentType: 'emoji',
-      screen: null,
-    },
-    {
-      id: 'energy',
-      label: 'Energy',
-      value: '85%',
-      icon: 'flash',
-      iconColor: '#0284C7',
-      levelIcon: 'up-open',
-      levelColor: '#10B981',
-      bgColor: ['#DBEAFE', '#60A5FA'],
-      contentType: 'value',
-      screen: null,
-    },
-    {
-      id: 'symptoms',
-      label: 'Symptoms',
-      value: '2',
-      icon: 'attention',
-      iconColor: '#CA8A04',
-      bgColor: ['#FDE68A', '#FBBF24'],
-      contentType: 'value',
-      screen: null,
-    },
-    {
       id: 'sleep',
       label: 'Sleep',
       emoji: '😴',
@@ -241,10 +239,10 @@ export default function HomeScreen() {
     },
   ].filter(stat => {
     if (stat.id === 'ovulation') {
-      return getDaysUntilOvulation() !== null; // or !== undefined
+      return getDaysUntilOvulation() !== null;
     }
     if (stat.id === 'next_period') {
-      return getDaysUntilNextPeriod() !== null; // or !== undefined
+      return getDaysUntilNextPeriod() !== null;
     }
 
     return true;
@@ -435,6 +433,7 @@ export default function HomeScreen() {
                   navigation.navigate(stat.screen);
                 }
               }}
+              style={styles.statTouchable}
             >
               <LinearGradient
                 colors={stat.bgColor}
@@ -459,7 +458,7 @@ export default function HomeScreen() {
                   {/* Content - Value or Emoji */}
                   {stat.contentType === 'value' && (
                     <View style={styles.statValueContainer}>
-                      <Text style={styles.statValue}>{stat.value}</Text>
+                      {stat.value && <Text style={styles.statValue}>{stat.value}</Text>}
                       {stat.levelIcon && (
                         <FontelloIcon
                           name={stat.levelIcon}
@@ -690,12 +689,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   scrollContent: {
+    ...STYLE.scrollContent,
     paddingHorizontal: STYLE.spacing.mh,
   },
   statsScrollView: {
     marginHorizontal: -STYLE.spacing.mh,
   },
   statsScroll: {
+    flexGrow: 1,
     paddingHorizontal: STYLE.spacing.mh,
     marginVertical: STYLE.spacing.mv,
     gap: 10,
@@ -990,8 +991,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#999',
   },
+  statTouchable: {
+    flexGrow: 1,
+    minWidth: 100,
+  },
   statCard: {
-    width: 100,
+    flex: 1,
+    justifyContent: 'center',
     borderRadius: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },

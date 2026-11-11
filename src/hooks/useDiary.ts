@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import apiClient, { APIError } from '@src/services/ApiClient';
 import { APIS } from '@src/constants/apis';
+import { toLocalDateString } from '../utils/date';
 
 export interface DiaryEntry {
   entry_date: string;
@@ -35,7 +36,7 @@ export function useDiary(): UseDiaryReturn {
         APIS.v1.diary.entryFromDate(),
         {
           params: {
-            entry_date: date.toISOString().split('T')[0],
+            entry_date: toLocalDateString(date),
           },
         },
       );
@@ -65,7 +66,7 @@ export function useDiary(): UseDiaryReturn {
       setError(null);
 
       const payload = {
-        entry_date: date.toISOString().split('T')[0],
+        entry_date: toLocalDateString(date),
         content,
       };
 

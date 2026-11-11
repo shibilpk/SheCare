@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import apiClient from '@src/services/ApiClient';
 import { APIS } from '@src/constants/apis';
+import { toLocalDateString } from '../../utils/date';
 
 export interface DoseSchedule {
   dose_index: number;
@@ -9,7 +10,7 @@ export interface DoseSchedule {
 }
 
 export interface Medication {
-  id: number;
+  id: string;
   name: string;
   dosage: string;
   frequency_period: string;
@@ -26,7 +27,7 @@ export interface Medication {
 }
 
 export interface MedicationWithDoses {
-  id: number;
+  id: string;
   name: string;
   dosage: string;
   frequency: string;
@@ -54,7 +55,7 @@ export interface CreateMedicationPayload {
 }
 
 export interface ToggleDosePayload {
-  medication_id: number;
+  medication_id: string;
   date: string;
   dose_index: number;
   taken: boolean;
@@ -69,9 +70,9 @@ export interface UseMedicationReturn {
   fetchMedications: (date: Date) => Promise<MedicationWithDoses[]>;
   fetchStats: (date: Date) => Promise<MedicationStats | null>;
   createMedication: (payload: CreateMedicationPayload) => Promise<Medication>;
-  updateMedication: (id: number, payload: CreateMedicationPayload) => Promise<Medication>;
+  updateMedication: (id: string, payload: CreateMedicationPayload) => Promise<Medication>;
   toggleDose: (payload: ToggleDosePayload) => Promise<void>;
-  deleteMedication: (id: number) => Promise<void>;
+  deleteMedication: (id: string) => Promise<void>;
 }
 
 /**
@@ -90,7 +91,7 @@ export function useMedication(): UseMedicationReturn {
       setIsLoading(true);
       setError(null);
 
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = toLocalDateString(date);
       const response = await apiClient.get<MedicationWithDoses[]>(
         APIS.v1.medication.medicationsByDate(dateStr)
       );
@@ -109,7 +110,7 @@ export function useMedication(): UseMedicationReturn {
 
   const fetchStats = useCallback(async (date: Date): Promise<MedicationStats | null> => {
     try {
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = toLocalDateString(date);
       const response = await apiClient.get<MedicationStats>(
         APIS.v1.medication.stats(dateStr)
       );
@@ -142,7 +143,7 @@ export function useMedication(): UseMedicationReturn {
     }
   }, []);
 
-  const updateMedication = useCallback(async (id: number, payload: CreateMedicationPayload): Promise<Medication> => {
+  const updateMedication = useCallback(async (id: string, payload: CreateMedicationPayload): Promise<Medication> => {
     try {
       setIsSaving(true);
       setError(null);
@@ -208,7 +209,7 @@ export function useMedication(): UseMedicationReturn {
     }
   }, [stats]);
 
-  const deleteMedication = useCallback(async (id: number): Promise<void> => {
+  const deleteMedication = useCallback(async (id: string): Promise<void> => {
     try {
       setIsSaving(true);
       setError(null);

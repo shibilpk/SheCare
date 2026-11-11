@@ -1,7 +1,12 @@
-import React, { useCallback, useState, useEffect, useContext } from 'react';
+import React, {
+  useCallback,
+  useState,
+  useEffect,
+  useContext,
+  useMemo,
+} from 'react';
 import {
   FlatList,
-  Modal,
   View,
   Text,
   StyleSheet,
@@ -11,12 +16,18 @@ import {
 } from 'react-native';
 import {
   SafeAreaView,
-  useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import { THEME_COLORS } from '../../constants/colors';
+import { useNavigation } from '@react-navigation/native';
+import { DrawerNavigationProp } from '@react-navigation/drawer';
+import { RootStackParamList } from '../../constants/navigation';
+import { STYLE } from '../../constants/app';
+import {
+  useCalendarMarkers,
+  type CalendarMarkers,
+} from '@src/hooks/useCalendarMarkers';
 import FontelloIcon from '../../services/FontelloIcons';
 import { CalendarWidget, DateRange } from '../../components/widgets/Calender';
-import ModalTopIcon from '../../components/common/ModalTopIcon';
 import { ScrollView } from 'react-native-gesture-handler';
 import { monthNames } from '../../constants/common';
 import DiaryModal from '../common/diary/DiaryModal';
@@ -24,7 +35,6 @@ import { useDailyEntry } from '@src/hooks/useDailyEntry';
 import { useErrorToast, useToastMessage } from '@src/utils/toastMessage';
 import { useDiary } from '@src/hooks/useDiary';
 import { APIError } from '@src/services/ApiClient';
-import { usePregnancyChance } from '@src/hooks/usePregnancyChance';
 import { log } from 'node_modules/react-native-bootsplash/dist/typescript/module/extras/utils';
 import CalendarDateContext from '@src/services/CalendarDateContext';
 
@@ -51,18 +61,35 @@ const MonthCard = React.memo<{
   );
 });
 
+// `type` is the key returned by the calendar-markers API
+const MARKERS: {
+  key: string;
+  type: keyof CalendarMarkers;
+  label: string;
+  icon: string;
+  color: string;
+}[] = [
+  { key: 'period', type: 'period', label: 'Period', icon: 'droplet', color: '#e51e1e' },
+  { key: 'futurePeriod', type: 'future_period', label: 'Future Period', icon: 'droplet', color: '#888888' },
+  { key: 'ovulation', type: 'ovulation', label: 'Ovulation', icon: 'snowflake-o', color: '#FB8C00' },
+  { key: 'fertile', type: 'fertile', label: 'Fertile Window', icon: 'cog', color: '#8E24AA' },
+  { key: 'pregnant', type: 'pregnant', label: 'Pregnancy', icon: 'emo-laugh', color: '#43A047' },
+  { key: 'medication', type: 'medication', label: 'Medication', icon: 'med-kit', color: '#b5651d' },
+  { key: 'love', type: 'love', label: 'Intimacy', icon: 'heart', color: '#ef43e6' },
+  { key: 'diary', type: 'diary', label: 'Diary Entry', icon: 'book', color: '#555555' },
+];
+
 const CalendarScreen: React.FC = () => {
   const [view, setView] = useState<'month' | 'year'>('month');
   const today = new Date();
   const [currentDate, setCurrentDate] = useState(today);
   const [selectedYear, setSelectedYear] = useState(today.getFullYear());
   const [showDiaryModal, setShowDiaryModal] = useState(false);
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [diaryText, setDiaryText] = useState('');
   const [diaryDate, setDiaryDate] = useState<Date>(today);
   const [isYearViewLoading, setIsYearViewLoading] = useState(false);
   // Removed full screen activity animation logic
-  const insets = useSafeAreaInsets();
+  const navigation = useNavigation<DrawerNavigationProp<RootStackParamList>>();
 
   // Get global calendar date context
   const calendarDateContext = useContext(CalendarDateContext);
@@ -80,8 +107,18 @@ const CalendarScreen: React.FC = () => {
 
   const { showToast } = useToastMessage();
 
-  // Pregnancy chance hook
-  const { pregnancyChance, isLoading: isLoadingPregnancy } = usePregnancyChance();
+  // Pregnancy chance for the selected date comes with the daily summary
+  const pregnancyChance = dailySummary?.pregnancy_chance ?? null;
+  const isLoadingPregnancy = isLoading;
+  const pregnancyLevel = pregnancyChance?.level ?? 'low';
+  const pregnancyChanceLabel =
+    pregnancyLevel.charAt(0).toUpperCase() + pregnancyLevel.slice(1);
+  let pregnancySubtitle = `${pregnancyChanceLabel} chance - Fertility tracking`;
+  if (pregnancyChance?.is_ovulation_day) {
+    pregnancySubtitle = `${pregnancyChanceLabel} chance - Ovulation day`;
+  } else if (pregnancyChance?.is_fertile_window) {
+    pregnancySubtitle = `${pregnancyChanceLabel} chance - Fertile window`;
+  }
 
   // Auto show errors as toast
   useErrorToast(error);
@@ -103,18 +140,6 @@ const CalendarScreen: React.FC = () => {
 
     loadDailyEntry();
   }, [currentDate, fetchDailyDetailed]);
-
-  // Calendar marking toggles
-  const [markingToggles, setMarkingToggles] = useState({
-    ovulation: true,
-    fertile: true,
-    period: true,
-    futurePeriod: true,
-    pregnant: true,
-    medication: true,
-    love: true,
-    diary: true,
-  });
 
   async function loadDiary(date: Date) {
     try {
@@ -149,39 +174,31 @@ const CalendarScreen: React.FC = () => {
     [saveDiaryNote, showToast],
   );
 
-  const toggleMarking = (key: keyof typeof markingToggles) => {
-    setMarkingToggles(prev => ({ ...prev, [key]: !prev[key] }));
-  };
-
   const handleDayPress = useCallback((value: Date | DateRange) => {
     if (value instanceof Date) {
       setCurrentDate(value);
     }
   }, []);
 
-  const getMarkedIcon = useCallback((type: string) => {
-    switch (type) {
-      case 'ovulation':
-        return <FontelloIcon name="cog" color="orange" size={12} />;
-      case 'fertile':
-        return <FontelloIcon name="star" color="purple" size={12} />;
-      case 'period':
-        return <FontelloIcon name="droplet" color="blue" size={12} />;
-      case 'future-period':
-        return <FontelloIcon name="droplet" color="#888" size={12} />;
-      case 'pregnant':
-        return <FontelloIcon name="emo-laugh" color="green" size={12} />;
-      case 'medication':
-        return <FontelloIcon name="med-kit" color="#b5651d" size={12} />;
-      case 'love':
-        return <FontelloIcon name="heart" color="red" size={12} />;
-      case 'diary':
-        return <FontelloIcon name="book" color="#555" size={12} />;
+  // Dates to mark on the calendar, fetched for the visible months
+  const calendarMarkers = useCalendarMarkers(currentDate);
 
-      default:
-        return null;
-    }
-  }, []);
+  const markedDates = useMemo(
+    () =>
+      MARKERS.flatMap(marker =>
+        calendarMarkers[marker.type].map(date => ({
+          date,
+          icon: (
+            <FontelloIcon
+              name={marker.icon}
+              color={marker.color}
+              size={12}
+            />
+          ),
+        })),
+      ),
+    [calendarMarkers],
+  );
 
   const handleYearChange = (offset: number) => {
     setIsYearViewLoading(true);
@@ -218,118 +235,11 @@ const CalendarScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      {/* Settings Modal */}
-      <Modal
-        visible={showSettingsModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowSettingsModal(false)}
-      >
-        <View style={[styles.settingsModalContent, { paddingTop: insets.top }]}>
-          <View style={styles.settingsModalHeader}>
-            <Text style={styles.settingsModalTitle}>Calendar Settings</Text>
-            <ModalTopIcon
-              onPress={() => setShowSettingsModal(false)}
-              iconName="cancel"
-            />
-          </View>
-
-          <ScrollView showsVerticalScrollIndicator={false}>
-            <Text style={styles.settingsModalSubtitle}>Show Markers</Text>
-
-            {[
-              {
-                key: 'ovulation',
-                label: 'Ovulation',
-                icon: 'cog',
-                color: 'orange',
-              },
-              {
-                key: 'fertile',
-                label: 'Fertile Window',
-                icon: 'star',
-                color: 'purple',
-              },
-              {
-                key: 'period',
-                label: 'Period',
-                icon: 'droplet',
-                color: 'blue',
-              },
-              {
-                key: 'futurePeriod',
-                label: 'Future Period',
-                icon: 'droplet',
-                color: '#888',
-              },
-              {
-                key: 'pregnant',
-                label: 'Pregnancy',
-                icon: 'emo-laugh',
-                color: 'green',
-              },
-              {
-                key: 'medication',
-                label: 'Medication',
-                icon: 'med-kit',
-                color: '#b5651d',
-              },
-              { key: 'love', label: 'Intimacy', icon: 'heart', color: 'red' },
-              {
-                key: 'diary',
-                label: 'Diary Entry',
-                icon: 'book',
-                color: '#555',
-              },
-            ].map(item => (
-              <TouchableOpacity
-                key={item.key}
-                style={styles.settingsToggleRow}
-                onPress={() =>
-                  toggleMarking(item.key as keyof typeof markingToggles)
-                }
-              >
-                <View style={styles.settingsToggleLeft}>
-                  <View
-                    style={[
-                      styles.settingsToggleIcon,
-                      { backgroundColor: item.color + '20' },
-                    ]}
-                  >
-                    <FontelloIcon
-                      name={item.icon}
-                      size={20}
-                      color={item.color}
-                    />
-                  </View>
-                  <Text style={styles.settingsToggleLabel}>{item.label}</Text>
-                </View>
-                <View
-                  style={[
-                    styles.settingsToggleSwitch,
-                    markingToggles[item.key as keyof typeof markingToggles] &&
-                      styles.settingsToggleSwitchActive,
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.settingsToggleThumb,
-                      markingToggles[item.key as keyof typeof markingToggles] &&
-                        styles.settingsToggleThumbActive,
-                    ]}
-                  />
-                </View>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      </Modal>
-
       {/* Top Navigation Bar */}
       <View style={styles.topBar}>
         <TouchableOpacity
           style={styles.settingsBtn}
-          onPress={() => setShowSettingsModal(true)}
+          onPress={() => navigation.openDrawer()}
         >
           <FontelloIcon name="cog-1" size={24} color={THEME_COLORS.text} />
         </TouchableOpacity>
@@ -391,6 +301,7 @@ const CalendarScreen: React.FC = () => {
               flex: 1,
             }}
             overScrollMode="always"
+            contentContainerStyle={STYLE.scrollContent}
           >
             <View style={{ flex: 1 }}>
               {/* Calendar Widget */}
@@ -399,84 +310,7 @@ const CalendarScreen: React.FC = () => {
                   scrollable
                   selectionMode="single"
                   showMonthNavigation={true}
-                  markedDates={[
-                    ...(markingToggles.ovulation
-                      ? [
-                          {
-                            date: new Date('2025-12-05'),
-                            icon: getMarkedIcon('ovulation'),
-                          },
-                        ]
-                      : []),
-                    ...(markingToggles.love
-                      ? [
-                          {
-                            date: new Date('2025-12-04'),
-                            icon: getMarkedIcon('love'),
-                          },
-                        ]
-                      : []),
-                    ...(markingToggles.period
-                      ? [
-                          {
-                            date: new Date('2025-12-06'),
-                            icon: getMarkedIcon('period'),
-                          },
-                        ]
-                      : []),
-                    ...(markingToggles.futurePeriod
-                      ? [
-                          {
-                            date: new Date('2025-12-07'),
-                            icon: getMarkedIcon('future-period'),
-                          },
-                        ]
-                      : []),
-                    ...(markingToggles.fertile
-                      ? [
-                          {
-                            date: new Date('2025-12-08'),
-                            icon: getMarkedIcon('fertile'),
-                          },
-                        ]
-                      : []),
-                    ...(markingToggles.medication
-                      ? [
-                          {
-                            date: new Date('2025-12-09'),
-                            icon: getMarkedIcon('medication'),
-                          },
-                        ]
-                      : []),
-                    ...(markingToggles.diary
-                      ? [
-                          {
-                            date: new Date('2025-12-10'),
-                            icon: getMarkedIcon('diary'),
-                          },
-                        ]
-                      : []),
-                    ...(markingToggles.pregnant
-                      ? [
-                          {
-                            date: new Date('2025-12-11'),
-                            icon: getMarkedIcon('pregnant'),
-                          },
-                          {
-                            date: new Date('2025-12-13'),
-                            icon: getMarkedIcon('pregnant'),
-                            backgroundColor: 'red',
-                            textColor: 'white',
-                          },
-                        ]
-                      : []),
-                    {
-                      date: new Date('2025-12-12'),
-                      // Example: mark with background and text color only (no icon)
-                      backgroundColor: 'red',
-                      textColor: 'white',
-                    },
-                  ]}
+                  markedDates={markedDates}
                   initialDate={currentDate}
                   selectedDate={currentDate}
                   onDayPress={handleDayPress}
@@ -503,7 +337,7 @@ const CalendarScreen: React.FC = () => {
                       <Text style={styles.pregnancySubtitle}>
                         {isLoadingPregnancy
                           ? 'Loading...'
-                          : `${pregnancyChance?.level?.charAt(0).toUpperCase()}${pregnancyChance?.level?.slice(1) || 'Low'} chance - Fertility tracking`
+                          : pregnancySubtitle
                         }
                       </Text>
                     </View>
@@ -980,93 +814,6 @@ const styles = StyleSheet.create({
     color: THEME_COLORS.primary,
     textAlign: 'center',
     marginBottom: 8,
-  },
-  settingsModalContent: {
-    backgroundColor: THEME_COLORS.textLight,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 40,
-    maxHeight: '100%',
-    height: '100%',
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
-    borderRadius: 0,
-  },
-  settingsModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  settingsModalTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: THEME_COLORS.text,
-  },
-  settingsModalSubtitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: THEME_COLORS.text,
-    marginBottom: 16,
-    marginTop: 8,
-  },
-  settingsToggleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  settingsToggleLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  settingsToggleIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  settingsToggleLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: THEME_COLORS.text,
-  },
-  settingsToggleSwitch: {
-    width: 50,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#e0e0e0',
-    padding: 2,
-    justifyContent: 'center',
-  },
-  settingsToggleSwitchActive: {
-    backgroundColor: THEME_COLORS.primary,
-  },
-  settingsToggleThumb: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  settingsToggleThumbActive: {
-    alignSelf: 'flex-end',
   },
 });
 
